@@ -49,9 +49,15 @@ select throws_ok(
       where status = 'REQUESTED' $$,
   '23514', null, 'the guard rejects REQUESTED -> COMPLETED even for postgres');
 
+-- A participant is the most privileged non-operator who could want a swap
+-- gone; the Data API must still refuse. (An operator with the database
+-- password can delete — see 03_immutability.)
+select pg_temp.login_as('altan@example.invalid');
+set local role authenticated;
 select throws_ok(
   $$ delete from public.swaps where true $$,
-  '42501', null, 'swaps can never be deleted');
+  '42501', null, 'a participant cannot delete a swap through the Data API');
+reset role;
 
 -- ── Two-party confirmation ────────────────────────────────────────────────
 -- The first confirmer is recorded; the same person cannot also complete it.

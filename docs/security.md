@@ -629,7 +629,8 @@ Brief §66-ийн асуулт бүр. **Аль нэг нь "тийм" бол pr
 | 11 | А нь Б-ийн swap-ийг дуусгаж чадах уу? | **Үгүй** | `F:complete_swap` оролцогч шалгалт | ✅ `NOT_A_PARTICIPANT (42501)` |
 | 12 | Нэг хүн дангаараа swap дуусгаж чадах уу? | **Үгүй** | `confirmed_by <> actor` | ✅ `AWAITING_COUNTERPARTY_CONFIRMATION` |
 | 13 | Давхар өмчлөл шилжүүлэг боломжтой юу? | **Үгүй** | unique index + terminal guard | ✅ `INVALID_TRANSITION_COMPLETED_TO_COMPLETED` |
-| 14 | Дууссан гүйлгээг чимээгүй дахин бичиж болох уу? | **Үгүй** | `T:solio_deny_mutation` | ✅ `TABLE_IS_APPEND_ONLY` (`postgres` role-оор ч) |
+| 14 | Дууссан гүйлгээг чимээгүй дахин бичиж болох уу? | **Үгүй** | `T:solio_deny_mutation` | ✅ `TABLE_IS_APPEND_ONLY` (`postgres` role-оор ч — UPDATE-д гарц байхгүй) |
+| 14б | Хэрэглэгч түүхийн мөр устгаж чадах уу? | **Үгүй** | `T:solio_deny_mutation` + GRANT байхгүй | ✅ `authenticated`, `service_role` хоёулаа таслагдана ([database.md §6.1](./database.md)) |
 | 15 | Буруу swap шилжилт боломжтой юу? | **Үгүй** | `T:swaps_guard` ирмэгийн цагаан жагсаалт | ✅ 6 ирмэгээс бусад бүгд таслагдана |
 | 16 | А нь Б-ийн зургийг устгаж чадах уу? | **Үгүй** | `R:book_images_update_owner` + `F:owns_copy` | ⏳ Phase 2-т тест бичигдэнэ |
 | 17 | Admin биш хүн admin endpoint-д хүрч чадах уу? | **Үгүй** | `requireRole()` + RPC доторх `has_role()` | ⏳ Phase 5-т тест бичигдэнэ |

@@ -529,7 +529,8 @@ grant  execute on function public.complete_swap(uuid) to authenticated;
 | **D** | Болд баталгаажуулав (PHASE 2) | `COMPLETED` | ✅ `status=COMPLETED completed_at=…` |
 | **E** | Дууссаны дараа дахин дуудав | таслагдана | ✅ `INVALID_TRANSITION_COMPLETED_TO_COMPLETED` |
 | **F₁** | `ownership_events` мөр UPDATE хийв | таслагдана | ✅ `TABLE_IS_APPEND_ONLY: ownership_events (42501)` |
-| **F₂** | `ownership_events` мөр DELETE хийв | таслагдана | ✅ `TABLE_IS_APPEND_ONLY: ownership_events (42501)` |
+| **F₂** | `ownership_events` мөр DELETE хийв (`authenticated`) | таслагдана | ✅ `TABLE_IS_APPEND_ONLY: ownership_events (42501)` |
+| **F₃** | `ownership_events` мөр DELETE хийв (оператор, `postgres`) | зөвшөөрөгдөнө | ✅ операторын гарц — [database.md §6.1](./database.md) |
 | **G** | Бүрэн бүтэн байдлын query | 0 мөр | ✅ 0 мөр |
 
 **Өмчлөлийн эцсийн байдал:**

@@ -666,11 +666,16 @@ create table public.audit_logs (
 `ownership_events` болон `audit_logs` нь **зөвхөн нэмэгддэг** (append-only). Гурван давхарга:
 
 ```sql
--- supabase/migrations/0070_immutability.sql
+-- supabase/migrations/0070_immutability.sql (+ 0180_narrow_override.sql)
 create or replace function private.solio_deny_mutation()
 returns trigger language plpgsql set search_path = ''
 as $$
 begin
+  -- Операторын гарц: DELETE/TRUNCATE-ийг `postgres` хийж чадна, UPDATE-ийг
+  -- хэн ч хийж чадахгүй. Дэлгэрэнгүйг §6.1-ээс.
+  if tg_op in ('DELETE','TRUNCATE') and private.history_override() then
+    return old;
+  end if;
   raise exception 'TABLE_IS_APPEND_ONLY: %', tg_table_name using errcode = '42501';
 end $$;
 
@@ -698,19 +703,54 @@ grant select on public.audit_logs      to authenticated;
 -- 3. RLS — UPDATE/DELETE policy огт байхгүй (policy байхгүй = зөвшөөрөл байхгүй)
 alter table public.ownership_events enable row level security;
 alter table public.ownership_events force  row level security;
-alter table public.audit_logs       enable row level security;
-alter table public.audit_logs       force  row level security;
+
+### 6.1 Операторын гарц
+
+Анхны хувилбарт эдгээр trigger нь `postgres` role-ыг ч зогсоодог байсан. Энэ нь
+онолын хувьд зөв ч практикт эзэмшигчийг өөрийнх нь өгөгдлийн сангаас гаргаж
+хаясан: Supabase Studio-гийн Table Editor-оор нэг ч мөр устгах боломжгүй байв.
+
+Жинхэнэ хил хязгаар нь "postgres эсэх" биш, **"Data API мөн үү, эсвэл шууд
+холболт мөн үү"** гэдэгт байна. PostgREST үргэлж `anon`, `authenticated`,
+`service_role`-ийн аль нэгээр ажилладаг — хэзээ ч `postgres`-ээр ажилладаггүй.
+Тиймээс role дээр шалгахад л хэрэглэгчийн хүрч чадах бүх зам хаагдана,
+алдагдсан service key ч мөн адил. `postgres`-т хүрнэ гэдэг нь өгөгдлийн сангийн
+нууц үг эсвэл Studio session эзэмшиж байна гэсэн үг — тэр нь тодорхойлолтоороо
+оператор.
+
+```sql
+create or replace function private.history_override()
+returns boolean language sql stable set search_path = ''
+as $$ select current_user in ('postgres','supabase_admin','supabase_auth_admin') $$;
 ```
 
-`FORCE ROW LEVEL SECURITY` нь table-ийн эзэмшигчид (`postgres`) ч RLS үйлчлэхийг заана.
+Гарцын хүрээ санаатайгаар нарийн:
 
-**Гурван давхаргын хуваарилалт:**
-
-| Давхарга | Юуг зогсоох | Юуг зогсоохгүй |
+| Үйлдэл | `authenticated` / `service_role` | `postgres` (оператор) |
 |---|---|---|
-| RLS policy байхгүй | `authenticated` role-ийн бүх бичилт | `service_role` (BYPASSRLS) |
-| GRANT байхгүй | Эрхгүй үйлдлийн оролдлого | `postgres` эзэмшигч |
-| **Trigger** | **Бүх role, `service_role` ба `postgres` хүртэл** | `alter table … disable trigger` (superuser) |
+| `ownership_events` / `audit_logs` — **UPDATE** | ✗ | ✗ *(хэн ч түүхийг дарж бичихгүй)* |
+| `ownership_events` / `audit_logs` — DELETE, TRUNCATE | ✗ | ✓ |
+| `book_copies`, `swaps`, `book_images`, `reports`, `profiles` — DELETE | ✗ | ✓ |
+| `swaps` — UPDATE (state machine) | ✗ | шалгалт **хэвээр** мөрдөгдөнө |
+
+Сүүлийн мөр чухал. Swap-ийн RPC-ууд `SECURITY DEFINER` буюу `postgres`-ээр
+ажилладаг тул `swaps_guard`-д гарцыг UPDATE дээр тавибал `is_valid_swap_edge()`
+шалгалт аппликейшны хувьд бүхэлдээ идэвхгүй болно. Гарц зөвхөн DELETE салаанд
+байрлана.
+
+**Хэрэглэгч устгах.** `profiles` руу заасан гадаад түлхүүрүүд зориудаар
+`RESTRICT` хэвээр — нэг профайлыг чимээгүй устгавал өөр хүний гарт байгаа
+хувийн эзэмшлийн түүх ч хамт алга болно. Оронд нь дараалал баримталсан
+функц ашиглана:
+
+```sql
+select private.purge_user('<user-uuid>');   -- бүх өгөгдөлтэй нь хамт
+select private.purge_book('<book-uuid>');   -- ном + хувь + зураг + үнэлгээ
+```
+
+`private` схемийн анхны эрх нь `anon`, `authenticated`, `service_role`-оос
+`EXECUTE`-ыг хурааж авсан байдаг ба функц дотроо дуудагчийг дахин шалгадаг тул
+зөвхөн шууд холболтоос ажиллана.
 
 ---
 
