@@ -1,0 +1,191 @@
+/* Shared form styling for auth pages and the add-book flow. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.optional {
+  color: var(--text-3);
+  font-weight: 400;
+  margin-left: 5px;
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14.5px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.55;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.submit {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  padding: 11px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.submit:hover {
+  background: var(--accent-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .submit {
+    color: #17150f;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Auth-page shell */
+
+.authShell {
+  max-width: 400px;
+  margin: 22px auto 0;
+}
+
+.authCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px;
+  box-shadow: var(--shadow);
+}
+
+.authTitle {
+  font-size: 22px;
+  margin-bottom: 5px;
+}
+
+.authSubtitle {
+  font-size: 13.5px;
+  color: var(--text-2);
+  margin-bottom: 22px;
+}
+
+.authAlt {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.authAlt a {
+  color: var(--accent);
+  font-weight: 550;
+}
+
+.authAlt a:hover {
+  text-decoration: underline;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.oauth {
+  width: 100%;
+  padding: 10px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.formMessage {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.demoHint {
+  margin-top: 16px;
+  padding: 9px 11px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.demoHint code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--text-2);
+}

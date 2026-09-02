@@ -1,0 +1,144 @@
+/* Solio — global styles & design tokens.
+   Component-specific styles live in *.module.css next to the component. */
+
+:root {
+  /* Palette */
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-2: #f4f2ef;
+  --border: #e4e0d9;
+  --border-strong: #d1ccc2;
+
+  --text: #1c1a17;
+  --text-2: #5c574f;
+  --text-3: #8b857a;
+
+  --accent: #7a4f2c;
+  --accent-hover: #613e22;
+  --accent-soft: #f2e9e0;
+
+  --ok: #2f6b46;
+  --ok-soft: #e3f0e8;
+  --warn: #8a6212;
+  --warn-soft: #f8efd9;
+  --danger: #9a3325;
+  --danger-soft: #f8e5e1;
+
+  /* Spacing / shape */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 2px rgb(28 26 23 / 6%), 0 4px 12px rgb(28 26 23 / 4%);
+  --shadow-lifted: 0 2px 4px rgb(28 26 23 / 8%), 0 12px 28px rgb(28 26 23 / 8%);
+
+  --header-h: 60px;
+  --max-w: 1120px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16150f;
+    --surface: #1f1e18;
+    --surface-2: #2a2820;
+    --border: #35322a;
+    --border-strong: #46423a;
+
+    --text: #f2efe8;
+    --text-2: #b3ada1;
+    --text-3: #8a847a;
+
+    --accent: #d3a173;
+    --accent-hover: #e5b98f;
+    --accent-soft: #33291f;
+
+    --ok: #7fc39c;
+    --ok-soft: #1e2f26;
+    --warn: #d9b160;
+    --warn-soft: #322a17;
+    --danger: #e08b7c;
+    --danger-soft: #33201c;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 20%);
+    --shadow-lifted: 0 2px 4px rgb(0 0 0 / 35%), 0 12px 28px rgb(0 0 0 / 30%);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  font-weight: 650;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Shared layout helper */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-inline: 14px;
+  }
+}

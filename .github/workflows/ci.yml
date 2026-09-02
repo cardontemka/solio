@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  app:
+    name: Lint, types, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Build
+        # Placeholder values: every route is server-rendered on demand, so the
+        # build never contacts Supabase. These only satisfy the startup check in
+        # src/lib/validation/env.ts.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        run: npm run build
+
+  database:
+    name: Migrations, RLS and state machine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      # Proves every migration applies cleanly from an empty database — the
+      # only honest check that the committed migrations are the schema.
+      - name: Apply migrations and seed from scratch
+        run: supabase db reset
+
+      # 52 assertions across 5 files: RLS audit questions, the swap state
+      # machine, append-only history, atomic listing creation, and the
+      # wishlist matcher. The ledger-vs-current-state invariant is asserted
+      # inside 03_immutability.test.sql.
+      - name: pgTAP suite
+        run: supabase test db
+
+      - name: Stop
+        if: always()
+        run: supabase stop --no-backup

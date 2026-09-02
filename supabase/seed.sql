@@ -1,0 +1,192 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+--  DEVELOPMENT SEED — never runs against production.
+--  `supabase db push` deploys migrations only; this file is applied by
+--  `supabase db reset` / `supabase start` on the local stack.
+--
+--  Demo accounts use the RFC-2606 reserved TLD .invalid (cannot be registered)
+--  and every demo bio starts with [DEMO], so seeded rows are unmistakable.
+--  All demo passwords: demo1234
+-- ═══════════════════════════════════════════════════════════════════════════
+
+do $$
+begin
+  if current_setting('app.environment', true) = 'production' then
+    raise exception 'SEED_DATA_MUST_NEVER_RUN_IN_PRODUCTION';
+  end if;
+end $$;
+
+-- Profiles and default roles are created by the on_auth_user_created trigger.
+-- GoTrue scans the *_token columns into Go strings and cannot handle NULL,
+-- so they must be empty strings rather than left to default.
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                        email_confirmed_at, created_at, updated_at,
+                        raw_app_meta_data, raw_user_meta_data,
+                        confirmation_token, recovery_token,
+                        email_change_token_new, email_change,
+                        email_change_token_current, phone_change,
+                        phone_change_token, reauthentication_token)
+values
+ ('11111111-1111-1111-1111-111111111111','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','altan@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"altan","display_name":"Алтан"}',
+  '', '', '', '', '', '', '', ''),
+ ('22222222-2222-2222-2222-222222222222','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','bolor@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"bolor","display_name":"Болор"}',
+  '', '', '', '', '', '', '', ''),
+ ('33333333-3333-3333-3333-333333333333','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','ganbat@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"ganbat","display_name":"Ганбат"}',
+  '', '', '', '', '', '', '', ''),
+ ('44444444-4444-4444-4444-444444444444','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','dulmaa@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"dulmaa","display_name":"Дулмаа"}',
+  '', '', '', '', '', '', '', '');
+
+insert into auth.identities (id, user_id, provider_id, provider, identity_data,
+                             created_at, updated_at, last_sign_in_at)
+select u.id, u.id, u.id::text, 'email',
+       jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+       now(), now(), now()
+  from auth.users u where u.email like '%@example.invalid';
+
+update public.profiles set
+  bio = '[DEMO] ' || case username
+          when 'altan'  then 'Түүх, намтар голчилж уншдаг.'
+          when 'bolor'  then 'Уран зохиол, орчуулгын ном цуглуулдаг.'
+          when 'ganbat' then 'Технологи, бизнесийн ном.'
+          else 'Хүүхдийн ном, зурагт ном.' end,
+  city = case username when 'ganbat' then 'Дархан'
+                       when 'dulmaa' then 'Эрдэнэт' else 'Улаанбаатар' end
+ where id in ('11111111-1111-1111-1111-111111111111',
+              '22222222-2222-2222-2222-222222222222',
+              '33333333-3333-3333-3333-333333333333',
+              '44444444-4444-4444-4444-444444444444');
+
+-- Demo library. Inserted directly (as postgres) rather than through the RPC so
+-- the seed can pick owners and back-date rows.
+with new_books as (
+  insert into public.books (title, author, isbn, publisher, language, description,
+                            published_at, created_by, created_at)
+  values
+   ('Монголын нууц товчоо','Тодорхойгүй','9789992901234','Улсын хэвлэлийн газар','mn',
+    'XIII зууны Монголын түүхэн сурвалж. Чингис хааны удам угсаа, амьдрал, байлдан дагуулалтын тухай өгүүлдэг.',
+    '2019-01-01','22222222-2222-2222-2222-222222222222', now() - interval '5 days'),
+   ('Ном унших урлаг','Мортимер Адлер','9780671212094','Нэпко','mn',
+    'Хэрхэн гүнзгий, ойлгомжтой унших вэ гэдгийг заасан сонгодог гарын авлага.',
+    '2021-06-15','11111111-1111-1111-1111-111111111111', now() - interval '6 days'),
+   ('The Hobbit','J.R.R. Tolkien','9780261102217','HarperCollins','en',
+    'Bilbo Baggins is swept into a quest to reclaim the lost Dwarf Kingdom of Erebor.',
+    '2012-09-18','11111111-1111-1111-1111-111111111111', now() - interval '7 days'),
+   ('Зөгийн балны амт','Д. Дулмаа',null,'Мөнхийн үсэг','mn',
+    'Хөдөөгийн бага насны дурсамжийг өгүүлсэн хүүхдийн богино өгүүллэгүүд.',
+    '2023-03-10','44444444-4444-4444-4444-444444444444', now() - interval '8 days'),
+   ('Хүн ба хувь заяа','Ч. Лодойдамба','9789996252341','Соёмбо принтинг','mn',
+    'Монголын сонгодог уран зохиолын нэгэн чухал бүтээл.',
+    '2018-11-02','22222222-2222-2222-2222-222222222222', now() - interval '9 days'),
+   ('Sapiens: Хүн төрөлхтний товч түүх','Ювал Ноа Харари','9789997712349','Нэпко','mn',
+    'Танин мэдэхүйн хувьсгалаас өнөөг хүртэлх хүн төрөлхтний түүх.',
+    '2020-02-20','33333333-3333-3333-3333-333333333333', now() - interval '10 days'),
+   ('Номын сан ба уншлагын соёл','Б. Батсайхан',null,'Соёмбо','mn',
+    'Монгол дахь номын сангийн хөгжил, уншлагын соёлын судалгаа.',
+    '2022-09-01','22222222-2222-2222-2222-222222222222', now() - interval '11 days'),
+   ('Atomic Habits','James Clear','9780735211292','Avery','en',
+    'An easy and proven way to build good habits and break bad ones.',
+    '2018-10-16','33333333-3333-3333-3333-333333333333', now() - interval '12 days'),
+   ('Гэгээн муза','Б. Явуухулан',null,'Улсын хэвлэлийн газар','mn',
+    'Монголын нэрт яруу найрагчийн шүлгийн түүвэр.',
+    '2015-04-04','11111111-1111-1111-1111-111111111111', now() - interval '13 days'),
+   ('Clean Code','Robert C. Martin','9780132350884','Prentice Hall','en',
+    'A handbook of agile software craftsmanship.',
+    '2008-08-01','33333333-3333-3333-3333-333333333333', now() - interval '14 days')
+  returning id, title
+)
+insert into public.book_copies (book_id, owner_id, custodian_id, condition,
+                                condition_note, status, created_at)
+select b.id, o.owner, o.owner, o.cond, o.note, o.st, now() - (o.age || ' days')::interval
+  from new_books b
+  join (values
+    ('Монголын нууц товчоо','22222222-2222-2222-2222-222222222222'::uuid,'good','Хавтас бага зэрэг элэгдэлтэй, дотор нь цэвэрхэн.','available',5),
+    ('Монголын нууц товчоо','33333333-3333-3333-3333-333333333333'::uuid,'fair','Хэдэн хуудсанд тэмдэглэгээ бий.','available',4),
+    ('Ном унших урлаг','11111111-1111-1111-1111-111111111111'::uuid,'like_new','Нэг удаа уншсан.','available',6),
+    ('The Hobbit','11111111-1111-1111-1111-111111111111'::uuid,'good',null,'available',7),
+    ('Зөгийн балны амт','44444444-4444-4444-4444-444444444444'::uuid,'new','Огт уншаагүй.','available',8),
+    ('Хүн ба хувь заяа','22222222-2222-2222-2222-222222222222'::uuid,'good',null,'available',9),
+    ('Sapiens: Хүн төрөлхтний товч түүх','33333333-3333-3333-3333-333333333333'::uuid,'like_new',null,'available',10),
+    ('Номын сан ба уншлагын соёл','22222222-2222-2222-2222-222222222222'::uuid,'good',null,'available',11),
+    ('Atomic Habits','33333333-3333-3333-3333-333333333333'::uuid,'new',null,'available',12),
+    ('Гэгээн муза','11111111-1111-1111-1111-111111111111'::uuid,'poor','Хуучирсан, гэхдээ бүрэн бүтэн.','inactive',13),
+    ('Clean Code','33333333-3333-3333-3333-333333333333'::uuid,'good',null,'available',14)
+  ) as o(title, owner, cond, note, st, age) on o.title = b.title;
+
+-- Every copy needs the opening entry of its ownership chain.
+insert into public.ownership_events (book_copy_id, from_owner_id, to_owner_id,
+                                     event_type, actor_id, occurred_at)
+select c.id, null, c.owner_id, 'initial_registration', c.owner_id, c.created_at
+  from public.book_copies c;
+
+-- ── Demo swaps, one per interesting state ─────────────────────────────────
+-- Inserted directly (as postgres) so each can be parked in a specific state;
+-- the RPCs are what create them in the running app.
+with picks as (
+  select
+    (select c.id from public.book_copies c join public.books b on b.id=c.book_id
+      where c.owner_id='22222222-2222-2222-2222-222222222222' and b.title='Монголын нууц товчоо') as bolor_nuuts,
+    (select c.id from public.book_copies c join public.books b on b.id=c.book_id
+      where c.owner_id='11111111-1111-1111-1111-111111111111' and b.title='The Hobbit') as altan_hobbit,
+    (select c.id from public.book_copies c join public.books b on b.id=c.book_id
+      where c.owner_id='11111111-1111-1111-1111-111111111111' and b.title='Ном унших урлаг') as altan_nom,
+    (select c.id from public.book_copies c join public.books b on b.id=c.book_id
+      where c.owner_id='33333333-3333-3333-3333-333333333333' and b.title='Sapiens: Хүн төрөлхтний товч түүх') as ganbat_sapiens
+),
+s1 as (
+  insert into public.swaps (id, requester_id, responder_id, status, message, created_at)
+  values ('7a1c93e4-5d2b-4f18-9c60-3e8b1d47a201',
+          '22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111',
+          'REQUESTED','Сайн байна уу? The Hobbit-ийг тань авмаар байна.', now() - interval '1 day')
+  returning id
+),
+s2 as (
+  insert into public.swaps (id, requester_id, responder_id, status, message, created_at)
+  values ('7a1c93e4-5d2b-4f18-9c60-3e8b1d47a202',
+          '11111111-1111-1111-1111-111111111111','33333333-3333-3333-3333-333333333333',
+          'ACCEPTED','Sapiens-ийг солилцох уу?', now() - interval '3 days')
+  returning id
+)
+insert into public.swap_items (swap_id, book_copy_id, side)
+select '7a1c93e4-5d2b-4f18-9c60-3e8b1d47a201'::uuid, bolor_nuuts,    'offered'   from picks
+union all
+select '7a1c93e4-5d2b-4f18-9c60-3e8b1d47a201'::uuid, altan_hobbit,   'requested' from picks
+union all
+select '7a1c93e4-5d2b-4f18-9c60-3e8b1d47a202'::uuid, altan_nom,      'offered'   from picks
+union all
+select '7a1c93e4-5d2b-4f18-9c60-3e8b1d47a202'::uuid, ganbat_sapiens, 'requested' from picks;
+
+-- The ACCEPTED swap's copies must be reserved, matching what respond_to_swap does.
+update public.book_copies set status = 'reserved'
+ where id in (select book_copy_id from public.swap_items
+               where swap_id = '7a1c93e4-5d2b-4f18-9c60-3e8b1d47a202'::uuid);
+
+insert into public.notifications (user_id, type, entity_type, entity_id)
+values ('11111111-1111-1111-1111-111111111111','swap_requested','swap','7a1c93e4-5d2b-4f18-9c60-3e8b1d47a201'),
+       ('33333333-3333-3333-3333-333333333333','swap_accepted','swap','7a1c93e4-5d2b-4f18-9c60-3e8b1d47a202');
+
+-- ── Demo wishlist ─────────────────────────────────────────────────────────
+-- One entry against a work that exists (so the page shows the linked state)
+-- and one free-text entry for a book nobody has listed yet.
+insert into public.book_requests (user_id, book_id, title, author, note)
+select '11111111-1111-1111-1111-111111111111', b.id, b.title, b.author,
+       'Англи эх хувилбар байвал сайн.'
+  from public.books b where b.title = 'Clean Code';
+
+insert into public.book_requests (user_id, title, author, note)
+values ('11111111-1111-1111-1111-111111111111',
+        'Монголын нууц товчооны тайлбар', 'Ц. Дамдинсүрэн', 'Аль ч хэвлэл болно.');

@@ -1,0 +1,14 @@
+.bar {
+  max-width: 640px;
+  margin-bottom: 26px;
+}
+
+.summary {
+  font-size: 13.5px;
+  color: var(--text-2);
+  margin-bottom: 16px;
+}
+
+.summary strong {
+  color: var(--text);
+}

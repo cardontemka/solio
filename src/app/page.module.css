@@ -1,0 +1,54 @@
+.hero {
+  padding: 34px 0 46px;
+  text-align: center;
+}
+
+.heroTitle {
+  font-size: clamp(28px, 5.2vw, 44px);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.heroText {
+  margin: 14px auto 0;
+  max-width: 52ch;
+  color: var(--text-2);
+  font-size: 15.5px;
+}
+
+.heroSearch {
+  margin: 28px auto 0;
+  max-width: 620px;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 18px 0 34px;
+  }
+
+  .heroText {
+    font-size: 14.5px;
+  }
+}
+
+.skeleton {
+  height: 300px;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to   { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

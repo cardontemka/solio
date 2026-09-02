@@ -1,0 +1,265 @@
+.section {
+  margin-bottom: 40px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.swap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.headLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.direction {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ── Parties ────────────────────────────────────────────────────────────── */
+
+.parties {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+@media (max-width: 620px) {
+  .parties {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .swapIcon {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+.side {
+  min-width: 0;
+}
+
+.sideLabel {
+  font-size: 11.5px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.bookRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+
+.bookRow:hover {
+  background: var(--surface-2);
+}
+
+.bookTitle {
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.bookAuthor {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.swapIcon {
+  font-size: 20px;
+  color: var(--text-3);
+}
+
+.message {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-2);
+  font-style: italic;
+  border-left: 2px solid var(--border-strong);
+  padding-left: 11px;
+}
+
+/* ── Steps ──────────────────────────────────────────────────────────────── */
+
+.steps {
+  list-style: none;
+  display: flex;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  position: relative;
+  text-align: center;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+}
+
+.step:first-child::before {
+  display: none;
+}
+
+.step[data-done='true'] {
+  color: var(--text-2);
+  font-weight: 550;
+}
+
+.step[data-done='true']::before {
+  background: var(--accent);
+}
+
+.stepDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  z-index: 1;
+}
+
+.step[data-done='true'] .stepDot {
+  background: var(--accent);
+}
+
+.hint {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+/* ── Actions ────────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.primary,
+.secondary {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 550;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .primary {
+    color: #17150f;
+  }
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text-2);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.actionError {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  margin: 0;
+}
+
+/* A swap waiting on the viewer gets a visible edge. */
+.swap[data-awaiting='true'] {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), 0 0 0 1px var(--accent) inset;
+}
