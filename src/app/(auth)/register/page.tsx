@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { GoogleButton } from '@/features/users/GoogleButton'
 import { RegisterForm } from '@/features/users/RegisterForm'
 import styles from '@/components/forms.module.css'
 
@@ -18,6 +19,9 @@ export default function RegisterPage() {
           </p>
 
           <RegisterForm />
+
+          <div className={styles.divider}>эсвэл</div>
+          <GoogleButton />
 
           <p className={styles.authAlt}>
             Данстай юу? <Link href="/login">Нэвтрэх</Link>

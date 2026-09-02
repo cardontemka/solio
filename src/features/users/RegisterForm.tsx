@@ -11,6 +11,16 @@ export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial)
   const errors = !state.ok ? state.errors : undefined
 
+  if (state.ok && state.pendingConfirmation) {
+    return (
+      <p className={styles.pending}>
+        <strong>Бүртгэл үүслээ.</strong>
+        Оруулсан хаяг руу баталгаажуулах холбоос илгээлээ. Тэр холбоос дээр дарсны дараа
+        нэвтрэх боломжтой болно. Захидал ирээгүй бол spam хавтсаа шалгана уу.
+      </p>
+    )
+  }
+
   return (
     <form action={formAction}>
       {!state.ok && <FormMessage message={state.message} />}

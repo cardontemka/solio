@@ -5,8 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { publicEnv } from '@/lib/validation/env'
 
-export type AuthState = { ok: false; message?: string; errors?: Record<string, string[]> } | { ok: true }
+export type AuthState =
+  | { ok: false; message?: string; errors?: Record<string, string[]> }
+  | { ok: true; pendingConfirmation?: boolean }
 
 const registerSchema = z.object({
   displayName: z.string().trim().min(1, 'Нэрээ оруулна уу.').max(60),
@@ -35,12 +38,13 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    // Read by the on_auth_user_created trigger to seed the profile row.
     options: {
+      // Read by the on_auth_user_created trigger to seed the profile row.
       data: { username: parsed.data.username, display_name: parsed.data.displayName },
+      emailRedirectTo: `${publicEnv.siteUrl.replace(/\/+$/, '')}/api/auth/callback`,
     },
   })
 
@@ -49,6 +53,12 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     // this form into an account-enumeration oracle.
     console.error('[registerAction]', error.message)
     return { ok: false, message: 'Бүртгэл үүсгэж чадсангүй. Мэдээллээ шалгаад дахин оролдоно уу.' }
+  }
+
+  // With email confirmation enabled there is no session yet. Redirecting would
+  // bounce straight back to /login and read as a failure.
+  if (!data.session) {
+    return { ok: true, pendingConfirmation: true }
   }
 
   revalidatePath('/', 'layout')
