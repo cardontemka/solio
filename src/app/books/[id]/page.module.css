@@ -317,3 +317,7 @@
   height: 100%;
   object-fit: cover;
 }
+
+.reportRow {
+  margin-top: 12px;
+}

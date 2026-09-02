@@ -49,6 +49,18 @@ values
   extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
   '{"provider":"email","providers":["email"]}',
   '{"username":"dulmaa","display_name":"Дулмаа"}',
+  '', '', '', '', '', '', '', ''),
+ ('55555555-5555-5555-5555-555555555555','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','admin_demo@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"admin_demo","display_name":"Админ"}',
+  '', '', '', '', '', '', '', ''),
+ ('66666666-6666-6666-6666-666666666666','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','mod_demo@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"mod_demo","display_name":"Модератор"}',
   '', '', '', '', '', '', '', '');
 
 insert into auth.identities (id, user_id, provider_id, provider, identity_data,
@@ -190,3 +202,39 @@ select '11111111-1111-1111-1111-111111111111', b.id, b.title, b.author,
 insert into public.book_requests (user_id, title, author, note)
 values ('11111111-1111-1111-1111-111111111111',
         'Монголын нууц товчооны тайлбар', 'Ц. Дамдинсүрэн', 'Аль ч хэвлэл болно.');
+
+-- ── Staff roles and a demo report ─────────────────────────────────────────
+-- Two staff accounts so the difference between them is visible: a moderator
+-- can hide content, only an admin can change roles.
+insert into public.user_roles (user_id, role) values
+  ('55555555-5555-5555-5555-555555555555','admin'),
+  ('66666666-6666-6666-6666-666666666666','moderator');
+
+update public.profiles set bio = '[DEMO] Платформын админ', city = 'Улаанбаатар'
+ where id = '55555555-5555-5555-5555-555555555555';
+update public.profiles set bio = '[DEMO] Контент модератор', city = 'Улаанбаатар'
+ where id = '66666666-6666-6666-6666-666666666666';
+
+insert into public.reports (reporter_id, entity_type, entity_id, reason, detail)
+select '22222222-2222-2222-2222-222222222222', 'book', b.id, 'wrong_metadata',
+       'Зохиогчийн нэр буруу бичигдсэн байна.'
+  from public.books b where b.title = 'Гэгээн муза';
+
+-- ── Demo reviews ──────────────────────────────────────────────────────────
+insert into public.book_reviews (book_id, user_id, rating, body)
+select b.id, v.user_id, v.rating, v.body
+  from public.books b
+  join (values
+    ('Монголын нууц товчоо','11111111-1111-1111-1111-111111111111'::uuid,5,
+     'Монгол хүн бүр нэг удаа уншвал зохих ном. Орчуулга нь ойлгомжтой.'),
+    ('Монголын нууц товчоо','33333333-3333-3333-3333-333333333333'::uuid,4,
+     'Түүхэн ач холбогдол өндөр, гэхдээ эхлэхэд жаахан хүнд.'),
+    ('Ном унших урлаг','22222222-2222-2222-2222-222222222222'::uuid,5,
+     'Уншлагын арга барилаа бүрэн өөрчилсөн.'),
+    ('The Hobbit','44444444-4444-4444-4444-444444444444'::uuid,5,
+     'Timeless. Гурав дахь удаагаа уншиж байна.'),
+    ('Sapiens: Хүн төрөлхтний товч түүх','11111111-1111-1111-1111-111111111111'::uuid,4,
+     'Сонирхолтой боловч зарим дүгнэлт нь маргаантай.'),
+    ('Atomic Habits','22222222-2222-2222-2222-222222222222'::uuid,4,
+     'Практик зөвлөгөө их.')
+  ) as v(title, user_id, rating, body) on v.title = b.title;

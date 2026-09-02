@@ -6,6 +6,9 @@ import { Badge, ButtonLink } from '@/components/ui'
 import { OfferSwapForm } from '@/features/swaps/OfferSwapForm'
 import { getOfferableCopies } from '@/features/swaps/queries'
 import { ImageUploader } from '@/features/images/ImageUploader'
+import { ReportButton } from '@/features/moderation/ReportButton'
+import { ReviewSection } from '@/features/reviews/ReviewSection'
+import { getMyReview, getReviewsForBook } from '@/features/reviews/queries'
 import { WishlistButton } from '@/features/wishlist/WishlistButton'
 import { hasOpenRequestFor } from '@/features/wishlist/queries'
 import { getBookDetail } from '@/features/books/queries'
@@ -39,6 +42,10 @@ export default async function BookDetailPage({ params }: PageProps<'/books/[id]'
   const me = await getSessionUser()
   const offerable = me ? await getOfferableCopies(me.id) : []
   const alreadyWished = me ? await hasOpenRequestFor(book.id) : false
+  const [reviews, myReview] = await Promise.all([
+    getReviewsForBook(book.id, me?.id ?? null),
+    getMyReview(book.id, me?.id ?? null),
+  ])
 
   return (
     <div className="container">
@@ -63,6 +70,11 @@ export default async function BookDetailPage({ params }: PageProps<'/books/[id]'
           {book.author && <p className={styles.author}>{book.author}</p>}
 
           <div className={styles.badges}>
+            {listing.avgRating !== null && (
+              <Badge tone="warn">
+                ★ {listing.avgRating.toFixed(1)} · {listing.reviewCount} сэтгэгдэл
+              </Badge>
+            )}
             {listing.availableCopies > 0 ? (
               <Badge tone="ok">{listing.availableCopies} хувь боломжтой</Badge>
             ) : (
@@ -83,6 +95,9 @@ export default async function BookDetailPage({ params }: PageProps<'/books/[id]'
                 author={book.author}
                 alreadyRequested={alreadyWished}
               />
+              <div className={styles.reportRow}>
+                <ReportButton entityType="book" entityId={book.id} />
+              </div>
             </div>
           )}
 
@@ -178,6 +193,13 @@ export default async function BookDetailPage({ params }: PageProps<'/books/[id]'
           })}
         </div>
       </section>
+
+      <ReviewSection
+        bookId={book.id}
+        reviews={reviews}
+        myReview={myReview}
+        canReview={Boolean(me)}
+      />
     </div>
   )
 }

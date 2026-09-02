@@ -1,0 +1,151 @@
+.head {
+  margin-bottom: 18px;
+}
+
+.title {
+  font-size: 26px;
+}
+
+.subtitle {
+  margin-top: 5px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.navLink {
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.navLink:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ── Stat tiles ─────────────────────────────────────────────────────────── */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.stat[data-alert='true'] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.statValue {
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.statLabel {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 640px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  font-weight: 600;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tr:hover td {
+  background: var(--surface-2);
+}
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.muted {
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.detail {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  border-left: 2px solid var(--border-strong);
+  padding-left: 9px;
+  max-width: 46ch;
+}
+
+.empty {
+  padding: 34px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13.5px;
+}
+
+.note {
+  margin-bottom: 18px;
+  padding: 10px 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--text-2);
+}

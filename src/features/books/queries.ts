@@ -24,6 +24,7 @@ type BookRow = {
     status: CopyStatus
     book_images: { storage_key: string; sort_order: number; status: string }[]
   }[]
+  book_reviews: { rating: number }[]
 }
 
 /**
@@ -47,7 +48,8 @@ export function coverColorFor(id: string): string {
 
 const LIST_SELECT = `
   id, title, author, isbn, publisher, language, description, published_at, created_at,
-  book_copies ( id, status, book_images ( storage_key, sort_order, status ) )
+  book_copies ( id, status, book_images ( storage_key, sort_order, status ) ),
+  book_reviews ( rating )
 `
 
 /**
@@ -76,6 +78,9 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 
 function toListing(row: BookRow): BookListing {
   const copies = row.book_copies ?? []
+  // RLS already limits this to reviews the caller may see, so a hidden one is
+  // excluded from the average rather than needing a filter here.
+  const ratings = (row.book_reviews ?? []).map((r) => r.rating)
   return {
     book: {
       id: row.id,
@@ -92,10 +97,9 @@ function toListing(row: BookRow): BookListing {
     },
     availableCopies: copies.filter((c) => c.status === 'available').length,
     totalCopies: copies.length,
-    // Reviews arrive with the reviews feature; the shape is already here so
-    // the card does not change when they do.
-    avgRating: null,
-    reviewCount: 0,
+    avgRating:
+      ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
+    reviewCount: ratings.length,
   }
 }
 

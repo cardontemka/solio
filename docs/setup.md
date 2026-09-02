@@ -254,17 +254,34 @@ supabase link --project-ref <STEP 2.3-ийн ref>  # DB нууц үг асуун
 | **Secret Access Key** | `R2_SECRET_ACCESS_KEY` 🔴 **нэг л удаа харагдана** |
 | (bucket нэр) | `R2_BUCKET_NAME=solio-book-images` |
 
-### 5.4 Нийтийн домэйн
+### 5.4 Нийтийн хандалт
 
-Номын зураг нь нийтийн контент (номын хуудас search engine-д индексжинэ), тиймээс bucket-ийг
-custom domain-аар түгээнэ.
+R2 bucket нь **анхдагчаар хаалттай** — S3 API-аар бичиж уншиж болох ч браузер зургийг татаж
+чадахгүй. Нийтийн хандалт нээх хоёр арга байна.
 
-1. Bucket → **Settings** → **Public access** → **Custom Domains** → **Connect Domain**.
+**Арга A — домэйнгүйгээр (одоо шууд ажиллана)**
+
+1. Bucket → **Settings** → **Public Development URL** → **Enable**.
+2. `https://pub-xxxxxxxx.r2.dev` хэлбэрийн хаяг өгнө. Түүнийг хуулж ав.
+3. `.env.local`-д: `NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev`
+
+⚠️ Cloudflare энэ хаягийг **rate limit** хийдэг ба production-д зориулаагүй гэж тодорхой
+хэлдэг. Хөгжүүлэлт болон туршилтад тохиромжтой.
+
+**Арга B — custom domain (production-ы зөв арга)**
+
+Домэйн тань Cloudflare дээр байх шаардлагатай (STEP 4).
+
+1. Bucket → **Settings** → **Custom Domains** → **Connect Domain**.
 2. `images.solio.mn` оруул → Cloudflare DNS бичлэгийг автоматаар үүсгэнэ.
 3. `.env.local`-д: `NEXT_PUBLIC_R2_PUBLIC_URL=https://images.solio.mn`
 
-> **`r2.dev` дэд домэйныг production-д бүү ашигла** — Cloudflare түүнийг rate limit хийдэг
-> бөгөөд production хэрэглээнд зориулаагүй.
+> ⚠️ Энэ баримт дахь `images.solio.mn` бол **жишээ**. Өөрийн домэйноо бичнэ үү — байхгүй
+> домэйн бичвэл зураг R2 руу амжилттай орсон ч браузерт бүгд эвдэрч харагдана.
+
+> **Дутуу тохиргоо:** таван хувьсагчийн аль нэг нь хоосон бол апп `LocalDevelopmentStorage`
+> руу шилжинэ. Development-д консол дээр аль хувьсагч дутууг нэрлэж анхааруулна;
+> production-д сервер огт эхлэхгүй.
 
 ### 5.5 CORS
 

@@ -20,7 +20,15 @@ const PRIVATE_NAV = [
 
 export type HeaderUser = { displayName: string; username: string } | null
 
-export function Header({ user, unreadCount = 0 }: { user: HeaderUser; unreadCount?: number }) {
+export function Header({
+  user,
+  unreadCount = 0,
+  isStaff = false,
+}: {
+  user: HeaderUser
+  unreadCount?: number
+  isStaff?: boolean
+}) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -46,7 +54,11 @@ export function Header({ user, unreadCount = 0 }: { user: HeaderUser; unreadCoun
         </button>
 
         <nav className={styles.nav} data-open={open}>
-          {[...PUBLIC_NAV, ...(user ? PRIVATE_NAV : [])].map((item) => (
+          {[
+            ...PUBLIC_NAV,
+            ...(user ? PRIVATE_NAV : []),
+            ...(isStaff ? ([{ href: '/admin', label: 'Админ' }] as const) : []),
+          ].map((item) => (
             <Link
               key={item.href}
               href={item.href}

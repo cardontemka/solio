@@ -11,15 +11,36 @@ import type { BookImageStorage } from './ports'
  *   · local URLs are relative, so they cannot resolve against a CDN
  *   · booting production on local storage throws here, naming the missing vars
  */
-function build(): BookImageStorage {
-  const accountId = process.env.R2_ACCOUNT_ID
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
-  const bucket = process.env.R2_BUCKET_NAME
-  const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+const R2_VARS = [
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_NAME',
+  'NEXT_PUBLIC_R2_PUBLIC_URL',
+] as const
 
-  if (accountId && accessKeyId && secretAccessKey && bucket && publicUrl) {
-    return new R2BookImageStorage({ accountId, accessKeyId, secretAccessKey, bucket, publicUrl })
+function build(): BookImageStorage {
+  const present = R2_VARS.filter((k) => (process.env[k] ?? '').length > 0)
+  const missing = R2_VARS.filter((k) => (process.env[k] ?? '').length === 0)
+
+  if (missing.length === 0) {
+    return new R2BookImageStorage({
+      accountId: process.env.R2_ACCOUNT_ID!,
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      bucket: process.env.R2_BUCKET_NAME!,
+      publicUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL!,
+    })
+  }
+
+  // Partly configured is almost always a mistake rather than a choice, and
+  // falling back silently would hide it until images render broken.
+  if (present.length > 0 && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      `\n  ⚠  R2 хагас тохируулагдсан тул LOCAL storage ашиглаж байна.\n` +
+        `     Дутуу: ${missing.join(', ')}\n` +
+        `     Бүрэн тохируулах: docs/setup.md STEP 5.\n`
+    )
   }
 
   if (process.env.NODE_ENV === 'production') {
