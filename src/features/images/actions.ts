@@ -11,6 +11,8 @@ import { toUserMessage } from '@/lib/db/errors'
 
 export type ImageState = { ok: true } | { ok: false; message: string }
 
+export type ImageView = { id: string; url: string; sortOrder: number }
+
 const idSchema = z.guid()
 
 /**
@@ -105,4 +107,36 @@ export async function removeImageAction(imageId: string): Promise<ImageState> {
   revalidatePath('/my-books')
   revalidatePath('/')
   return { ok: true }
+}
+
+export type ImagesState =
+  | { ok: true; images: ImageView[] }
+  | { ok: false; message: string }
+
+/**
+ * Returns the currently published (ready) images for one copy. The ImageUploader
+ * calls this after every upload/remove so its preview stays in sync — including
+ * on the Add Book page, which has no server-rendered image list to draw from.
+ */
+export async function getCopyImagesAction(copyId: string): Promise<ImagesState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+  if (!idSchema.safeParse(copyId).success) return { ok: false, message: 'Буруу хүсэлт.' }
+
+  const { data: rows } = await supabase
+    .from('book_images')
+    .select('id, storage_key, sort_order, status')
+    .eq('book_copy_id', copyId)
+    .eq('status', 'ready')
+    .order('sort_order', { ascending: true })
+
+  const storage = bookImageStorage()
+  const images: ImageView[] = (rows ?? []).map((r) => ({
+    id: r.id,
+    url: storage.publicUrl(r.storage_key),
+    sortOrder: r.sort_order,
+  }))
+
+  return { ok: true, images }
 }

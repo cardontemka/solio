@@ -1,6 +1,12 @@
-.bar {
+.searchHead {
   max-width: 640px;
-  margin-bottom: 26px;
+  margin: 22px 0 0;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  margin: 34px 0 30px;
 }
 
 .summary {

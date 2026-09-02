@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { toUserMessage } from '@/lib/db/errors'
+import { emailNotification } from '@/lib/email/notifications'
 
 export type ReviewState = { ok: true } | { ok: false; message?: string; errors?: Record<string, string[]> }
 
@@ -68,6 +69,7 @@ export async function upsertReviewAction(
     } catch (e) {
       console.error('[upsertReview] notification failed', e)
     }
+    await emailReviewOwners(bookId, user.id)
   }
 
   revalidatePath(`/books/${bookId}`)
@@ -88,4 +90,32 @@ export async function deleteReviewAction(reviewId: string, bookId: string): Prom
   revalidatePath(`/books/${bookId}`)
   revalidatePath('/')
   return { ok: true }
+}
+
+/**
+ * Best-effort email to the owners who got a 'review_received' notification —
+ * the same up-to-20 recipients the DB chooses. The reviewer's own client can't
+ * see other people's copies, so this reads through the admin client.
+ */
+async function emailReviewOwners(bookId: string, actorId: string) {
+  try {
+    const { data } = await createAdminClient()
+      .from('book_copies')
+      .select('owner_id')
+      .eq('book_id', bookId)
+      .eq('status', 'available')
+      .eq('moderation_status', 'active')
+      .neq('owner_id', actorId)
+      .limit(20)
+    const ownerIds = Array.from(
+      new Set(((data ?? []) as { owner_id: string }[]).map((r) => r.owner_id))
+    )
+    await Promise.all(
+      ownerIds.map((id) =>
+        emailNotification({ userId: id, type: 'review_received', entityType: 'book', entityId: bookId })
+      )
+    )
+  } catch (e) {
+    console.error('[upsertReview] email failed', e)
+  }
 }

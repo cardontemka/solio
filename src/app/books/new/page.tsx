@@ -1,6 +1,6 @@
 import { AddBookForm } from '@/features/books/AddBookForm'
 import { requireUser } from '@/lib/auth/dal'
-import { NotWiredNote, PageHeader } from '@/components/ui'
+import { PageHeader } from '@/components/ui'
 import styles from './page.module.css'
 
 export const metadata = {
@@ -21,10 +21,6 @@ export default async function AddBookPage() {
           subtitle="Өөрийн эзэмшдэг бодит номоо бүртгэж, солилцоонд нээлттэй болгоно."
         />
         <AddBookForm />
-        <NotWiredNote>
-          Зураг байршуулах нь Cloudflare R2-той хараахан холбогдоогүй тул энэ хувилбарт
-          зурагны алхам байхгүй байна.
-        </NotWiredNote>
       </div>
     </div>
   )

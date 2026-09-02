@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { createRequestAction, type WishState } from './actions'
+import { HeartIcon } from '@/components/Icons'
 import styles from './WishlistButton.module.css'
 
 const initial: WishState = { ok: false }
@@ -15,16 +16,24 @@ export function WishlistButton({
   title,
   author,
   alreadyRequested,
+  variant = 'full',
 }: {
   bookId: string
   title: string
   author: string | null
   alreadyRequested: boolean
+  variant?: 'full' | 'icon'
 }) {
   const [state, formAction, pending] = useActionState(createRequestAction, initial)
 
   if (alreadyRequested || state.ok) {
-    return <span className={styles.done}>✓ Хүслийн жагсаалтад байна</span>
+    return variant === 'icon' ? (
+      <span className={styles.iconDone} title="Хүслийн жагсаалтад байна">
+        <HeartIcon size={20} />
+      </span>
+    ) : (
+      <span className={styles.done}>✓ Хүслийн жагсаалтад байна</span>
+    )
   }
 
   return (
@@ -32,9 +41,21 @@ export function WishlistButton({
       <input type="hidden" name="bookId" value={bookId} />
       <input type="hidden" name="title" value={title} />
       {author && <input type="hidden" name="author" value={author} />}
-      <button type="submit" className={styles.button} disabled={pending}>
-        {pending ? 'Нэмж байна…' : '+ Хүслийн жагсаалтад нэмэх'}
-      </button>
+      {variant === 'icon' ? (
+        <button
+          type="submit"
+          className={styles.iconBtn}
+          aria-label="Хүслийн жагсаалтад нэмэх"
+          title="Хүслийн жагсаалтад нэмэх"
+          disabled={pending}
+        >
+          <HeartIcon size={20} />
+        </button>
+      ) : (
+        <button type="submit" className={styles.button} disabled={pending}>
+          {pending ? 'Нэмж байна…' : '+ Хүслийн жагсаалтад нэмэх'}
+        </button>
+      )}
       {!state.ok && state.message && <span className={styles.error}>{state.message}</span>}
     </form>
   )

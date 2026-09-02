@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { createReportAction, type ModState } from './actions'
+import { FlagIcon } from '@/components/Icons'
 import styles from './ReportButton.module.css'
 
 const initial: ModState = { ok: false }
@@ -19,9 +20,11 @@ const REASONS = [
 export function ReportButton({
   entityType,
   entityId,
+  variant = 'full',
 }: {
   entityType: 'book' | 'book_copy' | 'review' | 'profile' | 'swap'
   entityId: string
+  variant?: 'full' | 'icon'
 }) {
   const [open, setOpen] = useState(false)
   const [state, formAction, pending] = useActionState(createReportAction, initial)
@@ -29,7 +32,17 @@ export function ReportButton({
   if (state.ok) return <span className={styles.sent}>✓ Гомдол хүлээн авлаа</span>
 
   if (!open) {
-    return (
+    return variant === 'icon' ? (
+      <button
+        type="button"
+        className={styles.iconBtn}
+        onClick={() => setOpen(true)}
+        aria-label="Гомдол мэдүүлэх"
+        title="Гомдол мэдүүлэх"
+      >
+        <FlagIcon size={19} />
+      </button>
+    ) : (
       <button type="button" className={styles.trigger} onClick={() => setOpen(true)}>
         Гомдол мэдүүлэх
       </button>

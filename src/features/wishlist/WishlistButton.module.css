@@ -43,3 +43,37 @@
   font-size: 12px;
   color: var(--danger);
 }
+
+/* Icon variants */
+.iconBtn,
+.iconDone {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.iconBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.iconDone {
+  background: var(--ok-soft);
+  border-color: transparent;
+  color: var(--ok);
+  cursor: default;
+}

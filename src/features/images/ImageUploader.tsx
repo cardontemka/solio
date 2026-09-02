@@ -1,9 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
-import { confirmImageAction, removeImageAction } from './actions'
+import {
+  confirmImageAction,
+  getCopyImagesAction,
+  removeImageAction,
+  type ImageView as ExistingImage,
+} from './actions'
 import styles from './ImageUploader.module.css'
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -13,7 +17,10 @@ const MAX_IMAGES = 8
 const MIN_DIM = 200
 const MAX_DIM = 8000
 
-export type ExistingImage = { id: string; url: string; sortOrder: number }
+type UploadProgress = {
+  name: string
+  percent: number
+}
 
 /**
  * Three-step upload: ask the server for a target, send the bytes straight to
@@ -25,18 +32,25 @@ export type ExistingImage = { id: string; url: string; sortOrder: number }
  */
 export function ImageUploader({
   copyId,
-  images,
+  images: initialImages,
 }: {
   copyId: string
   images: ExistingImage[]
 }) {
-  const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
+  const [images, setImages] = useState<ExistingImage[]>(initialImages)
   const [busy, setBusy] = useState<string | null>(null)
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   const remaining = MAX_IMAGES - images.length
+
+  /** Pull the fresh list from the server so a just-published image shows up. */
+  async function refresh() {
+    const res = await getCopyImagesAction(copyId)
+    if (res.ok) setImages(res.images)
+  }
 
   async function measure(file: File): Promise<{ width: number; height: number } | null> {
     try {
@@ -74,6 +88,7 @@ export function ImageUploader({
     }
 
     setBusy(file.name)
+    setProgress({ name: file.name, percent: 0 })
     try {
       const res = await fetch('/api/uploads/book-image', {
         method: 'POST',
@@ -86,26 +101,41 @@ export function ImageUploader({
         return
       }
 
-      const put = await fetch(intent.upload.url, {
-        method: intent.upload.method,
-        headers: intent.upload.headers,
-        body: file,
+      const put = await new Promise<Response>((resolve) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open(intent.upload.method, intent.upload.url)
+        for (const [k, v] of Object.entries(intent.upload.headers ?? {})) {
+          xhr.setRequestHeader(k, String(v))
+        }
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress({ name: file.name, percent: Math.round((e.loaded / e.total) * 100) })
+          }
+        }
+        xhr.onload = () => resolve(
+          new Response(null, { status: xhr.status, statusText: xhr.statusText })
+        )
+        xhr.onerror = () => resolve(new Response(null, { status: 0 }))
+        xhr.send(file)
       })
+
       if (!put.ok) {
         setError('Зураг байршуулж чадсангүй.')
         return
       }
+      setProgress({ name: file.name, percent: 100 })
 
       const confirmed = await confirmImageAction(intent.imageId)
       if (!confirmed.ok) {
         setError(confirmed.message)
         return
       }
-      router.refresh()
+      await refresh()
     } catch {
       setError('Сүлжээний алдаа. Дахин оролдоно уу.')
     } finally {
       setBusy(null)
+      setProgress(null)
     }
   }
 
@@ -126,7 +156,7 @@ export function ImageUploader({
                   startTransition(async () => {
                     const r = await removeImageAction(img.id)
                     if (!r.ok) setError(r.message)
-                    else router.refresh()
+                    else await refresh()
                   })
                 }
               >
@@ -157,8 +187,13 @@ export function ImageUploader({
             disabled={busy !== null || pending}
             onClick={() => inputRef.current?.click()}
           >
-            {busy ? `Байршуулж байна: ${busy}` : `+ Зураг нэмэх (${remaining} үлдсэн)`}
+            {busy ? `Байршуулж байна: ${progress?.percent ?? 0}%` : `+ Зураг нэмэх (${remaining} үлдсэн)`}
           </button>
+          {progress && (
+            <div className={styles.progress}>
+              <div className={styles.progressBar} style={{ width: `${progress.percent}%` }} />
+            </div>
+          )}
         </>
       ) : (
         <p className={styles.full}>Хамгийн ихдээ {MAX_IMAGES} зураг нэмэгдсэн.</p>

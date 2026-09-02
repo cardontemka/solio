@@ -2,13 +2,12 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
 import { createBookSchema } from './schema'
 
 export type ActionState =
-  | { ok: true }
+  | { ok: true; bookId?: string; copyId?: string }
   | { ok: false; message?: string; errors?: Record<string, string[]> }
 
 /**
@@ -64,11 +63,14 @@ export async function createBookAction(
   if (error) return { ok: false, message: toUserMessage(error, 'createBookAction') }
 
   const bookId = Array.isArray(data) ? data[0]?.book_id : undefined
+  const copyId = Array.isArray(data) ? data[0]?.copy_id : undefined
 
   revalidatePath('/my-books')
   revalidatePath('/')
-  if (bookId) redirect(`/books/${bookId}`)
-  redirect('/my-books')
+
+  // Defer the redirect so the Add Book page can run the image-upload step
+  // first (uploads are tied to the copy, which now exists).
+  return { ok: true, bookId, copyId }
 }
 
 /** Owner-driven visibility toggle. The legal edges are enforced by the DB guard. */

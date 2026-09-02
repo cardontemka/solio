@@ -1,10 +1,10 @@
 import { BookGrid } from '@/components/BookCard'
 import { SearchBar } from '@/components/SearchBar'
-import { EmptyState, PageHeader } from '@/components/ui'
-import { getRecentlyAdded, searchBooks } from '@/features/books/queries'
+import { EmptyState, Section } from '@/components/ui'
+import { getPopular, getRecentlyAdded, searchBooks } from '@/features/books/queries'
 import styles from './page.module.css'
 
-export const metadata = { title: 'Хайлт' }
+export const metadata = { title: 'Explore' }
 
 export default async function SearchPage({ searchParams }: PageProps<'/search'>) {
   const params = await searchParams
@@ -12,22 +12,16 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? ''
 
   const results = q ? await searchBooks(q) : []
-  const browse = q ? [] : await getRecentlyAdded(12)
 
   return (
     <div className="container">
-
-      <PageHeader
-        title="Ном хайх"
-        subtitle="Номын нэр, зохиогч, ISBN, хэвлэлийн газраар хайна."
-      />
-
-      <div className={styles.bar}>
+      <div className={styles.searchHead}>
         <SearchBar initialQuery={q} size="lg" autoFocus={!q} />
       </div>
 
       {q ? (
         <>
+          <div className={styles.divider} />
           <p className={styles.summary}>
             <strong>{q}</strong> — {results.length} үр дүн
           </p>
@@ -42,10 +36,27 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
         </>
       ) : (
         <>
-          <p className={styles.summary}>Бүх ном</p>
-          <BookGrid listings={browse} />
+          <div className={styles.divider} />
+          <ExploreSections />
         </>
       )}
     </div>
+  )
+}
+
+async function ExploreSections() {
+  const [popular, recent] = await Promise.all([getPopular(8), getRecentlyAdded(10)])
+  return (
+    <>
+      <Section title="Яг одоо алдартай" description="Хамгийн их солилцоонд нээлттэй номнууд">
+        <BookGrid listings={popular} />
+      </Section>
+      <Section
+        title="Саяхан нэмэгдсэн"
+        description="Шинээр бүртгэгдсэн, хайж буй номоо эртхэн олоорой."
+      >
+        <BookGrid listings={recent} />
+      </Section>
+    </>
   )
 }

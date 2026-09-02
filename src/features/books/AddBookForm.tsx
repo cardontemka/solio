@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
+import { ImageUploader } from '@/features/images/ImageUploader'
 import { BOOK_CONDITION, CONDITION_LABEL } from '@/types/domain'
 import { createBookAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
@@ -12,6 +14,27 @@ const initial: ActionState = { ok: false }
 export function AddBookForm() {
   const [state, formAction, pending] = useActionState(createBookAction, initial)
   const errors = !state.ok ? state.errors : undefined
+
+  // The book + copy now exist; prompt the owner to attach photos.
+  if (state.ok && state.copyId) {
+    return (
+      <div className={styles.form}>
+        <div className={styles.group}>
+          <legend className={styles.legend}>3 · Зураг нэмэх (заавал биш)</legend>
+          <p className={styles.imageHint}>
+            Ном бүртгэгдсэн. Одоо эсвэл дараа ч зураг нэмж болно.
+          </p>
+          <ImageUploader copyId={state.copyId} images={[]} />
+        </div>
+
+        <div className={styles.actions}>
+          <Link className={formStyles.submit} href={`/books/${state.bookId}`}>
+            Дуусгах
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <form action={formAction} className={styles.form}>

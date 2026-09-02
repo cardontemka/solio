@@ -34,9 +34,11 @@ type BookRow = {
  * alphabet, and the weak hash clustered several books onto the same swatch.
  */
 export function coverColorFor(id: string): string {
+  // Covers echo the brand palette so the book shelf reads as one family,
+  // with a couple of neutral bookish tones for variety.
   const palette = [
-    '#7a4f2c', '#2f5d6b', '#3f6b3a', '#a5762a', '#6b3a4f',
-    '#4a4a6b', '#2f6b46', '#8a6212', '#3a5a6b', '#5c4a6b',
+    '#e76f51', '#f4a261', '#e9c46a', '#b8860b', '#a44a3f',
+    '#5d4a3b', '#8a5a3b', '#4a6b5a', '#b56a54', '#c9a35f',
   ]
   let hash = 0x811c9dc5
   for (let i = 0; i < id.length; i++) {
@@ -218,8 +220,76 @@ export async function getBookDetail(id: string): Promise<BookDetail | null> {
   }
 }
 
-export async function getMyCopies(userId: string) {
+export type CopyDetail = {
+  id: string
+  condition: BookCondition
+  conditionNote: string | null
+  status: CopyStatus
+  transferCount: number
+  createdAt: string
+  owner: { id: string; username: string; displayName: string; city: string | null } | null
+  images: { id: string; url: string; sortOrder: number }[]
+  book: { id: string; title: string; author: string | null; coverColor: string }
+}
+
+/** A single copy with its book + owner + images for the dedicated copy page. */
+export async function getBookCopyDetail(copyId: string): Promise<CopyDetail | null> {
   const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('book_copies')
+    .select(
+      `id, condition, condition_note, status, transfer_count, created_at,
+       owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city ),
+       book:books!book_copies_book_id_fkey ( id, title, author ),
+       book_images ( id, storage_key, sort_order, status )`
+    )
+    .eq('id', copyId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+
+  type Row = {
+    id: string
+    condition: BookCondition
+    condition_note: string | null
+    status: CopyStatus
+    transfer_count: number
+    created_at: string
+    owner:
+      | { id: string; username: string; display_name: string; city: string | null }
+      | { id: string; username: string; display_name: string; city: string | null }[]
+      | null
+    book: { id: string; title: string; author: string | null } | { id: string; title: string; author: string | null }[] | null
+    book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
+  }
+  const r = data as unknown as Row
+  const owner = one(r.owner)
+  const book = one(r.book)
+  if (!book) return null
+
+  return {
+    id: r.id,
+    condition: r.condition,
+    conditionNote: r.condition_note,
+    status: r.status,
+    transferCount: r.transfer_count,
+    createdAt: r.created_at.slice(0, 10),
+    owner: owner
+      ? { id: owner.id, username: owner.username, displayName: owner.display_name, city: owner.city }
+      : null,
+    images: (r.book_images ?? [])
+      .filter((i) => i.status === 'ready')
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((i) => ({
+        id: i.id,
+        url: bookImageStorage().publicUrl(i.storage_key),
+        sortOrder: i.sort_order,
+      })),
+    book: { id: book.id, title: book.title, author: book.author, coverColor: coverColorFor(book.id) },
+  }
+}
+
+export async function getMyCopies(userId: string) {  const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_copies')
     .select(

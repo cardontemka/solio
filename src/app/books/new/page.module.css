@@ -27,6 +27,12 @@
   letter-spacing: 0.01em;
 }
 
+.imageHint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
 .isbnRow {
   display: flex;
   gap: 8px;

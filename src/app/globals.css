@@ -1,66 +1,119 @@
 /* Solio — global styles & design tokens.
    Component-specific styles live in *.module.css next to the component. */
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Solio design tokens.
+   The brand palette (Jasmine / Sandy Brown / Burnt Peach) lives in the four
+   --brand-* variables. Change them here and the whole site follows — they seed
+   the accent, hover, soft and warn tokens used everywhere.
+   ───────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Palette */
-  --bg: #faf9f7;
+  /* Brand palette — shift these to re-theme the site */
+  --brand-jasmine: #e9c46a;   /* gentle golden highlight / soft accents */
+  --brand-sandy: #f4a261;     /* secondary accent, hovers */
+  --brand-peach: #e76f51;     /* primary accent, key actions */
+
+  /* Neutral palette — the site skeleton (white in light mode) */
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f4f2ef;
-  --border: #e4e0d9;
-  --border-strong: #d1ccc2;
+  --surface-2: #faf6f1;
+  --border: #eee6dc;
+  --border-strong: #e0d4c4;
 
-  --text: #1c1a17;
-  --text-2: #5c574f;
-  --text-3: #8b857a;
+  --text: #211c16;
+  --text-2: #6b604f;
+  --text-3: #9a8e7c;
 
-  --accent: #7a4f2c;
-  --accent-hover: #613e22;
-  --accent-soft: #f2e9e0;
+  /* Accent — derived from the brand palette (Burnt Peach primary) */
+  --accent: var(--brand-peach);
+  --accent-hover: #d45d40;
+  --accent-soft: #fdeee9;
 
   --ok: #2f6b46;
   --ok-soft: #e3f0e8;
-  --warn: #8a6212;
-  --warn-soft: #f8efd9;
-  --danger: #9a3325;
-  --danger-soft: #f8e5e1;
+  --warn: #a5760f;
+  --warn-soft: #fcf3da;
+  --warn-strong: #b07f14;
+  --danger: #c0392b;
+  --danger-soft: #fdeae7;
 
   /* Spacing / shape */
   --radius: 10px;
   --radius-sm: 6px;
   --radius-lg: 16px;
-  --shadow: 0 1px 2px rgb(28 26 23 / 6%), 0 4px 12px rgb(28 26 23 / 4%);
-  --shadow-lifted: 0 2px 4px rgb(28 26 23 / 8%), 0 12px 28px rgb(28 26 23 / 8%);
+  --shadow: 0 1px 2px rgb(33 28 22 / 6%), 0 4px 12px rgb(33 28 22 / 4%);
+  --shadow-lifted: 0 2px 4px rgb(33 28 22 / 8%), 0 12px 28px rgb(33 28 22 / 8%);
 
   --header-h: 60px;
   --max-w: 1120px;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16150f;
-    --surface: #1f1e18;
-    --surface-2: #2a2820;
-    --border: #35322a;
-    --border-strong: #46423a;
+  :root:not([data-theme='light']) {
+    /* Brand palette — same hues, tuned for dark surfaces */
+    --brand-jasmine: #e9c46a;
+    --brand-sandy: #f4a261;
+    --brand-peach: #e76f51;
 
-    --text: #f2efe8;
-    --text-2: #b3ada1;
-    --text-3: #8a847a;
+    --bg: #171310;
+    --surface: #221c16;
+    --surface-2: #2e2620;
+    --border: #3b3126;
+    --border-strong: #4d4032;
 
-    --accent: #d3a173;
-    --accent-hover: #e5b98f;
-    --accent-soft: #33291f;
+    --text: #f5efe6;
+    --text-2: #c2b49f;
+    --text-3: #978a76;
+
+    --accent: #ef8c74;
+    --accent-hover: #f4a67f;
+    --accent-soft: #3a241b;
 
     --ok: #7fc39c;
     --ok-soft: #1e2f26;
-    --warn: #d9b160;
-    --warn-soft: #322a17;
+    --warn: #e6c067;
+    --warn-soft: #342a16;
+    --warn-strong: #e6c067;
     --danger: #e08b7c;
     --danger-soft: #33201c;
 
     --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 20%);
     --shadow-lifted: 0 2px 4px rgb(0 0 0 / 35%), 0 12px 28px rgb(0 0 0 / 30%);
   }
+}
+
+/* Manual toggle wins over OS preference. */
+:root[data-theme='dark'] {
+  /* Brand palette — same hues, tuned for dark surfaces */
+  --brand-jasmine: #e9c46a;
+  --brand-sandy: #f4a261;
+  --brand-peach: #e76f51;
+
+  --bg: #171310;
+  --surface: #221c16;
+  --surface-2: #2e2620;
+  --border: #3b3126;
+  --border-strong: #4d4032;
+
+  --text: #f5efe6;
+  --text-2: #c2b49f;
+  --text-3: #978a76;
+
+  --accent: #ef8c74;
+  --accent-hover: #f4a67f;
+  --accent-soft: #3a241b;
+
+  --ok: #7fc39c;
+  --ok-soft: #1e2f26;
+  --warn: #e6c067;
+  --warn-soft: #342a16;
+  --warn-strong: #e6c067;
+  --danger: #e08b7c;
+  --danger-soft: #33201c;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 20%);
+  --shadow-lifted: 0 2px 4px rgb(0 0 0 / 35%), 0 12px 28px rgb(0 0 0 / 30%);
 }
 
 *,
@@ -76,7 +129,11 @@ body {
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 body {

@@ -100,103 +100,157 @@
   margin-bottom: 16px;
 }
 
-/* ── Copies ─────────────────────────────────────────────────────────────── */
+/* ── Copies (grouped by condition, horizontal scroll) ──────────────────── */
 
-.copies {
+.noCopies {
+  font-size: 13.5px;
+  color: var(--text-3);
+  margin-top: 12px;
+}
+
+.copyGrid {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.copyCard {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 14px;
-}
-
-.copy {
+  height: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 11px;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  position: relative;
+  transition: border-color 0.14s, transform 0.14s, box-shadow 0.14s;
 }
 
-.copyMain {
+.copyCard:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lifted);
+}
+
+.copyThumb,
+.copyEmptyThumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+
+.copyThumb img {
+  object-fit: cover;
+}
+
+.copyCardBody {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.copyOwner {
-  display: flex;
+.tag {
+  align-self: flex-start;
+  display: inline-flex;
   align-items: center;
-  gap: 11px;
-}
-
-.avatar {
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
   background: var(--accent-soft);
   color: var(--accent);
-  font-weight: 650;
-  font-size: 14px;
 }
 
-.ownerName {
+.statusPill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
   font-weight: 600;
-  font-size: 14px;
-}
-
-.ownerName:hover {
-  text-decoration: underline;
-}
-
-.you {
-  margin-left: 6px;
-  font-size: 11px;
+  background: var(--surface-2);
   color: var(--text-3);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 1px 7px;
 }
 
-.ownerCity {
+.statusPill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.statusPill[data-ok='true']::before {
+  background: var(--ok);
+}
+
+.copyOwner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.copyCard .avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+
+.copyCard .ownerName {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copyCard .you {
+  font-size: 10px;
+}
+
+.copyCity {
   font-size: 12px;
   color: var(--text-3);
 }
 
-.copyMeta {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.note {
-  font-size: 13px;
-  color: var(--text-2);
-  border-left: 2px solid var(--border-strong);
-  padding-left: 11px;
-}
-
-.copyAction {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.disabled {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+.copyTransfers {
+  font-size: 11.5px;
   color: var(--text-3);
-  border-radius: var(--radius-sm);
-  padding: 9px 18px;
-  font-size: 14px;
-  cursor: not-allowed;
+  margin-top: 2px;
+}
+
+.copyNote {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Ownership chain ────────────────────────────────────────────────────── */
@@ -291,33 +345,9 @@
   color: var(--text-2);
 }
 
-.wishRow {
-  margin-top: 14px;
-}
-
-.copyImages {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.actionRow {
+  margin-top: 16px;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.copyImages li {
-  width: 74px;
-  aspect-ratio: 2 / 3;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.copyImages img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.reportRow {
-  margin-top: 12px;
+  align-items: center;
+  gap: 10px;
 }

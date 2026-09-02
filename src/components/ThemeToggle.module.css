@@ -1,0 +1,54 @@
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sun,
+.moon {
+  grid-area: 1 / 1;
+}
+
+/* Explicit dark */
+html[data-theme='dark'] .sun {
+  display: none;
+}
+html[data-theme='dark'] .moon {
+  display: inline;
+}
+
+/* Explicit light */
+html[data-theme='light'] .sun {
+  display: inline;
+}
+html[data-theme='light'] .moon {
+  display: none;
+}
+
+/* No saved choice: default to OS preference */
+html:not([data-theme]) .sun {
+  display: none;
+}
+html:not([data-theme]) .moon {
+  display: inline;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) .sun {
+    display: inline;
+  }
+  html:not([data-theme]) .moon {
+    display: none;
+  }
+}

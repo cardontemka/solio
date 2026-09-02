@@ -1,0 +1,304 @@
+.wrap {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 28px;
+  align-items: start;
+  transition: grid-template-columns 0.35s ease;
+}
+
+.wrap[data-collapsed='true'] {
+  grid-template-columns: 60px 1fr;
+  gap: 20px;
+}
+
+.sidebar {
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 10px;
+  overflow: hidden;
+  transition: min-width 0.35s ease;
+}
+
+/* ── Identity (name + avatar) ───────────────────────────────────────────── */
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 8px 12px;
+}
+
+.identityAvatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+}
+
+.identityName {
+  font-weight: 650;
+  font-size: 14.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── "Миний мэдээлэл" sub menu ─────────────────────────────────────────── */
+
+.subMenu {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+
+.subMenu:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.subMenu svg:first-child {
+  flex: none;
+  color: var(--accent);
+}
+
+.subMenuLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subMenuChevron {
+  flex: none;
+  color: var(--text-3);
+  transition: transform 0.25s ease;
+}
+
+.subMenu[data-open='true'] .subMenuChevron {
+  transform: rotate(180deg);
+}
+
+.subMenuBody {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.subMenuBody[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.subMenuInner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 10px;
+}
+
+.details {
+  margin: 2px 0 10px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.detailRow dt {
+  color: var(--text-3);
+  font-size: 11px;
+  margin-bottom: 1px;
+}
+
+.detailRow dd {
+  margin: 0;
+  color: var(--text-2);
+  word-break: break-word;
+}
+
+.noDetails {
+  color: var(--text-3);
+  font-size: 12px;
+  margin: 0;
+  padding: 4px 0 10px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 4px;
+}
+
+/* ── Section label + collapse button ────────────────────────────────────── */
+
+.sidebarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+}
+
+.sidebarTitle {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.collapse {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, transform 0.3s ease;
+}
+
+.collapse:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.wrap[data-collapsed='true'] .collapse svg {
+  transform: rotate(180deg);
+}
+
+/* ── Nav list ───────────────────────────────────────────────────────────── */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+
+.navItem svg {
+  flex: none;
+  color: var(--text-3);
+  transition: color 0.12s;
+}
+
+.navItem:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.navItem:hover svg {
+  color: var(--accent);
+}
+
+.navItem[data-active='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.navItem[data-active='true'] svg {
+  color: var(--accent);
+}
+
+/* Collapsed sidebar: icons only, drop labels */
+.wrap[data-collapsed='true'] .identity {
+  justify-content: center;
+  padding-inline: 2px;
+}
+
+.wrap[data-collapsed='true'] .identityName,
+.wrap[data-collapsed='true'] .subMenu,
+.wrap[data-collapsed='true'] .subMenuBody,
+.wrap[data-collapsed='true'] .divider,
+.wrap[data-collapsed='true'] .sidebarTitle,
+.wrap[data-collapsed='true'] .navLabel {
+  display: none;
+}
+
+.wrap[data-collapsed='true'] .navItem {
+  justify-content: center;
+  padding: 10px 6px;
+}
+
+@media (max-width: 860px) {
+  .wrap,
+  .wrap[data-collapsed='true'] {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .identity,
+  .subMenu,
+  .subMenuBody,
+  .divider,
+  .sidebarHead {
+    display: none;
+  }
+
+  .nav {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .navItem {
+    flex: 1;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 8px;
+    font-size: 13px;
+  }
+}
+
+.content {
+  min-width: 0;
+}
+
+.panel[data-active='true'] {
+  display: block;
+}
