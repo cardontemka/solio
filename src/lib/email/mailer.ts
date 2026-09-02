@@ -48,6 +48,7 @@ export async function sendMail(opts: {
       text: opts.text,
       html: opts.html,
     })
+    console.info('[mailer] sent', { to: opts.to, subject: opts.subject })
     return { ok: true }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

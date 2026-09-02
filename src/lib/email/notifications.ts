@@ -23,15 +23,21 @@ function buildEmail(type: NotificationType, href: string | null, siteUrl: string
   return { subject: `Solio · ${title}`, text: `${title}\n${body}`, html }
 }
 
-/** Resolve a user's account email via service_role (bypasses RLS). */
+/**
+ * Resolve a user's account email via the Admin API. We deliberately do NOT
+ * select from auth.users — that domain is locked down (see security.md §10.2);
+ * the supported way to read another account's email is auth.admin, which also
+ * works for Google (OAuth) sign-ups because those populate auth.users.email.
+ */
 async function resolveEmail(userId: string): Promise<string | null> {
-  const { data, error } = await createAdminClient()
-    .from('auth.users')
-    .select('email')
-    .eq('id', userId)
-    .single()
-  if (error || !data) return null
-  return data.email
+  try {
+    const { data, error } = await createAdminClient().auth.admin.getUserById(userId)
+    if (error || !data.user) return null
+    return data.user?.email ?? null
+  } catch (e) {
+    console.error('[email] resolveEmail failed', e)
+    return null
+  }
 }
 
 /**
