@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import {
@@ -19,18 +20,17 @@ export type UserInfo = {
   username: string
   city?: string | null
   email?: string | null
-  phone?: string | null
 }
 
 const PANELS: { key: PanelKey; label: string; Icon: typeof BookIcon }[] = [
   { key: 'books', label: 'Миний номнууд', Icon: BookIcon },
-  { key: 'wishlist', label: 'Хүслийн жагсаалт', Icon: HeartIcon },
+  { key: 'wishlist', label: 'Ном хүсэх', Icon: HeartIcon },
   { key: 'swaps', label: 'Солилцоо', Icon: SwapIcon },
 ]
 
+// profiles has no phone column, so listing one would only ever render a blank.
 const DETAILS: { key: keyof UserInfo; label: string }[] = [
   { key: 'email', label: 'И-мэйл' },
-  { key: 'phone', label: 'Утас' },
   { key: 'city', label: 'Хот / Байршил' },
 ]
 
@@ -88,6 +88,11 @@ export function UserDashboard({
                 <p className={styles.noDetails}>Нэмэлт мэдээлэл байхгүй.</p>
               )}
             </dl>
+            <div className={styles.detailLinks}>
+              <Link href="/settings" className={styles.detailLink}>
+                Профайл засах
+              </Link>
+            </div>
           </div>
         </div>
 

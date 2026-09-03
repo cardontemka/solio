@@ -15,7 +15,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * check happens again in the Server Action or the RPC.
  */
 
-const PRIVATE_PREFIXES = ['/my-books', '/wishlist', '/swaps', '/notifications', '/profile', '/books/new']
+const PRIVATE_PREFIXES = ['/my-books', '/swaps', '/notifications', '/settings', '/dashboard', '/books/new']
 const AUTH_ONLY_PREFIXES = ['/login', '/register']
 
 export async function proxy(request: NextRequest) {

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setCopyVisibilityAction } from './actions'
-import styles from '@/app/my-books/page.module.css'
+import styles from './MyBooksPanel.module.css'
 
 /**
  * Hide / re-list a copy. The button only offers the two owner-legal edges;

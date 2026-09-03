@@ -2,12 +2,14 @@ import { Suspense } from 'react'
 import { BookGrid } from '@/components/BookCard'
 import { SearchBar } from '@/components/SearchBar'
 import { EmptyState, Section } from '@/components/ui'
-import { getPopular, getRecentlyAdded } from '@/features/books/queries'
+import { getListings } from '@/features/books/queries'
+import { RequestList } from '@/features/requests/RequestCard'
+import { getRequestFeed } from '@/features/requests/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import styles from './page.module.css'
 
 async function RecentlyAdded() {
-  const listings = await getRecentlyAdded(6)
+  const listings = await getListings({ limit: 6 })
   if (listings.length === 0) {
     return (
       <EmptyState
@@ -19,8 +21,32 @@ async function RecentlyAdded() {
   return <BookGrid listings={listings} />
 }
 
-async function Popular() {
-  return <BookGrid listings={await getPopular(6)} />
+/**
+ * Everything after the newest six. There is no popularity signal to rank by —
+ * each listing is one person's single book — so this is honestly just "more".
+ */
+async function MoreListings() {
+  const listings = await getListings({ limit: 12, offset: 6 })
+  if (listings.length === 0) return null
+  return <BookGrid listings={listings} />
+}
+
+/**
+ * What people are asking for. A request is a post, so the feed carries them
+ * next to the listings rather than hiding them in a private wishlist.
+ */
+async function RequestRail() {
+  const me = await getSessionUser()
+  const requests = await getRequestFeed(me?.id ?? null, { limit: 5 })
+  if (requests.length === 0) {
+    return (
+      <EmptyState
+        title="Одоогоор хүсэлт байхгүй"
+        description="Хайж буй номоо нийтэлбэл тэр ном байгаа хүн доор нь хариу бичнэ."
+      />
+    )
+  }
+  return <RequestList requests={requests} />
 }
 
 function RailSkeleton() {
@@ -28,8 +54,6 @@ function RailSkeleton() {
 }
 
 export default async function HomePage() {
-  const user = await getSessionUser()
-
   return (
     <>
       <section className={styles.hero}>
@@ -70,10 +94,6 @@ export default async function HomePage() {
                 <span className={`${styles.cover} ${styles.coverD}`} />
                 <span className={`${styles.cover} ${styles.coverE}`} />
               </div>
-              <div className={styles.swapTag}>
-                <span className={styles.swapArrows}>⇄</span>
-                <span className={styles.swapLabel}>ном солилцоо</span>
-              </div>
             </div>
           </div>
         </div>
@@ -91,16 +111,22 @@ export default async function HomePage() {
         </Section>
 
         <Section
-          title={user ? 'Танд санал болгох' : 'Түгээмэл'}
-          description={
-            user
-              ? 'Одоогоор ерөнхий санал — уншсан түүх дээр тулгуурласан санал дараа нэмэгдэнэ'
-              : 'Хамгийн олон хувьтай, солилцоход хялбар номнууд'
-          }
+          title="Ном хүсэж байна"
+          description="Хэн ямар ном хайж байна — танд байвал доор нь хариу бичээрэй"
+          href="/requests"
+        >
+          <Suspense fallback={<RailSkeleton />}>
+            <RequestRail />
+          </Suspense>
+        </Section>
+
+        <Section
+          title="Бусад номнууд"
+          description="Хэрэглэгчид солилцохоор нээлттэй болгосон номнууд"
           href="/search"
         >
           <Suspense fallback={<RailSkeleton />}>
-            <Popular />
+            <MoreListings />
           </Suspense>
         </Section>
       </div>

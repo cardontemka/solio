@@ -4,8 +4,8 @@
  */
 export type NotificationType =
   | 'swap_requested' | 'swap_accepted' | 'swap_rejected' | 'swap_cancelled'
-  | 'swap_confirmed' | 'swap_completed' | 'wishlist_match'
-  | 'review_received' | 'report_resolved' | 'moderation_action'
+  | 'swap_confirmed' | 'swap_completed'
+  | 'comment_received' | 'report_resolved' | 'moderation_action'
 
 export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?: string }> = {
   swap_requested: {
@@ -26,11 +26,10 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
     title: 'Солилцоо амжилттай дууслаа',
     body: 'Өмчлөл шилжиж, түүхэнд бүртгэгдлээ.',
   },
-  wishlist_match: {
-    title: 'Хүссэн ном тань нэмэгдлээ',
-    body: 'Хүслийн жагсаалтад тохирох ном системд орлоо.',
+  comment_received: {
+    title: 'Шинэ сэтгэгдэл',
+    body: 'Таны ном эсвэл хүсэлт дээр хэн нэгэн сэтгэгдэл бичлээ.',
   },
-  review_received: { title: 'Таны номд шинэ сэтгэгдэл' },
   report_resolved: { title: 'Таны гомдол шийдвэрлэгдлээ' },
   moderation_action: { title: 'Модерацийн шийдвэр' },
 }
@@ -40,9 +39,13 @@ export function notificationHrefFor(entityType: string, entityId: string): strin
     case 'swap':
       return '/swaps'
     case 'book':
+      // A books id, not a listing id — /books/[copyId] resolves it to one.
       return `/books/${entityId}`
+    case 'request':
+      return `/requests/${entityId}`
     case 'book_copy':
-      return '/my-books'
+      // A listing has its own page now.
+      return `/books/${entityId}`
     default:
       return null
   }

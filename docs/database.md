@@ -380,7 +380,10 @@ create table public.books (
 );
 
 -- Нэг ISBN нэг л ном. NULL ISBN-тэй ном хэдэн ч байж болно.
-create unique index books_isbn_norm_key
+-- 20260902000220 дээр unique-ээс энгийн index болов: ном нэмэх нь зөвхөн
+-- өөрийн хувийг бүртгэх учир хоёр хүн ижил ISBN оруулж болно. ISBN нь хайлтад
+-- тусалдаг мэдээлэл, номын хэн болохыг тодорхойлогч биш.
+create index books_isbn_norm_idx
   on public.books (isbn_norm) where isbn_norm is not null;
 ```
 

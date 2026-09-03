@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
 import { auditDenied } from './audit'
-import { emailNotification } from '@/lib/email/notifications'
 
 export type ModState = { ok: true } | { ok: false; message?: string }
 
@@ -49,26 +48,8 @@ async function callModeration(
   return { ok: false, message: toUserMessage(error, rpc) }
 }
 
-/** Best-effort email to the reporter of a resolved report. */
-async function emailReportReporter(reportId: string) {
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.from('reports').select('reporter_id').eq('id', reportId).single()
-    if (data?.reporter_id) {
-      await emailNotification({
-        userId: data.reporter_id,
-        type: 'report_resolved',
-        entityType: 'report',
-        entityId: reportId,
-      })
-    }
-  } catch (e) {
-    console.error('[resolveReport] email failed', e)
-  }
-}
-
 export async function moderateEntityAction(
-  entityType: 'book' | 'book_copy' | 'book_image',
+  entityType: 'book' | 'book_copy' | 'book_image' | 'comment' | 'request',
   entityId: string,
   status: 'active' | 'hidden' | 'removed',
   reason?: string
@@ -104,10 +85,6 @@ export async function moderateProfileAction(
     { action: 'moderate.profile', entityType: 'profile', entityId: userId }
   )
 
-  if (result.ok) {
-    await emailNotification({ userId, type: 'moderation_action', entityType: 'profile', entityId: userId })
-  }
-
   revalidatePath('/admin/users')
   return result
 }
@@ -124,10 +101,6 @@ export async function resolveReportAction(
     { p_report_id: reportId, p_status: status, p_note: note?.slice(0, 2000) ?? null },
     { action: 'report.resolve', entityType: 'report', entityId: reportId }
   )
-
-  if (result.ok && status !== 'reviewing') {
-    await emailReportReporter(reportId)
-  }
 
   revalidatePath('/admin/reports')
   revalidatePath('/admin')
@@ -147,17 +120,13 @@ export async function setRoleAction(
     { action: grant ? 'role.granted' : 'role.revoked', entityType: 'profile', entityId: userId }
   )
 
-  if (result.ok) {
-    await emailNotification({ userId, type: 'moderation_action', entityType: 'profile', entityId: userId })
-  }
-
   revalidatePath('/admin/users')
   return result
 }
 
 /** Filing a report is an ordinary user action, not a privileged one. */
 const reportSchema = z.object({
-  entityType: z.enum(['book', 'book_copy', 'review', 'profile', 'swap']),
+  entityType: z.enum(['book', 'book_copy', 'comment', 'request', 'profile', 'swap']),
   entityId: z.guid(),
   reason: z.enum(['spam', 'inappropriate', 'counterfeit', 'wrong_metadata', 'harassment', 'other']),
   detail: z.string().trim().max(2000).optional(),

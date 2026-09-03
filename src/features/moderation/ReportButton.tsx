@@ -22,7 +22,7 @@ export function ReportButton({
   entityId,
   variant = 'full',
 }: {
-  entityType: 'book' | 'book_copy' | 'review' | 'profile' | 'swap'
+  entityType: 'book' | 'book_copy' | 'comment' | 'request' | 'profile' | 'swap'
   entityId: string
   variant?: 'full' | 'icon'
 }) {

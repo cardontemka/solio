@@ -17,8 +17,8 @@ export default async function AddBookPage() {
     <div className="container">
       <div className={styles.shell}>
         <PageHeader
-          title="Ном нэмэх"
-          subtitle="Өөрийн эзэмшдэг бодит номоо бүртгэж, солилцоонд нээлттэй болгоно."
+          title="Номоо нэмэх"
+          subtitle="Гартаа байгаа бодит номоо бүртгэнэ. Бүртгэл бүр таны нэг хувийг л тодорхойлно — өөр хүний ижил номтой нэгтгэхгүй."
         />
         <AddBookForm />
       </div>

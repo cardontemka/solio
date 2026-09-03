@@ -15,7 +15,7 @@ begin
   return v_id;
 end $$;
 
-select plan(9);
+select plan(11);
 
 select set_config('test.alice', pg_temp.login_as('altan@example.invalid')::text, true);
 
@@ -59,19 +59,30 @@ select is(
     where action = 'book_copy.created'),
   1, 'the creation is audited');
 
--- A second listing of the same ISBN attaches to the existing work.
+-- Registration describes one person's own copy, so a second listing of the
+-- same ISBN gets its own books row. Deciding that two physical books are the
+-- same work is a separate feature the MVP deliberately does not have
+-- (20260902000220_own_copy_only.sql).
 select pg_temp.login_as('bolor@example.invalid');
-select public.create_book_with_copy('Өөр нэр, ижил ISBN', null,
-  '9789997001112', null, 'mn', null, null, 'good', null);
+select lives_ok(
+  $$ select public.create_book_with_copy('Өөр нэр, ижил ISBN', null,
+       '9789997001112', null, 'mn', null, null, 'good', null) $$,
+  'a second listing of the same ISBN is accepted, not rejected as a duplicate');
 
-select is((select count(*)::int from public.books where isbn_norm = '9789997001112'), 1,
-  'the same ISBN reuses the existing work rather than duplicating it');
+select is((select count(*)::int from public.books where isbn_norm = '9789997001112'), 2,
+  'each registration gets its own books row — no ISBN-based identity');
 
 select is(
   (select count(*)::int from public.book_copies c
      join public.books b on b.id = c.book_id
     where b.isbn_norm = '9789997001112'),
-  2, 'both copies aggregate under that one work');
+  2, 'and exactly one copy hangs off each of them');
+
+select is(
+  (select count(distinct c.book_id)::int from public.book_copies c
+     join public.books b on b.id = c.book_id
+    where b.isbn_norm = '9789997001112'),
+  2, 'the two copies never share a work row');
 
 select * from finish();
 rollback;

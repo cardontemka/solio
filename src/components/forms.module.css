@@ -225,3 +225,18 @@
   font-size: 11.5px;
   color: var(--text-2);
 }
+
+/* A rejected field is marked as well as described: the message says what is
+   wrong, the border says where. */
+.input[aria-invalid='true'],
+.select[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+}
+
+.input[aria-invalid='true']:focus,
+.select[aria-invalid='true']:focus,
+.textarea[aria-invalid='true']:focus {
+  outline-color: var(--danger);
+}

@@ -9,7 +9,7 @@ import {
   type SwapActionState,
 } from './actions'
 import type { SwapStatus } from '@/types/domain'
-import styles from '@/app/swaps/page.module.css'
+import styles from './SwapsPanel.module.css'
 
 type Kind = 'accept' | 'reject' | 'cancel' | 'confirm'
 

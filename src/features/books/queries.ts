@@ -2,40 +2,28 @@ import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
-import type { BookListing, BookCondition, CopyStatus } from '@/types/domain'
+import type { BookCondition, CopyStatus } from '@/types/domain'
 
 /**
- * Read side of the books feature. Every query runs as the caller, so RLS —
- * not a WHERE clause here — is what keeps hidden rows hidden.
+ * Read side of the books feature.
+ *
+ * A row in `book_copies` is what a reader sees and what they click: one person
+ * offering one physical book. `books` still exists — ownership history has to
+ * point at something stable, and finding that two listings are the same work is
+ * a later feature — but nothing user-facing addresses it. There is no page for
+ * "the book" and no notion of a book having several copies.
+ *
+ * Every query runs as the caller, so RLS — not a WHERE clause here — is what
+ * keeps hidden rows hidden.
  */
 
-type BookRow = {
-  id: string
-  title: string
-  author: string | null
-  isbn: string | null
-  publisher: string | null
-  language: string | null
-  description: string | null
-  published_at: string | null
-  created_at: string
-  book_copies: {
-    id: string
-    status: CopyStatus
-    book_images: { storage_key: string; sort_order: number; status: string }[]
-  }[]
-  book_reviews: { rating: number }[]
-}
-
 /**
- * Deterministic cover colour so a book looks the same everywhere.
+ * Deterministic cover colour so a listing looks the same everywhere.
  *
  * FNV-1a rather than the usual `hash*31 + c`: UUIDs share a fixed layout and
  * alphabet, and the weak hash clustered several books onto the same swatch.
  */
 export function coverColorFor(id: string): string {
-  // Covers echo the brand palette so the book shelf reads as one family,
-  // with a couple of neutral bookish tones for variety.
   const palette = [
     '#e76f51', '#f4a261', '#e9c46a', '#b8860b', '#a44a3f',
     '#5d4a3b', '#8a5a3b', '#4a6b5a', '#b56a54', '#c9a35f',
@@ -48,26 +36,6 @@ export function coverColorFor(id: string): string {
   return palette[hash % palette.length]
 }
 
-const LIST_SELECT = `
-  id, title, author, isbn, publisher, language, description, published_at, created_at,
-  book_copies ( id, status, book_images ( storage_key, sort_order, status ) ),
-  book_reviews ( rating )
-`
-
-/**
- * The cover is a projection, not a stored fact: the primary image of an
- * available copy, preferred, else any ready image. A moderator hiding one copy
- * silently promotes the next candidate with no data migration.
- */
-function coverUrlFrom(copies: BookRow['book_copies']): string | null {
-  const ready = (c: BookRow['book_copies'][number]) =>
-    (c.book_images ?? []).filter((i) => i.status === 'ready').sort((a, b) => a.sort_order - b.sort_order)
-  const preferred = copies.find((c) => c.status === 'available' && ready(c).length > 0)
-    ?? copies.find((c) => ready(c).length > 0)
-  const image = preferred ? ready(preferred)[0] : undefined
-  return image ? bookImageStorage().publicUrl(image.storage_key) : null
-}
-
 /**
  * PostgREST returns a to-one embed as a single object, but the inferred types
  * widen it to an array. Normalise instead of casting through `unknown`, so a
@@ -78,261 +46,284 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
-function toListing(row: BookRow): BookListing {
-  const copies = row.book_copies ?? []
-  // RLS already limits this to reviews the caller may see, so a hidden one is
-  // excluded from the average rather than needing a filter here.
-  const ratings = (row.book_reviews ?? []).map((r) => r.rating)
-  return {
-    book: {
-      id: row.id,
-      title: row.title,
-      author: row.author,
-      isbn: row.isbn,
-      publisher: row.publisher,
-      language: row.language,
-      description: row.description,
-      publishedAt: row.published_at,
-      coverColor: coverColorFor(row.id),
-      coverUrl: coverUrlFrom(copies),
-      createdAt: row.created_at,
-    },
-    availableCopies: copies.filter((c) => c.status === 'available').length,
-    totalCopies: copies.length,
-    avgRating:
-      ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null,
-    reviewCount: ratings.length,
-  }
-}
-
-export async function getRecentlyAdded(limit = 6): Promise<BookListing[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('books')
-    .select(LIST_SELECT)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(limit * 3)
-  if (error) throw error
-  return ((data ?? []) as unknown as BookRow[])
-    .map(toListing)
-    .filter((l) => l.availableCopies > 0)
-    .slice(0, limit)
-}
-
-export async function getPopular(limit = 6): Promise<BookListing[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.from('books').select(LIST_SELECT).limit(60)
-  if (error) throw error
-  // Placeholder heuristic until the ranking module lands: supply as a proxy
-  // for demand. Deliberately simple, and isolated here so it can be replaced.
-  return ((data ?? []) as unknown as BookRow[])
-    .map(toListing)
-    .sort((a, b) => b.availableCopies - a.availableCopies)
-    .slice(0, limit)
-}
-
-export async function searchBooks(query: string): Promise<BookListing[]> {
-  const q = query.trim()
-  if (!q) return []
-  const supabase = await createClient()
-  const escaped = q.replace(/[%,()]/g, ' ')
-  const { data, error } = await supabase
-    .from('books')
-    .select(LIST_SELECT)
-    .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%`)
-    .limit(40)
-  if (error) throw error
-  return ((data ?? []) as unknown as BookRow[]).map(toListing)
-}
-
-export type BookDetail = {
-  listing: BookListing
-  copies: {
-    id: string
-    condition: BookCondition
-    conditionNote: string | null
-    status: CopyStatus
-    transferCount: number
-    owner: { id: string; username: string; displayName: string; city: string | null } | null
-    images: { id: string; url: string; sortOrder: number }[]
-  }[]
-}
-
-export async function getBookDetail(id: string): Promise<BookDetail | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('books')
-    .select(LIST_SELECT)
-    .eq('id', id)
-    .maybeSingle()
-  if (error) throw error
-  if (!data) return null
-
-  const { data: copyRows, error: copyError } = await supabase
-    .from('book_copies')
-    .select(
-      `id, condition, condition_note, status, transfer_count,
-       profiles!book_copies_owner_id_fkey ( id, username, display_name, city ),
-       book_images ( id, storage_key, sort_order, status )`
-    )
-    .eq('book_id', id)
-    .neq('status', 'inactive')
-    .order('created_at', { ascending: true })
-  if (copyError) throw copyError
-
-  type CopyRow = {
-    id: string
-    condition: BookCondition
-    condition_note: string | null
-    status: CopyStatus
-    transfer_count: number
-    profiles:
-      | { id: string; username: string; display_name: string; city: string | null }
-      | { id: string; username: string; display_name: string; city: string | null }[]
-      | null
-    book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
-  }
-
-  return {
-    listing: toListing(data as unknown as BookRow),
-    copies: ((copyRows ?? []) as unknown as CopyRow[]).map((c) => ({
-      id: c.id,
-      condition: c.condition,
-      conditionNote: c.condition_note,
-      status: c.status,
-      transferCount: c.transfer_count,
-      owner: (() => {
-        const p = one(c.profiles)
-        return p
-          ? { id: p.id, username: p.username, displayName: p.display_name, city: p.city }
-          : null
-      })(),
-      images: (c.book_images ?? [])
-        .filter((i) => i.status === 'ready')
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((i) => ({
-          id: i.id,
-          url: bookImageStorage().publicUrl(i.storage_key),
-          sortOrder: i.sort_order,
-        })),
-    })),
-  }
-}
-
-export type CopyDetail = {
+export type ListingOwner = {
   id: string
+  username: string
+  displayName: string
+  city: string | null
+}
+
+export type Listing = {
+  /** The listing's own id, and what every URL uses. */
+  copyId: string
+  /** The catalogue row behind it — kept for search indexing and history. */
+  bookId: string
+  title: string
+  author: string | null
+  isbn: string | null
+  publisher: string | null
+  language: string | null
+  description: string | null
+  publishedAt: string | null
   condition: BookCondition
   conditionNote: string | null
   status: CopyStatus
   transferCount: number
   createdAt: string
-  owner: { id: string; username: string; displayName: string; city: string | null } | null
+  coverColor: string
   images: { id: string; url: string; sortOrder: number }[]
-  book: { id: string; title: string; author: string | null; coverColor: string }
+  owner: ListingOwner | null
 }
 
-/** A single copy with its book + owner + images for the dedicated copy page. */
-export async function getBookCopyDetail(copyId: string): Promise<CopyDetail | null> {
+// book_copies has two foreign keys to profiles (owner, custodian), so the embed
+// has to name the constraint or PostgREST refuses it as ambiguous.
+const LISTING_SELECT = `
+  id, condition, condition_note, status, transfer_count, created_at,
+  books!inner ( id, title, author, isbn, publisher, language, description, published_at ),
+  owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city ),
+  book_images ( id, storage_key, sort_order, status )
+`
+
+type ListingRow = {
+  id: string
+  condition: BookCondition
+  condition_note: string | null
+  status: CopyStatus
+  transfer_count: number
+  created_at: string
+  books:
+    | {
+        id: string
+        title: string
+        author: string | null
+        isbn: string | null
+        publisher: string | null
+        language: string | null
+        description: string | null
+        published_at: string | null
+      }
+    | {
+        id: string
+        title: string
+        author: string | null
+        isbn: string | null
+        publisher: string | null
+        language: string | null
+        description: string | null
+        published_at: string | null
+      }[]
+    | null
+  owner:
+    | { id: string; username: string; display_name: string; city: string | null }
+    | { id: string; username: string; display_name: string; city: string | null }[]
+    | null
+  book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
+}
+
+function toListing(row: ListingRow): Listing | null {
+  const book = one(row.books)
+  if (!book) return null
+  const owner = one(row.owner)
+  const storage = bookImageStorage()
+  return {
+    copyId: row.id,
+    bookId: book.id,
+    title: book.title,
+    author: book.author,
+    isbn: book.isbn,
+    publisher: book.publisher,
+    language: book.language,
+    description: book.description,
+    publishedAt: book.published_at,
+    condition: row.condition,
+    conditionNote: row.condition_note,
+    status: row.status,
+    transferCount: row.transfer_count,
+    createdAt: row.created_at.slice(0, 10),
+    coverColor: coverColorFor(row.id),
+    images: (row.book_images ?? [])
+      .filter((i) => i.status === 'ready')
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((i) => ({ id: i.id, url: storage.publicUrl(i.storage_key), sortOrder: i.sort_order })),
+    owner: owner
+      ? {
+          id: owner.id,
+          username: owner.username,
+          displayName: owner.display_name,
+          city: owner.city,
+        }
+      : null,
+  }
+}
+
+/** Listings anyone may browse: offered, not moderated away. */
+export async function getListings(
+  { limit = 12, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<Listing[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_copies')
-    .select(
-      `id, condition, condition_note, status, transfer_count, created_at,
-       owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city ),
-       book:books!book_copies_book_id_fkey ( id, title, author ),
-       book_images ( id, storage_key, sort_order, status )`
+    .select(LISTING_SELECT)
+    .eq('status', 'available')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
+  if (error) throw error
+  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+}
+
+/**
+ * Title, author and ISBN live on `books`, so the filter has to run against the
+ * embedded resource; `books!inner` makes that a join rather than a left join,
+ * so a non-matching listing drops out instead of coming back with books = null.
+ */
+export async function searchListings(query: string): Promise<Listing[]> {
+  const q = query.trim()
+  if (!q) return []
+  const supabase = await createClient()
+  const escaped = q.replace(/[%,()]/g, ' ')
+  const { data, error } = await supabase
+    .from('book_copies')
+    .select(LISTING_SELECT)
+    .eq('status', 'available')
+    .or(
+      `title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%,` +
+        `publisher.ilike.%${escaped}%`,
+      { referencedTable: 'books' }
     )
+    .order('created_at', { ascending: false })
+    .limit(48)
+  if (error) throw error
+  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+}
+
+export type ProfileResult = {
+  username: string
+  displayName: string
+  city: string | null
+  listingCount: number
+}
+
+/** People matching the same search box. */
+export async function searchProfiles(query: string): Promise<ProfileResult[]> {
+  const q = query.trim()
+  if (!q) return []
+  const supabase = await createClient()
+  const escaped = q.replace(/[%,()]/g, ' ')
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username, display_name, city, book_copies!book_copies_owner_id_fkey ( status )')
+    .eq('account_status', 'active')
+    .or(`username.ilike.%${escaped}%,display_name.ilike.%${escaped}%`)
+    .limit(12)
+  if (error) throw error
+  type Row = {
+    username: string
+    display_name: string
+    city: string | null
+    book_copies: { status: string }[]
+  }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    username: r.username,
+    displayName: r.display_name,
+    city: r.city,
+    listingCount: (r.book_copies ?? []).filter((c) => c.status === 'available').length,
+  }))
+}
+
+/** One listing, by its own id. */
+export async function getListing(copyId: string): Promise<Listing | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('book_copies')
+    .select(LISTING_SELECT)
     .eq('id', copyId)
     .maybeSingle()
   if (error) throw error
   if (!data) return null
-
-  type Row = {
-    id: string
-    condition: BookCondition
-    condition_note: string | null
-    status: CopyStatus
-    transfer_count: number
-    created_at: string
-    owner:
-      | { id: string; username: string; display_name: string; city: string | null }
-      | { id: string; username: string; display_name: string; city: string | null }[]
-      | null
-    book: { id: string; title: string; author: string | null } | { id: string; title: string; author: string | null }[] | null
-    book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
-  }
-  const r = data as unknown as Row
-  const owner = one(r.owner)
-  const book = one(r.book)
-  if (!book) return null
-
-  return {
-    id: r.id,
-    condition: r.condition,
-    conditionNote: r.condition_note,
-    status: r.status,
-    transferCount: r.transfer_count,
-    createdAt: r.created_at.slice(0, 10),
-    owner: owner
-      ? { id: owner.id, username: owner.username, displayName: owner.display_name, city: owner.city }
-      : null,
-    images: (r.book_images ?? [])
-      .filter((i) => i.status === 'ready')
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((i) => ({
-        id: i.id,
-        url: bookImageStorage().publicUrl(i.storage_key),
-        sortOrder: i.sort_order,
-      })),
-    book: { id: book.id, title: book.title, author: book.author, coverColor: coverColorFor(book.id) },
-  }
+  return toListing(data as unknown as ListingRow)
 }
 
-export async function getMyCopies(userId: string) {  const supabase = await createClient()
+/**
+ * Links minted before listings had their own URLs — and the notification rows
+ * the database still writes with entity_type 'book' — carry a books id. Resolve
+ * it to a listing so those keep working instead of 404ing.
+ */
+export async function findListingIdForBook(bookId: string): Promise<string | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('book_copies')
+    .select('id, status')
+    .eq('book_id', bookId)
+    .order('created_at', { ascending: true })
+  const rows = (data ?? []) as { id: string; status: string }[]
+  return (rows.find((r) => r.status === 'available') ?? rows[0])?.id ?? null
+}
+
+export async function getMyCopies(userId: string) {
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_copies')
-    .select(
-      `id, condition, condition_note, status, transfer_count, created_at,
-       books ( id, title, author )`
-    )
+    .select(LISTING_SELECT)
     .eq('owner_id', userId)
     .order('created_at', { ascending: false })
   if (error) throw error
+  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+}
 
-  type Row = {
+export type PublicProfile = {
+  id: string
+  username: string
+  displayName: string
+  bio: string | null
+  city: string | null
+  joinedAt: string
+  listings: Listing[]
+}
+
+/**
+ * Someone else's profile as the public sees it: who they are and what they have
+ * listed. Never their email — that lives only in auth.users, which no
+ * client-side query can reach.
+ *
+ * A suspended account resolves to null so a moderated profile stops being a
+ * browsable page.
+ */
+export async function getPublicProfile(username: string): Promise<PublicProfile | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, bio, city, created_at, account_status')
+    .ilike('username', username)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const profile = data as {
     id: string
-    condition: BookCondition
-    condition_note: string | null
-    status: CopyStatus
-    transfer_count: number
+    username: string
+    display_name: string
+    bio: string | null
+    city: string | null
     created_at: string
-    books:
-      | { id: string; title: string; author: string | null }
-      | { id: string; title: string; author: string | null }[]
-      | null
+    account_status: string
   }
+  if (profile.account_status !== 'active') return null
 
-  return ((data ?? []) as unknown as Row[]).flatMap((r) => {
-    const book = one(r.books)
-    if (!book) return []
-    return [
-      {
-        copy: {
-          id: r.id,
-          condition: r.condition,
-          conditionNote: r.condition_note,
-          status: r.status,
-          transferCount: r.transfer_count,
-          createdAt: r.created_at.slice(0, 10),
-        },
-        book: {
-          id: book.id,
-          title: book.title,
-          author: book.author,
-          coverColor: coverColorFor(book.id),
-        },
-      },
-    ]
-  })
+  const { data: rows, error: copiesError } = await supabase
+    .from('book_copies')
+    .select(LISTING_SELECT)
+    .eq('owner_id', profile.id)
+    .eq('status', 'available')
+    .order('created_at', { ascending: false })
+  if (copiesError) throw copiesError
+
+  return {
+    id: profile.id,
+    username: profile.username,
+    displayName: profile.display_name,
+    bio: profile.bio,
+    city: profile.city,
+    joinedAt: profile.created_at.slice(0, 10),
+    listings: ((rows ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []),
+  }
 }

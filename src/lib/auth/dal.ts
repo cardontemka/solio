@@ -9,6 +9,7 @@ export type SessionUser = {
   email: string | null
   username: string
   displayName: string
+  city: string | null
   accountStatus: string
 }
 
@@ -25,7 +26,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, account_status')
+    .select('username, display_name, city, account_status')
     .eq('id', user.id)
     .single()
 
@@ -36,6 +37,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     email: user.email ?? null,
     username: profile.username,
     displayName: profile.display_name,
+    city: profile.city,
     accountStatus: profile.account_status,
   }
 })

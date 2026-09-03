@@ -107,9 +107,11 @@ values (current_setting('test.alice')::uuid, 'Alice private wish');
 select pg_temp.login_as('ganbat@example.invalid');
 set local role authenticated;
 
+-- A request is a post now, so a third party SHOULD see it — a post nobody can
+-- read cannot be answered (ADR-032). What stays hidden is a cancelled one.
 select is((select count(*)::int from public.book_requests
-            where title = 'Alice private wish'), 0,
-  'a third party cannot read another user''s wishlist');
+            where title = 'Alice private wish'), 1,
+  'a third party can read another user''s open request post');
 
 select is((select count(*)::int from public.notifications
             where user_id = current_setting('test.alice')::uuid), 0,

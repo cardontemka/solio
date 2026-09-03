@@ -1,3 +1,37 @@
-.wrap {
-  max-width: 1100px;
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
+
+.bio {
+  max-width: 62ch;
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+.selfLink {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.selfLink:hover {
+  text-decoration: underline;
+}
+
+.section {
+  margin-top: 8px;
+}
+
+.sectionTitle {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 620;
+}
+

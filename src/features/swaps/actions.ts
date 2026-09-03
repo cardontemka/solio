@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
-import { emailNotification } from '@/lib/email/notifications'
 
 export type SwapActionState = { ok: true } | { ok: false; message?: string }
 
@@ -42,24 +41,9 @@ export async function requestSwapAction(
   })
   if (error) return { ok: false, message: toUserMessage(error, 'requestSwap') }
 
-  await emailRequestedOwner(requested.data, user.id)
-
   revalidatePath('/swaps')
   revalidatePath('/my-books')
   return { ok: true }
-}
-
-type SwapEmailType =
-  | 'swap_accepted'
-  | 'swap_rejected'
-  | 'swap_cancelled'
-  | 'swap_confirmed'
-  | 'swap_completed'
-
-const respondEmail: Record<'accept' | 'reject' | 'cancel', SwapEmailType> = {
-  accept: 'swap_accepted',
-  reject: 'swap_rejected',
-  cancel: 'swap_cancelled',
 }
 
 async function respond(swapId: string, action: 'accept' | 'reject' | 'cancel') {
@@ -75,8 +59,6 @@ async function respond(swapId: string, action: 'accept' | 'reject' | 'cancel') {
     p_action: action,
   })
   if (error) return { ok: false as const, message: toUserMessage(error, `swap.${action}`) }
-
-  await emailSwapNotification(id.data, user.id, respondEmail[action])
 
   revalidatePath('/swaps')
   revalidatePath('/my-books')
@@ -103,62 +85,8 @@ export async function completeSwapAction(swapId: string): Promise<SwapActionStat
   const { error } = await supabase.rpc('complete_swap', { p_swap_id: id.data })
   if (error) return { ok: false, message: toUserMessage(error, 'completeSwap') }
 
-  // Phase 1 (ACCEPTED → CONFIRMED) announces handover; phase 2 (→ COMPLETED)
-  // announces the finished swap. Read the post-RPC status to pick the right one.
-  const { data: after } = await supabase
-    .from('swaps')
-    .select('status')
-    .eq('id', id.data)
-    .single()
-  await emailSwapNotification(
-    id.data,
-    user.id,
-    after?.status === 'COMPLETED' ? 'swap_completed' : 'swap_confirmed'
-  )
-
   revalidatePath('/swaps')
   revalidatePath('/my-books')
   revalidatePath('/')
   return { ok: true }
-}
-
-/** Best-effort email to the owner of the requested copy (the swap recipient). */
-async function emailRequestedOwner(requestedCopyId: string, actorId: string) {
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('book_copies')
-      .select('owner_id')
-      .eq('id', requestedCopyId)
-      .single()
-    if (data?.owner_id && data.owner_id !== actorId) {
-      await emailNotification({
-        userId: data.owner_id,
-        type: 'swap_requested',
-        entityType: 'swap',
-        entityId: requestedCopyId,
-      })
-    }
-  } catch (e) {
-    console.error('[requestSwap] email failed', e)
-  }
-}
-
-/** Best-effort email to the swap's counterparty (nobody is the actor). */
-async function emailSwapNotification(swapId: string, actorId: string, type: SwapEmailType) {
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('swaps')
-      .select('requester_id, responder_id')
-      .eq('id', swapId)
-      .single()
-    const recipient =
-      data?.requester_id === actorId ? data.responder_id : data?.requester_id
-    if (recipient) {
-      await emailNotification({ userId: recipient, type, entityType: 'swap', entityId: swapId })
-    }
-  } catch (e) {
-    console.error('[swap] email failed', e)
-  }
 }

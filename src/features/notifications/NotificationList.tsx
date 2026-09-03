@@ -5,7 +5,7 @@ import { useOptimistic, useTransition } from 'react'
 import { markAllReadAction, markReadAction } from './actions'
 import { RelativeTime } from './RelativeTime'
 import type { NotificationView } from './queries'
-import styles from '@/app/notifications/page.module.css'
+import styles from './NotificationList.module.css'
 
 /**
  * Marks a notification read and follows its link. Optimistic so the dot

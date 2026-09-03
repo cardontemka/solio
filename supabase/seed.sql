@@ -194,10 +194,9 @@ values ('11111111-1111-1111-1111-111111111111','swap_requested','swap','7a1c93e4
 -- ── Demo wishlist ─────────────────────────────────────────────────────────
 -- One entry against a work that exists (so the page shows the linked state)
 -- and one free-text entry for a book nobody has listed yet.
-insert into public.book_requests (user_id, book_id, title, author, note)
-select '11111111-1111-1111-1111-111111111111', b.id, b.title, b.author,
-       'Англи эх хувилбар байвал сайн.'
-  from public.books b where b.title = 'Clean Code';
+insert into public.book_requests (user_id, title, author, note)
+values ('11111111-1111-1111-1111-111111111111', 'Clean Code', 'Robert C. Martin',
+        'Англи эх хувилбар байвал сайн.');
 
 insert into public.book_requests (user_id, title, author, note)
 values ('11111111-1111-1111-1111-111111111111',
@@ -220,21 +219,23 @@ select '22222222-2222-2222-2222-222222222222', 'book', b.id, 'wrong_metadata',
        'Зохиогчийн нэр буруу бичигдсэн байна.'
   from public.books b where b.title = 'Гэгээн муза';
 
--- ── Demo reviews ──────────────────────────────────────────────────────────
-insert into public.book_reviews (book_id, user_id, rating, body)
-select b.id, v.user_id, v.rating, v.body
-  from public.books b
+-- ── Demo comments ─────────────────────────────────────────────────────────
+-- Comments hang off a listing, not a catalogue row, so each one is attached to
+-- somebody's actual book (ADR-031).
+insert into public.comments (book_copy_id, user_id, body)
+select c.id, v.user_id, v.body
+  from public.book_copies c
+  join public.books b on b.id = c.book_id
   join (values
-    ('Монголын нууц товчоо','11111111-1111-1111-1111-111111111111'::uuid,5,
+    ('Монголын нууц товчоо','11111111-1111-1111-1111-111111111111'::uuid,
      'Монгол хүн бүр нэг удаа уншвал зохих ном. Орчуулга нь ойлгомжтой.'),
-    ('Монголын нууц товчоо','33333333-3333-3333-3333-333333333333'::uuid,4,
-     'Түүхэн ач холбогдол өндөр, гэхдээ эхлэхэд жаахан хүнд.'),
-    ('Ном унших урлаг','22222222-2222-2222-2222-222222222222'::uuid,5,
+    ('Ном унших урлаг','22222222-2222-2222-2222-222222222222'::uuid,
      'Уншлагын арга барилаа бүрэн өөрчилсөн.'),
-    ('The Hobbit','44444444-4444-4444-4444-444444444444'::uuid,5,
+    ('The Hobbit','44444444-4444-4444-4444-444444444444'::uuid,
      'Timeless. Гурав дахь удаагаа уншиж байна.'),
-    ('Sapiens: Хүн төрөлхтний товч түүх','11111111-1111-1111-1111-111111111111'::uuid,4,
-     'Сонирхолтой боловч зарим дүгнэлт нь маргаантай.'),
-    ('Atomic Habits','22222222-2222-2222-2222-222222222222'::uuid,4,
+    ('Atomic Habits','22222222-2222-2222-2222-222222222222'::uuid,
      'Практик зөвлөгөө их.')
-  ) as v(title, user_id, rating, body) on v.title = b.title;
+  ) as v(title, user_id, body) on v.title = b.title
+ where c.owner_id is distinct from v.user_id
+   and c.id = (select c2.id from public.book_copies c2
+                where c2.book_id = b.id order by c2.created_at limit 1);

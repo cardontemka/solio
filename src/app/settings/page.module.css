@@ -1,0 +1,66 @@
+.shell {
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.usernamePrefix {
+  flex: none;
+  padding: 0 10px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.usernameRow input {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.saved {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+  color: var(--ok);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.viewLink {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.viewLink:hover {
+  text-decoration: underline;
+}

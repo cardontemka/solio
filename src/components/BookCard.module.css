@@ -141,35 +141,16 @@
   font-size: 11.5px;
 }
 
-.rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stars {
-  color: var(--warn);
-  letter-spacing: 0.5px;
-  font-size: 11px;
-}
-
-.starsDim {
-  color: var(--border-strong);
-}
-
-.count {
+.condition {
   color: var(--text-3);
 }
 
-.avail {
-  color: var(--ok);
-  font-weight: 550;
+.owner {
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.avail[data-none='true'] {
-  color: var(--text-3);
-  font-weight: 400;
+  max-width: 55%;
 }
 
 .coverImage {

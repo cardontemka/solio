@@ -87,12 +87,12 @@ export type BookCopy = {
   createdAt: string
 }
 
-export type Review = {
+/** A plain comment on a listing's book. No score — see ADR-031. */
+export type Comment = {
   id: string
   bookId: string
   userId: string
-  rating: number
-  body: string | null
+  body: string
   createdAt: string
 }
 
@@ -132,11 +132,3 @@ export type OwnershipEvent = {
   occurredAt: string
 }
 
-/** A book joined with everything the card / detail view needs. */
-export type BookListing = {
-  book: Book
-  availableCopies: number
-  totalCopies: number
-  avgRating: number | null
-  reviewCount: number
-}

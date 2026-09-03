@@ -9,8 +9,8 @@ import {
   BellIcon,
   BookIcon,
   ChevronDownIcon,
-  HeartIcon,
   LogOutIcon,
+  SettingsIcon,
   SwapIcon,
   UserIcon,
 } from './Icons'
@@ -18,7 +18,8 @@ import styles from './Header.module.css'
 
 const NAV = [
   { href: '/', label: 'Нүүр' },
-  { href: '/search', label: 'Explore' },
+  { href: '/search', label: 'Номнууд' },
+  { href: '/requests', label: 'Ном хүсэх' },
 ] as const
 
 export type HeaderUser = { displayName: string; username: string } | null
@@ -156,17 +157,17 @@ function Menu({
         <p className={styles.menuName}>{user?.displayName}</p>
         <p className={styles.menuUser}>@{user?.username}</p>
       </div>
-      <Link href={`/u/${user?.username}`} className={styles.menuItem} onClick={onNavigate}>
+      <Link href="/dashboard" className={styles.menuItem} onClick={onNavigate}>
         <UserIcon size={17} />
-        Профайл
+        Миний хуудас
+      </Link>
+      <Link href="/settings" className={styles.menuItem} onClick={onNavigate}>
+        <SettingsIcon size={17} />
+        Тохиргоо
       </Link>
       <Link href="/my-books" className={styles.menuItem} onClick={onNavigate}>
         <BookIcon size={17} />
         Миний номнууд
-      </Link>
-      <Link href="/wishlist" className={styles.menuItem} onClick={onNavigate}>
-        <HeartIcon size={17} />
-        Хүслийн жагсаалт
       </Link>
       <Link href="/swaps" className={styles.menuItem} onClick={onNavigate}>
         <SwapIcon size={17} />

@@ -1,66 +1,186 @@
 'use client'
 
-import Link from 'next/link'
-import { useActionState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
-import { ImageUploader } from '@/features/images/ImageUploader'
+import {
+  IMAGE_ALLOWED,
+  IMAGE_MAX_COUNT,
+  checkImageFile,
+  uploadImageToCopy,
+} from '@/features/images/upload'
 import { BOOK_CONDITION, CONDITION_LABEL } from '@/types/domain'
 import { createBookAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
-import styles from '@/app/books/new/page.module.css'
+import styles from './AddBookForm.module.css'
 
-const initial: ActionState = { ok: false }
+/**
+ * Registering one's own copy, in a single submit.
+ *
+ * Photos are chosen before saving but can only be uploaded after, because an
+ * upload is authorised against a book_copy row that does not exist yet. So the
+ * files wait in local state, the action creates book + copy, and the uploads
+ * follow immediately — the reader sees one action, not two steps.
+ *
+ * The form is submitted by hand rather than through useActionState because the
+ * uploads have to run between the action returning and the redirect.
+ */
+type Picked = { file: File; preview: string }
 
 export function AddBookForm() {
-  const [state, formAction, pending] = useActionState(createBookAction, initial)
+  const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [state, setState] = useState<ActionState>({ ok: false })
+  const [picked, setPicked] = useState<Picked[]>([])
+  const [phase, setPhase] = useState<'idle' | 'saving' | 'uploading'>('idle')
+  const [progress, setProgress] = useState(0)
+  const [uploadIndex, setUploadIndex] = useState(0)
+  const [imageError, setImageError] = useState<string | null>(null)
+
+  const busy = phase !== 'idle'
   const errors = !state.ok ? state.errors : undefined
+  const remaining = IMAGE_MAX_COUNT - picked.length
 
-  // The book + copy now exist; prompt the owner to attach photos.
-  if (state.ok && state.copyId) {
-    return (
-      <div className={styles.form}>
-        <div className={styles.group}>
-          <legend className={styles.legend}>3 · Зураг нэмэх (заавал биш)</legend>
-          <p className={styles.imageHint}>
-            Ном бүртгэгдсэн. Одоо эсвэл дараа ч зураг нэмж болно.
-          </p>
-          <ImageUploader copyId={state.copyId} images={[]} />
-        </div>
+  // Object URLs are a browser resource, not React state; release them when the
+  // component goes away so a long session does not leak every preview.
+  useEffect(() => {
+    return () => picked.forEach((p) => URL.revokeObjectURL(p.preview))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-        <div className={styles.actions}>
-          <Link className={formStyles.submit} href={`/books/${state.bookId}`}>
-            Дуусгах
-          </Link>
-        </div>
-      </div>
-    )
+  async function addFiles(files: File[]) {
+    setImageError(null)
+    const accepted: Picked[] = []
+    for (const file of files.slice(0, remaining)) {
+      const problem = await checkImageFile(file)
+      if (problem) {
+        setImageError(`${file.name}: ${problem}`)
+        continue
+      }
+      accepted.push({ file, preview: URL.createObjectURL(file) })
+    }
+    if (accepted.length > 0) setPicked((prev) => [...prev, ...accepted])
+  }
+
+  function removeAt(index: number) {
+    setPicked((prev) => {
+      const target = prev[index]
+      if (target) URL.revokeObjectURL(target.preview)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (busy) return
+
+    setImageError(null)
+    setPhase('saving')
+    const formData = new FormData(event.currentTarget)
+    const result = await createBookAction({ ok: false }, formData)
+
+    if (!result.ok || !result.bookId || !result.copyId) {
+      setState(result)
+      setPhase('idle')
+      return
+    }
+
+    // The book exists from here on. A failed photo is reported but never undoes
+    // the registration — the reader can add photos again from the copy page.
+    const failures: string[] = []
+    if (picked.length > 0) {
+      setPhase('uploading')
+      for (let i = 0; i < picked.length; i++) {
+        setUploadIndex(i + 1)
+        setProgress(0)
+        const res = await uploadImageToCopy(result.copyId, picked[i].file, setProgress)
+        if (!res.ok) failures.push(`${picked[i].file.name}: ${res.message}`)
+      }
+    }
+
+    if (failures.length > 0) {
+      setImageError(
+        `Ном бүртгэгдсэн. Зарим зураг орсонгүй — ${failures[0]}. Номынхоо хуудаснаас дахин нэмж болно.`
+      )
+      setPhase('idle')
+      return
+    }
+
+    // Back to wherever the reader came from — the shelf, the feed, their
+    // profile. history.length is 1 only when this page was opened directly,
+    // in which case there is nothing to go back to.
+    if (window.history.length > 1) router.back()
+    else router.replace(`/books/${result.copyId}`)
   }
 
   return (
-    <form action={formAction} className={styles.form}>
+    <form onSubmit={onSubmit} className={styles.form}>
       {!state.ok && <FormMessage message={state.message} />}
 
-      <fieldset className={styles.group} disabled={pending}>
+      <fieldset className={styles.group} disabled={busy}>
         <legend className={styles.legend}>1 · Номын мэдээлэл</legend>
 
-        <div className={formStyles.field}>
-          <label className={formStyles.label} htmlFor="isbn">
-            ISBN
-            <span className={formStyles.optional}>заавал биш</span>
-          </label>
-          <input
-            className={formStyles.input}
-            id="isbn"
-            name="isbn"
-            type="text"
-            placeholder="978-99929-0-123-4"
-            inputMode="numeric"
-          />
-          <span className={formStyles.hint}>
-            Ижил ISBN-тэй ном аль хэдийн байвал таны хувь түүн дээр нэмэгдэнэ.
+        <div className={styles.dropzone} data-active={picked.length > 0}>
+          <span className={styles.dropIcon} aria-hidden="true" />
+          <span className={styles.dropTitle}>Өөрийн номныхоо зургийг нэмээрэй</span>
+          <span className={styles.dropHint}>
+            JPEG, PNG, WebP · 5MB хүртэл · хамгийн ихдээ {IMAGE_MAX_COUNT}
           </span>
-          <FieldError errors={errors?.isbn} />
+          <input
+            ref={inputRef}
+            type="file"
+            accept={IMAGE_ALLOWED.join(',')}
+            multiple
+            hidden
+            onChange={async (e) => {
+              await addFiles(Array.from(e.target.files ?? []))
+              if (inputRef.current) inputRef.current.value = ''
+            }}
+          />
+          <button
+            type="button"
+            className={styles.dropButton}
+            disabled={busy || remaining <= 0}
+            onClick={() => inputRef.current?.click()}
+          >
+            {remaining > 0 ? `Зураг сонгох (${remaining} үлдсэн)` : 'Хязгаарт хүрсэн'}
+          </button>
         </div>
+
+        {picked.length > 0 && (
+          <ul className={styles.thumbs}>
+            {picked.map((p, i) => (
+              <li key={p.preview} className={styles.thumb}>
+                {/* Local object URL, so next/image would only add indirection. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.preview} alt="" />
+                {i === 0 && <span className={styles.thumbFirst}>Үндсэн</span>}
+                <button
+                  type="button"
+                  className={styles.thumbRemove}
+                  aria-label={`${p.file.name}-ыг хасах`}
+                  disabled={busy}
+                  onClick={() => removeAt(i)}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {phase === 'uploading' && (
+          <>
+            <p className={styles.uploadStatus}>
+              Зураг байршуулж байна: {uploadIndex}/{picked.length} — {progress}%
+            </p>
+            <div className={styles.progress}>
+              <div className={styles.progressBar} style={{ width: `${progress}%` }} />
+            </div>
+          </>
+        )}
+
+        {imageError && <p className={styles.error}>{imageError}</p>}
 
         <div className={formStyles.field}>
           <label className={formStyles.label} htmlFor="title">
@@ -132,6 +252,25 @@ export function AddBookForm() {
         </div>
 
         <div className={formStyles.field}>
+          <label className={formStyles.label} htmlFor="isbn">
+            ISBN
+            <span className={formStyles.optional}>заавал биш</span>
+          </label>
+          <input
+            className={formStyles.input}
+            id="isbn"
+            name="isbn"
+            type="text"
+            placeholder="978-99929-0-123-4"
+            inputMode="numeric"
+          />
+          <span className={formStyles.hint}>
+            Хайлтад тусалдаг нэмэлт мэдээлэл. Бусад хүний ижил номтой нэгтгэхгүй.
+          </span>
+          <FieldError errors={errors?.isbn} />
+        </div>
+
+        <div className={formStyles.field}>
           <label className={formStyles.label} htmlFor="description">
             Тайлбар
             <span className={formStyles.optional}>заавал биш</span>
@@ -147,8 +286,8 @@ export function AddBookForm() {
         </div>
       </fieldset>
 
-      <fieldset className={styles.group} disabled={pending}>
-        <legend className={styles.legend}>2 · Номын нөхцөл</legend>
+      <fieldset className={styles.group} disabled={busy}>
+        <legend className={styles.legend}>2 · Таны хувийн нөхцөл</legend>
 
         <div className={styles.conditions}>
           {BOOK_CONDITION.map((c, i) => (
@@ -176,8 +315,12 @@ export function AddBookForm() {
       </fieldset>
 
       <div className={styles.actions}>
-        <button className={formStyles.submit} type="submit" disabled={pending}>
-          {pending ? 'Хадгалж байна…' : 'Нийтлэх'}
+        <button className={formStyles.submit} type="submit" disabled={busy}>
+          {phase === 'saving'
+            ? 'Хадгалж байна…'
+            : phase === 'uploading'
+              ? 'Зураг байршуулж байна…'
+              : 'Нийтлэх'}
         </button>
       </div>
     </form>

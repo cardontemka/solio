@@ -1,15 +1,16 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './BookCard.module.css'
-import type { BookListing } from '@/types/domain'
+import type { Listing } from '@/features/books/queries'
+import { CONDITION_LABEL } from '@/types/domain'
 
 /**
- * Shows the uploaded cover when there is one, and a generated placeholder
- * otherwise, so a book without images still reads as a book.
+ * Shows the owner's photo when there is one, and a generated placeholder
+ * otherwise, so a listing without photos still reads as a book.
  *
- * next/image handles the format conversion and responsive sizing the brief
- * asks for; next.config.ts derives the allowed remote host from the same
- * environment variable the storage layer uses, so the two cannot drift.
+ * next/image handles the format conversion and responsive sizing; next.config.ts
+ * derives the allowed remote host from the same environment variable the storage
+ * layer uses, so the two cannot drift.
  */
 export function BookCover({
   title,
@@ -52,55 +53,41 @@ export function BookCover({
   )
 }
 
-function Stars({ rating }: { rating: number }) {
-  const rounded = Math.round(rating)
+/**
+ * One person's book, offered for swap. The owner is part of the card because
+ * that is what distinguishes two listings of the same title — there is no
+ * shared "book page" behind them.
+ */
+export function BookCard({ listing }: { listing: Listing }) {
   return (
-    <span className={styles.stars} aria-label={`${rating.toFixed(1)} оноо`}>
-      {'★★★★★'.slice(0, rounded)}
-      <span className={styles.starsDim}>{'★★★★★'.slice(rounded)}</span>
-    </span>
-  )
-}
-
-export function BookCard({ listing }: { listing: BookListing }) {
-  const { book, availableCopies, avgRating, reviewCount } = listing
-  return (
-    <Link href={`/books/${book.id}`} className={styles.card}>
+    <Link href={`/books/${listing.copyId}`} className={styles.card}>
       <BookCover
-        title={book.title}
-        author={book.author}
-        color={book.coverColor}
-        src={book.coverUrl}
+        title={listing.title}
+        author={listing.author}
+        color={listing.coverColor}
+        src={listing.images[0]?.url}
       />
       <div className={styles.body}>
-        <h3 className={styles.title}>{book.title}</h3>
-        {book.author && <p className={styles.author}>{book.author}</p>}
+        <h3 className={styles.title}>{listing.title}</h3>
+        {listing.author && <p className={styles.author}>{listing.author}</p>}
         <div className={styles.meta}>
-          {avgRating !== null ? (
-            <span className={styles.rating}>
-              <Stars rating={avgRating} />
-              <span className={styles.count}>({reviewCount})</span>
+          <span className={styles.condition}>{CONDITION_LABEL[listing.condition]}</span>
+          {listing.owner && (
+            <span className={styles.owner}>
+              {listing.owner.city ?? listing.owner.displayName}
             </span>
-          ) : (
-            <span className={styles.count}>Үнэлгээгүй</span>
           )}
-          <span
-            className={styles.avail}
-            data-none={availableCopies === 0}
-          >
-            {availableCopies > 0 ? `${availableCopies} боломжтой` : 'Боломжгүй'}
-          </span>
         </div>
       </div>
     </Link>
   )
 }
 
-export function BookGrid({ listings }: { listings: BookListing[] }) {
+export function BookGrid({ listings }: { listings: Listing[] }) {
   return (
     <div className={styles.grid}>
       {listings.map((l) => (
-        <BookCard key={l.book.id} listing={l} />
+        <BookCard key={l.copyId} listing={l} />
       ))}
     </div>
   )
