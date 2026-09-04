@@ -338,3 +338,42 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
     listings: ((rows ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []),
   }
 }
+
+export type SwapHistoryEntry = {
+  swapId: string
+  completedAt: string
+  counterpartyName: string
+  counterpartyUsername: string
+  gave: string[]
+  received: string[]
+}
+
+/**
+ * Somebody's finished swaps, as the public sees them.
+ *
+ * `swaps` itself stays participant-only; get_swap_history is a SECURITY DEFINER
+ * view over the completed ones. Nothing here is new information — both
+ * listings were public and the ownership transfer is visible on the copies —
+ * but the join is not one an anonymous reader could make.
+ */
+export async function getSwapHistory(userId: string): Promise<SwapHistoryEntry[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_swap_history', { p_user: userId })
+  if (error) throw error
+  type Row = {
+    swap_id: string
+    completed_at: string
+    counterparty_name: string
+    counterparty_user: string
+    gave_titles: string[] | null
+    received_titles: string[] | null
+  }
+  return ((data ?? []) as Row[]).map((r) => ({
+    swapId: r.swap_id,
+    completedAt: r.completed_at.slice(0, 10),
+    counterpartyName: r.counterparty_name,
+    counterpartyUsername: r.counterparty_user,
+    gave: r.gave_titles ?? [],
+    received: r.received_titles ?? [],
+  }))
+}

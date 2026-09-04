@@ -207,7 +207,14 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  // Same rule as login: a relative path only, so a crafted `next` cannot bounce
+  // a freshly signed-in reader off to another site.
+  const next = formData.get('next')
+  redirect(
+    typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')
+      ? next
+      : '/dashboard'
+  )
 }
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -263,7 +270,11 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
 
   revalidatePath('/', 'layout')
   const next = formData.get('next')
-  redirect(typeof next === 'string' && next.startsWith('/') ? next : '/my-books')
+  redirect(
+    typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')
+      ? next
+      : '/dashboard'
+  )
 }
 
 export async function logoutAction() {

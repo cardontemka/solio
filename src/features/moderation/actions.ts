@@ -2,9 +2,11 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
+import { flushPendingPush } from '@/lib/push/send'
 import { auditDenied } from './audit'
 
 export type ModState = { ok: true } | { ok: false; message?: string }
@@ -85,6 +87,8 @@ export async function moderateProfileAction(
     { action: 'moderate.profile', entityType: 'profile', entityId: userId }
   )
 
+  after(flushPendingPush)
+
   revalidatePath('/admin/users')
   return result
 }
@@ -101,6 +105,8 @@ export async function resolveReportAction(
     { p_report_id: reportId, p_status: status, p_note: note?.slice(0, 2000) ?? null },
     { action: 'report.resolve', entityType: 'report', entityId: reportId }
   )
+
+  after(flushPendingPush)
 
   revalidatePath('/admin/reports')
   revalidatePath('/admin')
@@ -119,6 +125,8 @@ export async function setRoleAction(
     { p_user_id: userId, p_role: role, p_grant: grant },
     { action: grant ? 'role.granted' : 'role.revoked', entityType: 'profile', entityId: userId }
   )
+
+  after(flushPendingPush)
 
   revalidatePath('/admin/users')
   return result

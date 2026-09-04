@@ -34,18 +34,30 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
   moderation_action: { title: 'Модерацийн шийдвэр' },
 }
 
-export function notificationHrefFor(entityType: string, entityId: string): string | null {
+/**
+ * Where a notification takes you — down to the row it is about.
+ *
+ * A link to the top of a busy page leaves the reader hunting for what changed,
+ * so the anchor names the comment or the swap. The payload carries the comment
+ * id because the notification's own entity is the thread it lives in.
+ */
+export function notificationHrefFor(
+  entityType: string,
+  entityId: string,
+  payload?: { comment_id?: string } | null
+): string | null {
+  const anchor = payload?.comment_id ? `#comment-${payload.comment_id}` : ''
   switch (entityType) {
     case 'swap':
-      return '/swaps'
+      return `/swaps#swap-${entityId}`
     case 'book':
       // A books id, not a listing id — /books/[copyId] resolves it to one.
-      return `/books/${entityId}`
+      return `/books/${entityId}${anchor}`
     case 'request':
-      return `/requests/${entityId}`
+      return `/requests/${entityId}${anchor}`
     case 'book_copy':
       // A listing has its own page now.
-      return `/books/${entityId}`
+      return `/books/${entityId}${anchor}`
     default:
       return null
   }

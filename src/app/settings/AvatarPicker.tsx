@@ -2,12 +2,9 @@
 
 import Image from 'next/image'
 import { useRef, useState, useTransition } from 'react'
+import { IMAGE_ACCEPT, prepareImage } from '@/features/images/upload'
 import { removeAvatarAction, setAvatarAction } from '@/features/users/actions'
 import styles from './page.module.css'
-
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_BYTES = 2 * 1024 * 1024
-const MIN_BYTES = 1024
 
 /**
  * Same three-step upload the book photos use — ask for a target, PUT the bytes
@@ -27,18 +24,20 @@ export function AvatarPicker({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  async function upload(file: File) {
+  async function upload(original: File) {
     setError(null)
-    if (!ALLOWED.includes(file.type)) {
-      setError('Зөвхөн JPEG, PNG, WebP зураг байршуулна.')
-      return
-    }
-    if (file.size < MIN_BYTES || file.size > MAX_BYTES) {
-      setError('Зургийн хэмжээ 1KB–2MB хооронд байх ёстой.')
-      return
-    }
-
     setBusy(true)
+    // Same preparation the book photos get: a phone photo arrives too large and
+    // often in a format the server does not accept, and rejecting it outright
+    // was why uploading from a phone did not work.
+    const prepared = await prepareImage(original)
+    if (!prepared.ok) {
+      setError(prepared.message)
+      setBusy(false)
+      return
+    }
+    const file = prepared.file
+
     try {
       const res = await fetch('/api/uploads/avatar', {
         method: 'POST',
@@ -83,12 +82,12 @@ export function AvatarPicker({
 
       <div className={styles.avatarControls}>
         <p className={styles.avatarLabel}>Профайл зураг</p>
-        <p className={styles.avatarHint}>JPEG, PNG, WebP · 2MB хүртэл</p>
+        <p className={styles.avatarHint}>Утас, компьютерээс · автоматаар жижигрүүлнэ</p>
 
         <input
           ref={inputRef}
           type="file"
-          accept={ALLOWED.join(',')}
+          accept={IMAGE_ACCEPT}
           hidden
           onChange={async (e) => {
             const file = e.target.files?.[0]

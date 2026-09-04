@@ -12,7 +12,9 @@ import { ALLOWED_MIME, MIN_BYTES } from '@/lib/storage/ports'
  * address somebody else's avatar. Smaller cap than a book photo: an avatar is
  * displayed at 40px and there is no reason to store megabytes for it.
  */
-const AVATAR_MAX_BYTES = 2 * 1024 * 1024
+// Matches what prepareImage() can hand over: the client always re-encodes to a
+// JPEG under this, and a tighter cap here would reject its own output.
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024
 
 const EXTENSION: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Зураг 1KB–2MB хооронд, JPEG/PNG/WebP байх ёстой.' },
+      { error: 'Зургийн хэмжээ тохирохгүй байна. Өөр зураг сонгоно уу.' },
       { status: 422 }
     )
   }

@@ -263,3 +263,13 @@
   border-color: var(--accent);
   box-shadow: var(--shadow), 0 0 0 1px var(--accent) inset;
 }
+
+/* A notification links to #swap-<id>; keep the sticky header off the target. */
+.swap {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.swap:target {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}

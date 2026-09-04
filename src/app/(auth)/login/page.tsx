@@ -40,7 +40,10 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           <GoogleButton next={nextPath ?? '/my-books'} />
 
           <p className={styles.authAlt}>
-            Хаяг байхгүй юу? <Link href="/register">Бүртгүүлэх</Link>
+            Хаяг байхгүй юу?{' '}
+            <Link href={nextPath ? `/register?next=${encodeURIComponent(nextPath)}` : '/register'}>
+              Бүртгүүлэх
+            </Link>
           </p>
         </div>
       </div>

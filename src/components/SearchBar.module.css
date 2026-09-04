@@ -12,7 +12,15 @@
 
 .form:focus-within {
   border-color: var(--accent);
-  box-shadow: var(--shadow-lifted);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* The pill takes the focus ring; the global :focus-visible rule was drawing a
+   second rectangular outline inside the rounded field, which reads as a glitch.
+   Nothing is lost for keyboard users — the container's state is what moves. */
+.input:focus,
+.input:focus-visible {
+  outline: none;
 }
 
 .form[data-size='lg'] {

@@ -8,7 +8,7 @@ import {
   removeImageAction,
   type ImageView as ExistingImage,
 } from './actions'
-import { IMAGE_ALLOWED, IMAGE_MAX_COUNT, uploadImageToCopy } from './upload'
+import { IMAGE_ACCEPT, IMAGE_MAX_COUNT, uploadImageToCopy } from './upload'
 import styles from './ImageUploader.module.css'
 
 /**
@@ -85,7 +85,7 @@ export function ImageUploader({
           <input
             ref={inputRef}
             type="file"
-            accept={IMAGE_ALLOWED.join(',')}
+            accept={IMAGE_ACCEPT}
             multiple
             hidden
             onChange={async (e) => {

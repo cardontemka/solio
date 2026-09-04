@@ -48,6 +48,7 @@ export default async function DashboardPage() {
           username: me.username,
           email: me.email,
           city: me.city,
+          avatarUrl: me.avatarUrl,
         }}
       />
     </div>

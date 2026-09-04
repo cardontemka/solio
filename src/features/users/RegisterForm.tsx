@@ -17,7 +17,7 @@ const initial: AuthState = { ok: false }
  * does not strip anything else: typing Cyrillic and watching the letters vanish
  * is more baffling than being told the rule. So the rule is told, live.
  */
-export function RegisterForm() {
+export function RegisterForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(registerAction, initial)
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
@@ -49,6 +49,7 @@ export function RegisterForm() {
 
   return (
     <form action={formAction}>
+      {next && <input type="hidden" name="next" value={next} />}
       {!state.ok && <FormMessage message={state.message} />}
       {cooldown > 0 && (
         <p className={styles.cooldown} role="status" aria-live="polite">

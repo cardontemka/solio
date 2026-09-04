@@ -4,7 +4,7 @@ import { cache } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { BookGrid } from '@/components/BookCard'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
-import { getPublicProfile } from '@/features/books/queries'
+import { getPublicProfile, getSwapHistory } from '@/features/books/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import styles from './page.module.css'
 
@@ -32,6 +32,7 @@ export default async function PublicProfilePage({ params }: Props) {
   if (!profile) notFound()
 
   const isMe = me?.id === profile.id
+  const history = await getSwapHistory(profile.id)
 
   return (
     <div className="container">
@@ -67,6 +68,32 @@ export default async function PublicProfilePage({ params }: Props) {
           <BookGrid listings={profile.listings} />
         )}
       </section>
+
+      {history.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            Солилцооны түүх <span className={styles.count}>{history.length}</span>
+          </h2>
+          <ul className={styles.history}>
+            {history.map((h) => (
+              <li key={h.swapId} className={styles.historyItem}>
+                <div className={styles.historyBooks}>
+                  <span className={styles.gave}>{h.gave.join(', ') || '—'}</span>
+                  <span className={styles.arrow} aria-hidden="true">⇄</span>
+                  <span className={styles.received}>{h.received.join(', ') || '—'}</span>
+                </div>
+                <p className={styles.historyMeta}>
+                  <Link href={`/u/${h.counterpartyUsername}`} className={styles.counterparty}>
+                    {h.counterpartyName}
+                  </Link>
+                  {' · '}
+                  {h.completedAt}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }

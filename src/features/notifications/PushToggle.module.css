@@ -1,0 +1,66 @@
+.wrap {
+  /* Space below, or this sits flush against the first notification and the two
+     read as one block. */
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.copy {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.on,
+.off {
+  flex: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.on {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.off {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+.on:disabled,
+.off:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.error {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}

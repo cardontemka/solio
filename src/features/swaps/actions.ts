@@ -2,9 +2,11 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
+import { flushPendingPush } from '@/lib/push/send'
 
 export type SwapActionState = { ok: true } | { ok: false; message?: string }
 
@@ -41,6 +43,8 @@ export async function requestSwapAction(
   })
   if (error) return { ok: false, message: toUserMessage(error, 'requestSwap') }
 
+  after(flushPendingPush)
+
   revalidatePath('/swaps')
   revalidatePath('/my-books')
   return { ok: true }
@@ -59,6 +63,8 @@ async function respond(swapId: string, action: 'accept' | 'reject' | 'cancel') {
     p_action: action,
   })
   if (error) return { ok: false as const, message: toUserMessage(error, `swap.${action}`) }
+
+  after(flushPendingPush)
 
   revalidatePath('/swaps')
   revalidatePath('/my-books')
@@ -84,6 +90,8 @@ export async function completeSwapAction(swapId: string): Promise<SwapActionStat
 
   const { error } = await supabase.rpc('complete_swap', { p_swap_id: id.data })
   if (error) return { ok: false, message: toUserMessage(error, 'completeSwap') }
+
+  after(flushPendingPush)
 
   revalidatePath('/swaps')
   revalidatePath('/my-books')

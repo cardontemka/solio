@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Avatar } from './Avatar'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import {
@@ -20,6 +21,7 @@ export type UserInfo = {
   username: string
   city?: string | null
   email?: string | null
+  avatarUrl?: string | null
 }
 
 const PANELS: { key: PanelKey; label: string; Icon: typeof BookIcon }[] = [
@@ -28,8 +30,8 @@ const PANELS: { key: PanelKey; label: string; Icon: typeof BookIcon }[] = [
   { key: 'swaps', label: 'Солилцоо', Icon: SwapIcon },
 ]
 
-// profiles has no phone column, so listing one would only ever render a blank.
-const DETAILS: { key: keyof UserInfo; label: string }[] = [
+// Only the rows worth showing as text; the picture is rendered above.
+const DETAILS: { key: 'email' | 'city'; label: string }[] = [
   { key: 'email', label: 'И-мэйл' },
   { key: 'city', label: 'Хот / Байршил' },
 ]
@@ -51,9 +53,7 @@ export function UserDashboard({
     <div className={styles.wrap} data-collapsed={collapsed}>
       <aside className={styles.sidebar}>
         <div className={styles.identity} data-label>
-          <span className={styles.identityAvatar} aria-hidden="true">
-            <UserIcon size={18} />
-          </span>
+          <Avatar name={userInfo.name} src={userInfo.avatarUrl} size={34} />
           <span className={styles.identityName}>{userInfo.name}</span>
         </div>
 

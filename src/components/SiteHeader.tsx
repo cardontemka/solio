@@ -1,14 +1,13 @@
 import { getSessionUser } from '@/lib/auth/dal'
-import { getUnreadCount } from '@/features/notifications/queries'
-import { isStaff } from '@/features/moderation/queries'
 import { Header } from './Header'
 
-/** Server wrapper: resolves the session, unread count and staff flag per request. */
+/**
+ * Server wrapper. Everything it needs — identity, unread count, staff flag —
+ * arrives in the one session_context() call, so the shell costs a single round
+ * trip rather than four.
+ */
 export async function SiteHeader() {
   const user = await getSessionUser()
-  const [unreadCount, staff] = user
-    ? await Promise.all([getUnreadCount(), isStaff()])
-    : [0, false]
 
   return (
     <Header
@@ -21,8 +20,8 @@ export async function SiteHeader() {
             }
           : null
       }
-      unreadCount={unreadCount}
-      isStaff={staff}
+      unreadCount={user?.unreadCount ?? 0}
+      isStaff={user?.isStaff ?? false}
     />
   )
 }

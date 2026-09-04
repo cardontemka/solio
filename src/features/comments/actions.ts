@@ -2,10 +2,12 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { toUserMessage } from '@/lib/db/errors'
+import { flushPendingPush } from '@/lib/push/send'
 
 export type CommentState = { ok: true } | { ok: false; message?: string; errors?: Record<string, string[]> }
 
@@ -13,6 +15,7 @@ const schema = z
   .object({
     listingId: z.guid().optional(),
     requestId: z.guid().optional(),
+    parentId: z.guid().optional(),
     body: z.string().trim().min(1, 'Сэтгэгдэл бичнэ үү.').max(4000, 'Сэтгэгдэл хэт урт байна.'),
   })
   // The database enforces the same thing with a check constraint; this only
@@ -32,18 +35,20 @@ export async function addCommentAction(
   const parsed = schema.safeParse({
     listingId: formData.get('listingId') || undefined,
     requestId: formData.get('requestId') || undefined,
+    parentId: formData.get('parentId') || undefined,
     body: formData.get('body') ?? '',
   })
   if (!parsed.success) {
     return { ok: false, errors: parsed.error.flatten().fieldErrors as Record<string, string[]> }
   }
 
-  const { listingId, requestId, body } = parsed.data
+  const { listingId, requestId, parentId, body } = parsed.data
   const { data: inserted, error } = await supabase
     .from('comments')
     .insert({
       book_copy_id: listingId ?? null,
       request_id: requestId ?? null,
+      parent_id: parentId ?? null,
       user_id: user.id,
       body,
     })
@@ -67,6 +72,10 @@ export async function addCommentAction(
   } catch (e) {
     console.error('[addComment] notification failed', e)
   }
+
+  // after(): the reader waits for their comment to appear, not for a push
+  // service on the other side of the internet.
+  after(flushPendingPush)
 
   revalidatePath(listingId ? `/books/${listingId}` : `/requests/${requestId}`)
   revalidatePath('/requests')

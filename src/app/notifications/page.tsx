@@ -1,5 +1,6 @@
 import { EmptyState, PageHeader } from '@/components/ui'
 import { NotificationList } from '@/features/notifications/NotificationList'
+import { PushToggle } from '@/features/notifications/PushToggle'
 import { getNotifications, getUnreadCount } from '@/features/notifications/queries'
 import { requireUser } from '@/lib/auth/dal'
 
@@ -16,8 +17,10 @@ export default async function NotificationsPage() {
     <div className="container">
       <PageHeader
         title="Мэдэгдэл"
-        subtitle="Солилцоо, хүслийн жагсаалт болон модерацийн мэдэгдлүүд."
+        subtitle="Солилцоо, сэтгэгдэл болон модерацийн мэдэгдлүүд."
       />
+
+      <PushToggle publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
 
       {notifications.length === 0 ? (
         <EmptyState

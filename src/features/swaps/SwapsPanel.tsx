@@ -53,7 +53,7 @@ function Items({ items }: { items: SwapItemView[] }) {
 function SwapCard({ swap }: { swap: SwapView }) {
   const step = STEP[swap.status]
   return (
-    <article className={styles.swap} data-awaiting={swap.awaitingMe}>
+    <article id={`swap-${swap.id}`} className={styles.swap} data-awaiting={swap.awaitingMe}>
       <header className={styles.head}>
         <div className={styles.headLeft}>
           <Badge tone={TONE[swap.status]}>{SWAP_STATUS_LABEL[swap.status]}</Badge>

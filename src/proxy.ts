@@ -38,11 +38,17 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // getUser(), not getSession(): getSession only decodes the cookie, which the
-  // client controls. getUser revalidates the token with the auth server.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims(), not getUser(): getUser asks the auth server on every single
+  // request, which on a distant project is a whole round trip added to every
+  // navigation. getClaims verifies the token's signature against the project's
+  // published keys — locally when they are asymmetric — so it is just as
+  // trustworthy as getUser and usually costs nothing. getSession would not do:
+  // it only decodes a cookie the client controls.
+  //
+  // The call still runs on every request because it is also what refreshes an
+  // expiring token, and a Server Component cannot set cookies itself.
+  const { data: claims } = await supabase.auth.getClaims()
+  const user = claims?.claims?.sub ? { id: claims.claims.sub as string } : null
 
   const path = request.nextUrl.pathname
 

@@ -51,7 +51,7 @@ export async function getNotifications(limit = 50): Promise<NotificationView[]> 
       type: n.type,
       title: copy.title,
       body: copy.body ?? null,
-      href: notificationHrefFor(n.entity_type, n.entity_id),
+      href: notificationHrefFor(n.entity_type, n.entity_id, n.payload),
       createdAt: n.created_at,
       isRead: n.read_at !== null,
     }

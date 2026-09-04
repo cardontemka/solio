@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
 import {
-  IMAGE_ALLOWED,
+  IMAGE_ACCEPT,
   IMAGE_MAX_COUNT,
-  checkImageFile,
+  prepareImage,
   uploadImageToCopy,
 } from '@/features/images/upload'
 import { BOOK_CONDITION, CONDITION_LABEL } from '@/types/domain'
@@ -36,6 +36,7 @@ export function AddBookForm() {
   const [progress, setProgress] = useState(0)
   const [uploadIndex, setUploadIndex] = useState(0)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [preparing, setPreparing] = useState(false)
 
   const busy = phase !== 'idle'
   const errors = !state.ok ? state.errors : undefined
@@ -50,15 +51,20 @@ export function AddBookForm() {
 
   async function addFiles(files: File[]) {
     setImageError(null)
+    setPreparing(true)
     const accepted: Picked[] = []
     for (const file of files.slice(0, remaining)) {
-      const problem = await checkImageFile(file)
-      if (problem) {
-        setImageError(`${file.name}: ${problem}`)
+      // Resized here rather than at submit time, so the preview is the same
+      // image that will be uploaded and a bad file is reported while the reader
+      // is still looking at the picker.
+      const prepared = await prepareImage(file)
+      if (!prepared.ok) {
+        setImageError(`${file.name}: ${prepared.message}`)
         continue
       }
-      accepted.push({ file, preview: URL.createObjectURL(file) })
+      accepted.push({ file: prepared.file, preview: URL.createObjectURL(prepared.file) })
     }
+    setPreparing(false)
     if (accepted.length > 0) setPicked((prev) => [...prev, ...accepted])
   }
 
@@ -124,12 +130,12 @@ export function AddBookForm() {
           <span className={styles.dropIcon} aria-hidden="true" />
           <span className={styles.dropTitle}>Өөрийн номныхоо зургийг нэмээрэй</span>
           <span className={styles.dropHint}>
-            JPEG, PNG, WebP · 5MB хүртэл · хамгийн ихдээ {IMAGE_MAX_COUNT}
+            Утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT} · автоматаар жижигрүүлнэ
           </span>
           <input
             ref={inputRef}
             type="file"
-            accept={IMAGE_ALLOWED.join(',')}
+            accept={IMAGE_ACCEPT}
             multiple
             hidden
             onChange={async (e) => {
@@ -140,10 +146,14 @@ export function AddBookForm() {
           <button
             type="button"
             className={styles.dropButton}
-            disabled={busy || remaining <= 0}
+            disabled={busy || preparing || remaining <= 0}
             onClick={() => inputRef.current?.click()}
           >
-            {remaining > 0 ? `Зураг сонгох (${remaining} үлдсэн)` : 'Хязгаарт хүрсэн'}
+            {preparing
+              ? 'Зураг бэлдэж байна…'
+              : remaining > 0
+                ? `Зураг сонгох (${remaining} үлдсэн)`
+                : 'Хязгаарт хүрсэн'}
           </button>
         </div>
 

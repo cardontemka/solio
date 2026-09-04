@@ -1,17 +1,150 @@
 'use client'
 
 import Link from 'next/link'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { Avatar } from '@/components/Avatar'
-import { useActionState, useEffect, useRef, useTransition } from 'react'
 import { addCommentAction, deleteCommentAction, type CommentState } from './actions'
 import type { CommentView } from './queries'
 import styles from './CommentSection.module.css'
 
 const initial: CommentState = { ok: false }
 
+export type CommentTarget = { listingId: string } | { requestId: string }
+
+function TargetFields({ target, parentId }: { target: CommentTarget; parentId?: string }) {
+  return (
+    <>
+      {'listingId' in target ? (
+        <input type="hidden" name="listingId" value={target.listingId} />
+      ) : (
+        <input type="hidden" name="requestId" value={target.requestId} />
+      )}
+      {parentId && <input type="hidden" name="parentId" value={parentId} />}
+    </>
+  )
+}
+
 /**
- * A plain comment thread. Anyone signed in may leave as many as they like; the
- * database rate-limits, and the author may delete their own.
+ * One comment, its replies, and the controls the reader is entitled to.
+ *
+ * The id is on the article so a notification can link straight to it —
+ * scroll-margin-top in the stylesheet keeps the sticky header off it.
+ */
+function Comment({
+  comment,
+  target,
+  path,
+  canComment,
+  depth = 0,
+}: {
+  comment: CommentView
+  target: CommentTarget
+  path: string
+  canComment: boolean
+  depth?: number
+}) {
+  const [replying, setReplying] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [state, formAction, pending] = useActionState(addCommentAction, initial)
+  const [deleteState, deleteAction, deleting] = useActionState(
+    async () => deleteCommentAction(comment.id, path),
+    initial
+  )
+
+  // Close the reply box once the server accepted it. A render-time adjustment
+  // rather than an effect: reacting to the new state in an effect commits twice
+  // for one render, which is what React's lint rule flags.
+  const [seen, setSeen] = useState(state)
+  if (seen !== state) {
+    setSeen(state)
+    if (state.ok) setReplying(false)
+  }
+
+  return (
+    <li className={styles.item} data-hidden={comment.isHidden} data-depth={depth}>
+      <article id={`comment-${comment.id}`} className={styles.article}>
+        <div className={styles.head}>
+          <Link href={`/u/${comment.authorUsername}`} className={styles.author}>
+            <Avatar name={comment.authorName} src={comment.authorAvatarUrl} size={26} />
+            {comment.authorName}
+          </Link>
+          <span className={styles.date}>{comment.createdAt}</span>
+          {comment.isHidden && <span className={styles.hiddenNote}>Модерацлагдсан</span>}
+        </div>
+
+        <p className={styles.body}>{comment.body}</p>
+
+        <div className={styles.actions}>
+          {canComment && depth === 0 && (
+            <button type="button" className={styles.link} onClick={() => setReplying((v) => !v)}>
+              {replying ? 'Болих' : 'Хариу бичих'}
+            </button>
+          )}
+          {comment.isMine &&
+            (confirming ? (
+              <form action={deleteAction}>
+                <button type="submit" className={styles.confirm} disabled={deleting}>
+                  {deleting ? 'Устгаж байна…' : 'Устгахдаа итгэлтэй?'}
+                </button>
+              </form>
+            ) : (
+              <button type="button" className={styles.delete} onClick={() => setConfirming(true)}>
+                Устгах
+              </button>
+            ))}
+        </div>
+
+        {!deleteState.ok && deleteState.message && (
+          <p className={styles.error}>{deleteState.message}</p>
+        )}
+
+        {replying && (
+          <form action={formAction} className={styles.replyForm}>
+            <TargetFields target={target} parentId={comment.id} />
+            <textarea
+              className={styles.textarea}
+              name="body"
+              rows={2}
+              maxLength={4000}
+              required
+              autoFocus
+              placeholder={`${comment.authorName}-д хариу бичих…`}
+            />
+            {!state.ok && state.errors?.body && (
+              <p className={styles.error}>{state.errors.body[0]}</p>
+            )}
+            {!state.ok && state.message && <p className={styles.error}>{state.message}</p>}
+            <div className={styles.formActions}>
+              <button className={styles.submit} type="submit" disabled={pending}>
+                {pending ? 'Илгээж байна…' : 'Хариу илгээх'}
+              </button>
+            </div>
+          </form>
+        )}
+      </article>
+
+      {comment.replies.length > 0 && (
+        <ul className={styles.replies}>
+          {comment.replies.map((r) => (
+            <Comment
+              key={r.id}
+              comment={r}
+              target={target}
+              path={path}
+              canComment={canComment}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+/**
+ * A plain comment thread with one level of replies. Anyone signed in may leave
+ * as many as they like; the database rate-limits, and the author may delete
+ * their own.
  */
 export function CommentSection({
   target,
@@ -20,16 +153,13 @@ export function CommentSection({
   viewerId,
   path,
 }: {
-  /** Exactly one: the listing or the request this thread belongs to. */
-  target: { listingId: string } | { requestId: string }
+  target: CommentTarget
   comments: CommentView[]
   canComment: boolean
   viewerId: string | null
-  /** The page to revalidate after a delete. */
   path: string
 }) {
   const [state, formAction, pending] = useActionState(addCommentAction, initial)
-  const [deleting, startDelete] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
 
   // Clear the box once the server has accepted the comment. In an effect
@@ -39,17 +169,15 @@ export function CommentSection({
     if (state.ok) formRef.current?.reset()
   }, [state])
 
+  const total = comments.reduce((n, c) => n + 1 + c.replies.length, 0)
+
   return (
-    <section className={styles.wrap}>
-      <h2 className={styles.title}>Сэтгэгдэл ({comments.length})</h2>
+    <section className={styles.wrap} id="comments">
+      <h2 className={styles.title}>Сэтгэгдэл ({total})</h2>
 
       {canComment ? (
         <form ref={formRef} action={formAction} className={styles.form}>
-          {'listingId' in target ? (
-            <input type="hidden" name="listingId" value={target.listingId} />
-          ) : (
-            <input type="hidden" name="requestId" value={target.requestId} />
-          )}
+          <TargetFields target={target} />
           <textarea
             className={styles.textarea}
             name="body"
@@ -79,31 +207,13 @@ export function CommentSection({
       ) : (
         <ul className={styles.list}>
           {comments.map((c) => (
-            <li key={c.id} className={styles.item} data-hidden={c.isHidden}>
-              <div className={styles.head}>
-                <Link href={`/u/${c.authorUsername}`} className={styles.author}>
-                  <Avatar name={c.authorName} src={c.authorAvatarUrl} size={26} />
-                  {c.authorName}
-                </Link>
-                <span className={styles.date}>{c.createdAt}</span>
-                {c.isHidden && <span className={styles.hiddenNote}>Модерацлагдсан</span>}
-                {c.isMine && viewerId && (
-                  <button
-                    type="button"
-                    className={styles.delete}
-                    disabled={deleting}
-                    onClick={() =>
-                      startDelete(async () => {
-                        await deleteCommentAction(c.id, path)
-                      })
-                    }
-                  >
-                    Устгах
-                  </button>
-                )}
-              </div>
-              <p className={styles.body}>{c.body}</p>
-            </li>
+            <Comment
+              key={c.id}
+              comment={c}
+              target={target}
+              path={path}
+              canComment={canComment && Boolean(viewerId)}
+            />
           ))}
         </ul>
       )}

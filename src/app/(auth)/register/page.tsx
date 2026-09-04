@@ -8,7 +8,10 @@ export const metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function RegisterPage() {
+export default async function RegisterPage({ searchParams }: PageProps<'/register'>) {
+  const { next } = await searchParams
+  const nextPath = typeof next === 'string' ? next : undefined
+
   return (
     <div className="container">
       <div className={styles.authShell}>
@@ -18,13 +21,16 @@ export default function RegisterPage() {
             Номоо бүртгэж, солилцоо эхлүүлэхийн тулд хаяг үүсгэнэ үү.
           </p>
 
-          <RegisterForm />
+          <RegisterForm next={nextPath} />
 
           <div className={styles.divider}>эсвэл</div>
-          <GoogleButton />
+          <GoogleButton next={nextPath ?? '/dashboard'} />
 
           <p className={styles.authAlt}>
-            Хаягтай юу? <Link href="/login">Нэвтрэх</Link>
+            Хаягтай юу?{' '}
+            <Link href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login'}>
+              Нэвтрэх
+            </Link>
           </p>
         </div>
       </div>

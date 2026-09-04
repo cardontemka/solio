@@ -77,11 +77,6 @@
   line-height: 1.6;
 }
 
-.heroSearch {
-  margin-top: 30px;
-  max-width: 460px;
-}
-
 .heroFeatures {
   margin-top: 28px;
   display: flex;
@@ -166,7 +161,6 @@
     text-align: center;
   }
 
-  .heroSearch,
   .heroText {
     margin-inline: auto;
   }
@@ -185,16 +179,29 @@
 }
 
 @media (max-width: 640px) {
+  /* A phone opens this page to look for books, and the search box now lives in
+     the header. So the hero shrinks to a single line of orientation and the
+     shelves start almost immediately. */
   .hero {
-    min-height: 92svh;
-    padding: 48px 0 56px;
-    margin: -22px 0 34px;
+    min-height: 0;
+    padding: 14px 0 16px;
+    margin: -22px 0 14px;
   }
 
-  .heroText {
-    font-size: 14.5px;
+  .heroTitle {
+    font-size: 22px;
+    line-height: 1.25;
   }
 
+  .heroTitle br {
+    display: none;
+  }
+
+  /* The header already carries the logo and the name; repeating it here only
+     pushes the shelves further down. */
+  .heroKicker,
+  .heroText,
+  .heroFeatures,
   .heroVisual {
     display: none;
   }

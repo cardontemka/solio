@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import { BookGrid } from '@/components/BookCard'
-import { SearchBar } from '@/components/SearchBar'
 import { EmptyState, Section } from '@/components/ui'
 import { getListings } from '@/features/books/queries'
 import { RequestList } from '@/features/requests/RequestCard'
@@ -24,11 +23,23 @@ async function RecentlyAdded() {
 /**
  * Everything after the newest six. There is no popularity signal to rank by —
  * each listing is one person's single book — so this is honestly just "more".
+ *
+ * The Section lives inside the component, not around it: with only a handful of
+ * listings on the site this returns nothing, and a heading over an empty space
+ * reads as something failing to load.
  */
 async function MoreListings() {
   const listings = await getListings({ limit: 12, offset: 6 })
   if (listings.length === 0) return null
-  return <BookGrid listings={listings} />
+  return (
+    <Section
+      title="Бусад номнууд"
+      description="Хэрэглэгчид солилцохоор нээлттэй болгосон номнууд"
+      href="/search"
+    >
+      <BookGrid listings={listings} />
+    </Section>
+  )
 }
 
 /**
@@ -70,9 +81,6 @@ export default async function HomePage() {
                 Номоо бүртгэж, бусад хэрэглэгчийн номтой шууд солилцоорой.
                 Солилцоо бүрийн түүх бүрэн хадгалагдана.
               </p>
-              <div className={styles.heroSearch}>
-                <SearchBar size="lg" />
-              </div>
               <div className={styles.heroFeatures}>
                 <span className={styles.feature}>
                   <span className={styles.featureDot} aria-hidden="true" /> Ном хайх
@@ -120,15 +128,9 @@ export default async function HomePage() {
           </Suspense>
         </Section>
 
-        <Section
-          title="Бусад номнууд"
-          description="Хэрэглэгчид солилцохоор нээлттэй болгосон номнууд"
-          href="/search"
-        >
-          <Suspense fallback={<RailSkeleton />}>
-            <MoreListings />
-          </Suspense>
-        </Section>
+        <Suspense fallback={<RailSkeleton />}>
+          <MoreListings />
+        </Suspense>
       </div>
     </>
   )
