@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       <div className={styles.authShell}>
         <div className={styles.authCard}>
           <h1 className={styles.authTitle}>Нэвтрэх</h1>
-          <p className={styles.authSubtitle}>Solio дансаараа нэвтэрнэ үү.</p>
+          <p className={styles.authSubtitle}>Solio хаягаараа нэвтэрнэ үү.</p>
 
           {errorMessage && (
             <p className={styles.formMessage} role="alert">
@@ -40,7 +40,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           <GoogleButton next={nextPath ?? '/my-books'} />
 
           <p className={styles.authAlt}>
-            Данс байхгүй юу? <Link href="/register">Бүртгүүлэх</Link>
+            Хаяг байхгүй юу? <Link href="/register">Бүртгүүлэх</Link>
           </p>
         </div>
       </div>

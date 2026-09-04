@@ -12,7 +12,15 @@ export async function SiteHeader() {
 
   return (
     <Header
-      user={user ? { displayName: user.displayName, username: user.username } : null}
+      user={
+        user
+          ? {
+              displayName: user.displayName,
+              username: user.username,
+              avatarUrl: user.avatarUrl,
+            }
+          : null
+      }
       unreadCount={unreadCount}
       isStaff={staff}
     />

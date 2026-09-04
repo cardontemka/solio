@@ -1,0 +1,124 @@
+.wrap {
+  position: relative;
+  flex: none;
+}
+
+.trigger {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.dots {
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 178px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lifted);
+}
+
+.item,
+.danger,
+.confirm {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--surface-2);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.danger:hover {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+}
+
+.confirm {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.item:disabled,
+.danger:disabled,
+.confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.error {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: 240px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.reopen {
+  align-self: flex-start;
+  padding: 9px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reopen:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.reopen:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}

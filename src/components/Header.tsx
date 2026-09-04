@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { Avatar } from './Avatar'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { logoutAction } from '@/features/users/actions'
-import { ThemeToggle } from './ThemeToggle'
+import { ThemeMenuItem } from './ThemeToggle'
 import {
   BellIcon,
   BookIcon,
@@ -22,7 +23,7 @@ const NAV = [
   { href: '/requests', label: 'Ном хүсэх' },
 ] as const
 
-export type HeaderUser = { displayName: string; username: string } | null
+export type HeaderUser = { displayName: string; username: string; avatarUrl: string | null } | null
 
 export function Header({
   user,
@@ -34,12 +35,16 @@ export function Header({
   isStaff?: boolean
 }) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  const navItems = [
+    ...NAV,
+    ...(isStaff ? ([{ href: '/admin', label: 'Админ' }] as const) : []),
+  ]
 
   // Close the user menu on outside click / Escape.
   useEffect(() => {
@@ -61,84 +66,73 @@ export function Header({
   return (
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
-        <Link href="/" className={styles.brand} onClick={() => setOpen(false)}>
+        <Link href="/" className={styles.brand}>
           <span className={styles.mark} aria-hidden="true" />
           Solio
         </Link>
 
-        <button
-          type="button"
-          className={styles.toggle}
-          aria-expanded={open}
-          aria-label="Цэс"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span className={styles.bars} data-open={open} />
-        </button>
-
-        <nav className={styles.nav} data-open={open}>
-          {[
-            ...NAV,
-            ...(isStaff ? ([{ href: '/admin', label: 'Админ' }] as const) : []),
-          ].map((item) => (
+        {/* Desktop only. On a phone these live inside the user menu, so the
+            bar keeps just the two things people reach for: their messages and
+            themselves. */}
+        <nav className={styles.nav}>
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={styles.link}
               data-active={isActive(item.href)}
-              onClick={() => setOpen(false)}
             >
               {item.label}
             </Link>
           ))}
-          <div className={styles.spacer} />
+        </nav>
 
-          <div className={styles.actions}>
-            <ThemeToggle />
+        <div className={styles.actions}>
+          {user && (
+            <Link
+              href="/notifications"
+              className={styles.bell}
+              data-active={pathname.startsWith('/notifications')}
+              aria-label="Мэдэгдэл"
+            >
+              <BellIcon size={20} />
+              {unreadCount > 0 && (
+                <span className={styles.badge} aria-label={`${unreadCount} уншаагүй`}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-            {user ? (
-              <Link
-                href="/notifications"
-                className={styles.bell}
-                data-active={pathname.startsWith('/notifications')}
-                aria-label="Мэдэгдэл"
-                onClick={() => setOpen(false)}
-              >
-                <BellIcon size={20} />
-                {unreadCount > 0 && (
-                  <span className={styles.badge} aria-label={`${unreadCount} уншаагүй`}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-            ) : null}
+          <div className={styles.userWrap} ref={menuRef}>
+            <button
+              type="button"
+              className={styles.userBtn}
+              data-open={menuOpen}
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              aria-label={user ? 'Хэрэглэгчийн цэс' : 'Цэс'}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {user ? (
+                <Avatar name={user.displayName} src={user.avatarUrl} size={28} />
+              ) : (
+                <span className={styles.avatarFallback} aria-hidden="true">
+                  <UserIcon size={17} />
+                </span>
+              )}
+              <ChevronDownIcon size={14} className={styles.chevron} />
+            </button>
 
-            {user ? (
-              <div className={styles.userWrap} ref={menuRef}>
-                <button
-                  type="button"
-                  className={styles.userBtn}
-                  data-open={menuOpen}
-                  aria-expanded={menuOpen}
-                  aria-haspopup="menu"
-                  aria-label="Хэрэглэгчийн цэс"
-                  onClick={() => setMenuOpen((v) => !v)}
-                >
-                  <span className={styles.avatar} aria-hidden="true">
-                    <UserIcon size={17} />
-                  </span>
-                  <ChevronDownIcon size={14} className={styles.chevron} />
-                </button>
-
-                {menuOpen && <Menu user={user} onNavigate={() => setMenuOpen(false)} />}
-              </div>
-            ) : (
-              <Link href="/login" className={styles.login} onClick={() => setOpen(false)}>
-                Нэвтрэх
-              </Link>
+            {menuOpen && (
+              <Menu
+                user={user}
+                navItems={navItems}
+                onNavigate={() => setMenuOpen(false)}
+              />
             )}
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   )
@@ -146,40 +140,80 @@ export function Header({
 
 function Menu({
   user,
+  navItems,
   onNavigate,
 }: {
   user: HeaderUser
+  navItems: readonly { href: string; label: string }[]
   onNavigate: () => void
 }) {
   return (
-    <div className={styles.menu}>
-      <div className={styles.menuHead}>
-        <p className={styles.menuName}>{user?.displayName}</p>
-        <p className={styles.menuUser}>@{user?.username}</p>
+    <div className={styles.menu} role="menu">
+      {user && (
+        <div className={styles.menuHead}>
+          <p className={styles.menuName}>{user.displayName}</p>
+          <p className={styles.menuUser}>@{user.username}</p>
+        </div>
+      )}
+
+      {/* The bar drops its links on a phone; they reappear here rather than
+          behind a second, separate menu button. */}
+      <div className={styles.menuNav}>
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={styles.menuItem}
+            onClick={onNavigate}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
-      <Link href="/dashboard" className={styles.menuItem} onClick={onNavigate}>
-        <UserIcon size={17} />
-        Миний хуудас
-      </Link>
-      <Link href="/settings" className={styles.menuItem} onClick={onNavigate}>
-        <SettingsIcon size={17} />
-        Тохиргоо
-      </Link>
-      <Link href="/my-books" className={styles.menuItem} onClick={onNavigate}>
-        <BookIcon size={17} />
-        Миний номнууд
-      </Link>
-      <Link href="/swaps" className={styles.menuItem} onClick={onNavigate}>
-        <SwapIcon size={17} />
-        Солилцоо
-      </Link>
+
+      {user && (
+        <>
+          <Link href="/dashboard" className={styles.menuItem} onClick={onNavigate}>
+            <UserIcon size={17} />
+            Миний хуудас
+          </Link>
+          <Link href="/settings" className={styles.menuItem} onClick={onNavigate}>
+            <SettingsIcon size={17} />
+            Тохиргоо
+          </Link>
+          <Link href="/my-books" className={styles.menuItem} onClick={onNavigate}>
+            <BookIcon size={17} />
+            Миний номнууд
+          </Link>
+          <Link href="/swaps" className={styles.menuItem} onClick={onNavigate}>
+            <SwapIcon size={17} />
+            Солилцоо
+          </Link>
+        </>
+      )}
+
       <div className={styles.menuDivider} role="separator">
-        <form action={logoutAction}>
-          <button type="submit" className={styles.menuItem}>
-            <LogOutIcon size={17} />
-            Гарах
-          </button>
-        </form>
+        <ThemeMenuItem className={styles.menuItem} />
+
+        {user ? (
+          <form action={logoutAction}>
+            <button type="submit" className={styles.menuItem}>
+              <LogOutIcon size={17} />
+              Гарах
+            </button>
+          </form>
+        ) : (
+          <>
+            <Link href="/login" className={styles.menuItem} onClick={onNavigate}>
+              <UserIcon size={17} />
+              Нэвтрэх
+            </Link>
+            <Link href="/register" className={styles.menuItem} onClick={onNavigate}>
+              <UserIcon size={17} />
+              Бүртгүүлэх
+            </Link>
+          </>
+        )}
       </div>
     </div>
   )

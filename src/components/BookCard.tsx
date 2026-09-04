@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './BookCard.module.css'
 import type { Listing } from '@/features/books/queries'
-import { CONDITION_LABEL } from '@/types/domain'
+import { CONDITION_LABEL, COPY_STATUS_LABEL } from '@/types/domain'
 
 /**
  * Shows the owner's photo when there is one, and a generated placeholder
@@ -61,12 +61,20 @@ export function BookCover({
 export function BookCard({ listing }: { listing: Listing }) {
   return (
     <Link href={`/books/${listing.copyId}`} className={styles.card}>
-      <BookCover
-        title={listing.title}
-        author={listing.author}
-        color={listing.coverColor}
-        src={listing.images[0]?.url}
-      />
+      <div className={styles.coverWrap}>
+        <BookCover
+          title={listing.title}
+          author={listing.author}
+          color={listing.coverColor}
+          src={listing.images[0]?.url}
+        />
+        {/* Only worth saying when it is not the ordinary case. */}
+        {listing.status !== 'available' && (
+          <span className={styles.status} data-status={listing.status}>
+            {COPY_STATUS_LABEL[listing.status]}
+          </span>
+        )}
+      </div>
       <div className={styles.body}>
         <h3 className={styles.title}>{listing.title}</h3>
         {listing.author && <p className={styles.author}>{listing.author}</p>}

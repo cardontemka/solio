@@ -1,7 +1,10 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cache } from 'react'
+import { Avatar } from '@/components/Avatar'
 import { Badge } from '@/components/ui'
+import { ListingMenu } from '@/features/books/ListingMenu'
+import { ReopenListingButton } from '@/features/books/ReopenListingButton'
 import { findListingIdForBook, getListing } from '@/features/books/queries'
 import { ImageUploader } from '@/features/images/ImageUploader'
 import { ReportButton } from '@/features/moderation/ReportButton'
@@ -103,7 +106,11 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
 
               {me && (
                 <div className={styles.actionRow}>
-                  <ReportButton entityType="book_copy" entityId={listing.copyId} variant="icon" />
+                  {isMine ? (
+                    <ListingMenu copyId={listing.copyId} status={listing.status} />
+                  ) : (
+                    <ReportButton entityType="book_copy" entityId={listing.copyId} variant="icon" />
+                  )}
                 </div>
               )}
 
@@ -120,9 +127,11 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                 <dd>
                   {listing.owner ? (
                     <Link href={`/u/${listing.owner.username}`} className={styles.ownerLink}>
-                      <span className={styles.avatar} aria-hidden="true">
-                        {listing.owner.displayName.charAt(0)}
-                      </span>
+                      <Avatar
+                        name={listing.owner.displayName}
+                        src={listing.owner.avatarUrl}
+                        size={34}
+                      />
                       <span>
                         <span className={styles.ownerName}>{listing.owner.displayName}</span>
                         {isMine && <span className={styles.you}>та</span>}
@@ -165,9 +174,23 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
             <h2 className={styles.sectionTitle}>Солилцоо</h2>
             <div className={styles.swapBox}>
               {isMine ? (
-                <Link href="/dashboard" className={styles.mineLink}>
-                  → Миний хуудас руу
-                </Link>
+                listing.status === 'available' ? (
+                  <p className={styles.unavailable}>
+                    Энэ ном солилцоонд нээлттэй байна. Хэн нэгэн санал болгоход мэдэгдэнэ.
+                  </p>
+                ) : listing.status === 'reserved' ? (
+                  <p className={styles.unavailable}>
+                    Идэвхтэй солилцоонд түгжигдсэн.{' '}
+                    <Link href="/swaps">Солилцоо хэсгээс</Link> үргэлжлүүлнэ үү.
+                  </p>
+                ) : (
+                  <div className={styles.reopen}>
+                    <p className={styles.unavailable}>
+                      Энэ ном одоогоор солилцоонд байхгүй. Дахин санал болгож болно.
+                    </p>
+                    <ReopenListingButton copyId={listing.copyId} />
+                  </div>
+                )
               ) : !me ? (
                 <Link href={`/login?next=/books/${listing.copyId}`} className={styles.mineLink}>
                   Солилцохын тулд нэвтэрнэ үү

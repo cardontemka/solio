@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { publicEnv } from '@/lib/validation/env'
+import { bookImageStorage } from '@/lib/storage'
+import { sniffMime } from '@/lib/storage/verify'
 
 export type AuthState =
   | {
@@ -14,6 +16,8 @@ export type AuthState =
       errors?: Record<string, string[]>
       /** Echoed back so a rejected form keeps what was typed. Never a password. */
       values?: { displayName?: string; username?: string; email?: string }
+      /** Seconds to wait before retrying, when the refusal was a rate limit. */
+      retryAfter?: number
     }
   | { ok: true; pendingConfirmation?: boolean }
 
@@ -23,6 +27,26 @@ export type AuthState =
  * guess is usually retyping everything.
  */
 const EMAIL_MESSAGE = 'Email хаяг "нэр@домэйн.mn" хэлбэртэй байх ёстой.'
+
+/**
+ * How long to wait, when GoTrue says.
+ *
+ * The per-address delay states it in prose — "you can only request this after
+ * 51 seconds" — and there is no structured retry-after to read instead: the 429
+ * carries no Retry-After header (verified against the live project), so the
+ * number has to come out of the message.
+ *
+ * The project-wide email quota says only "email rate limit exceeded". Returning
+ * a guessed minute there would be worse than saying nothing — that limit is
+ * hourly — so this returns null and the caller explains instead of counting.
+ */
+function retryAfterFrom(message: string): number | null {
+  const seconds = message.match(/after\s+(\d+)\s*second/i)
+  if (seconds) return Math.min(Number(seconds[1]) + 1, 3600)
+  const minutes = message.match(/after\s+(\d+)\s*minute/i)
+  if (minutes) return Math.min(Number(minutes[1]) * 60, 3600)
+  return null
+}
 
 const registerSchema = z.object({
   displayName: z
@@ -34,11 +58,11 @@ const registerSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .min(3, 'Хаяг хамгийн багадаа 3 тэмдэгт байна.')
-    .max(24, 'Хаяг 24 тэмдэгтээс их байж болохгүй.')
+    .min(3, 'Хэрэглэгчийн нэр хамгийн багадаа 3 тэмдэгт байна.')
+    .max(24, 'Хэрэглэгчийн нэр 24 тэмдэгтээс их байж болохгүй.')
     .regex(
       /^[a-z0-9_]+$/,
-      'Хаягт зөвхөн жижиг латин үсэг, тоо, доогуур зураас (_) байж болно. Зай, том үсэг, кирилл болохгүй.'
+      'Хэрэглэгчийн нэрд зөвхөн жижиг латин үсэг, тоо, доогуур зураас (_) байж болно. Зай, том үсэг, кирилл болохгүй.'
     ),
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
   password: z
@@ -84,7 +108,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   if (taken) {
     return {
       ok: false,
-      errors: { username: ['Энэ хаяг аль хэдийн эзэмшигдсэн. Өөр хаяг сонгоно уу.'] },
+      errors: { username: ['Энэ хэрэглэгчийн нэр эзэмшигдсэн байна. Өөрийг сонгоно уу.'] },
       values: { displayName: parsed.data.displayName, username: '', email: parsed.data.email },
     }
   }
@@ -119,7 +143,17 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
           values: keep,
         }
       case 'email_address_invalid':
-        return { ok: false, errors: { email: [EMAIL_MESSAGE] }, values: keep }
+        // Shape was already checked by the schema, so reaching here means the
+        // server refused the address itself — usually a domain it does not
+        // accept. Repeating the format rule would send the reader hunting for
+        // a typo that is not there.
+        return {
+          ok: false,
+          errors: {
+            email: ['Энэ email хаягийг систем хүлээж авахгүй байна. Өөр хаяг ашиглана уу.'],
+          },
+          values: keep,
+        }
       case 'user_already_exists':
       case 'email_exists':
         return {
@@ -130,12 +164,19 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
           values: keep,
         }
       case 'over_email_send_rate_limit':
-      case 'over_request_rate_limit':
+      case 'over_request_rate_limit': {
+        const wait = retryAfterFrom(error.message)
+        if (wait) {
+          return { ok: false, message: 'Хэт олон удаа оролдлоо.', retryAfter: wait, values: keep }
+        }
         return {
           ok: false,
-          message: 'Хэт олон удаа оролдлоо. Хэдэн минутын дараа дахин оролдоно уу.',
+          message:
+            'Баталгаажуулах имэйл илгээх цагийн хязгаарт хүрлээ. Нэг цагийн дараа дахин ' +
+            'оролдоно уу, эсвэл имэйл шаарддаггүй Google-ээр үргэлжлүүлж болно.',
           values: keep,
         }
+      }
       default:
         return {
           ok: false,
@@ -158,14 +199,15 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     }
   }
 
-  // With email confirmation enabled there is no session yet. Redirecting would
-  // bounce straight back to /login and read as a failure.
+  // Kept for the case where email confirmation is switched back on: there is
+  // no session yet, and redirecting would bounce straight back to /login and
+  // read as a failure.
   if (!data.session) {
     return { ok: true, pendingConfirmation: true }
   }
 
   revalidatePath('/', 'layout')
-  redirect('/my-books')
+  redirect('/dashboard')
 }
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -195,12 +237,17 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
             'Email хаягаа баталгаажуулаагүй байна. Бүртгэхэд илгээсэн имэйл дэх линкийг дарна уу.',
           values: keep,
         }
-      case 'over_request_rate_limit':
+      case 'over_request_rate_limit': {
+        const wait = retryAfterFrom(error.message)
         return {
           ok: false,
-          message: 'Хэт олон удаа оролдлоо. Хэдэн минутын дараа дахин оролдоно уу.',
+          message: wait
+            ? 'Хэт олон удаа оролдлоо.'
+            : 'Хэт олон удаа оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
+          retryAfter: wait ?? undefined,
           values: keep,
         }
+      }
       case 'invalid_credentials':
         // Which of the two is wrong is deliberately not said: that would let
         // anyone test whether an address has an account here.
@@ -285,7 +332,7 @@ export async function updateProfileAction(
   if (error) {
     // profiles_username_key is a unique index on lower(username).
     if (error.code === '23505') {
-      return { ok: false, errors: { username: ['Энэ хаяг аль хэдийн эзэмшигдсэн байна.'] } }
+      return { ok: false, errors: { username: ['Энэ хэрэглэгчийн нэр эзэмшигдсэн байна.'] } }
     }
     return { ok: false, message: 'Профайлыг хадгалж чадсангүй.' }
   }
@@ -294,4 +341,87 @@ export async function updateProfileAction(
   revalidatePath('/settings')
   revalidatePath(`/u/${username}`)
   return { ok: true, username }
+}
+
+// ── Profile picture ────────────────────────────────────────────────────────
+
+export type AvatarState = { ok: true; url: string | null } | { ok: false; message: string }
+
+/**
+ * Verifies uploaded avatar bytes and attaches them to the caller's profile.
+ *
+ * Same rule as book photos: a declared MIME type is not taken on trust. The
+ * object's head is read back from storage and sniffed, and anything that is not
+ * really an image is deleted rather than linked — otherwise arbitrary bytes
+ * would be served from the image host under a user's name.
+ *
+ * The key is rebuilt from the caller's own id here too, so a forged key cannot
+ * point the profile at somebody else's object.
+ */
+export async function setAvatarAction(storageKey: string): Promise<AvatarState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const expectedPrefix = `avatars/${user.id}/`
+  if (!storageKey.startsWith(expectedPrefix) || storageKey.includes('..')) {
+    return { ok: false, message: 'Буруу хүсэлт.' }
+  }
+
+  const storage = bookImageStorage()
+  const head = await storage.readHead(storageKey, 64)
+  if (!head || !sniffMime(head)) {
+    await storage.delete(storageKey).catch(() => {})
+    return { ok: false, message: 'Файл зураг биш байна.' }
+  }
+
+  const { data: previous } = await supabase
+    .from('profiles')
+    .select('avatar_key')
+    .eq('id', user.id)
+    .single()
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_key: storageKey })
+    .eq('id', user.id)
+  if (error) {
+    await storage.delete(storageKey).catch(() => {})
+    return { ok: false, message: 'Зургийг хадгалж чадсангүй.' }
+  }
+
+  // The old object is now unreachable; leaving it would grow the bucket for
+  // every change of picture.
+  if (previous?.avatar_key && previous.avatar_key !== storageKey) {
+    await storage.delete(previous.avatar_key).catch(() => {})
+  }
+
+  revalidatePath('/', 'layout')
+  return { ok: true, url: storage.publicUrl(storageKey) }
+}
+
+export async function removeAvatarAction(): Promise<AvatarState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const { data: previous } = await supabase
+    .from('profiles')
+    .select('avatar_key')
+    .eq('id', user.id)
+    .single()
+
+  const { error } = await supabase.from('profiles').update({ avatar_key: null }).eq('id', user.id)
+  if (error) return { ok: false, message: 'Зургийг устгаж чадсангүй.' }
+
+  if (previous?.avatar_key) {
+    await bookImageStorage().delete(previous.avatar_key).catch(() => {})
+  }
+
+  revalidatePath('/', 'layout')
+  return { ok: true, url: null }
 }

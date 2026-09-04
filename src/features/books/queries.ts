@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
+import { avatarUrl } from '@/features/users/avatar'
 import type { BookCondition, CopyStatus } from '@/types/domain'
 
 /**
@@ -51,6 +52,7 @@ export type ListingOwner = {
   username: string
   displayName: string
   city: string | null
+  avatarUrl: string | null
 }
 
 export type Listing = {
@@ -80,7 +82,7 @@ export type Listing = {
 const LISTING_SELECT = `
   id, condition, condition_note, status, transfer_count, created_at,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at ),
-  owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city ),
+  owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
   book_images ( id, storage_key, sort_order, status )
 `
 
@@ -114,8 +116,8 @@ type ListingRow = {
       }[]
     | null
   owner:
-    | { id: string; username: string; display_name: string; city: string | null }
-    | { id: string; username: string; display_name: string; city: string | null }[]
+    | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }
+    | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }[]
     | null
   book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
 }
@@ -151,12 +153,21 @@ function toListing(row: ListingRow): Listing | null {
           username: owner.username,
           displayName: owner.display_name,
           city: owner.city,
+          avatarUrl: avatarUrl(owner.avatar_key),
         }
       : null,
   }
 }
 
-/** Listings anyone may browse: offered, not moderated away. */
+/**
+ * Everything the site holds, newest first — including copies that are already
+ * swapped or that their owner has taken down. Hiding those made the catalogue
+ * look emptier than it is and lost the useful signal that a title exists here
+ * at all; the card says which state each one is in, and the owner can put a
+ * finished one back up.
+ *
+ * Moderated rows never appear: RLS drops them before this query sees them.
+ */
 export async function getListings(
   { limit = 12, offset = 0 }: { limit?: number; offset?: number } = {}
 ): Promise<Listing[]> {
@@ -164,7 +175,6 @@ export async function getListings(
   const { data, error } = await supabase
     .from('book_copies')
     .select(LISTING_SELECT)
-    .eq('status', 'available')
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -185,7 +195,6 @@ export async function searchListings(query: string): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('book_copies')
     .select(LISTING_SELECT)
-    .eq('status', 'available')
     .or(
       `title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%,` +
         `publisher.ilike.%${escaped}%`,
@@ -277,6 +286,7 @@ export type PublicProfile = {
   displayName: string
   bio: string | null
   city: string | null
+  avatarUrl: string | null
   joinedAt: string
   listings: Listing[]
 }
@@ -293,7 +303,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, bio, city, created_at, account_status')
+    .select('id, username, display_name, bio, city, avatar_key, created_at, account_status')
     .ilike('username', username)
     .maybeSingle()
   if (error) throw error
@@ -304,6 +314,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
     display_name: string
     bio: string | null
     city: string | null
+    avatar_key: string | null
     created_at: string
     account_status: string
   }
@@ -313,7 +324,6 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
     .from('book_copies')
     .select(LISTING_SELECT)
     .eq('owner_id', profile.id)
-    .eq('status', 'available')
     .order('created_at', { ascending: false })
   if (copiesError) throw copiesError
 
@@ -323,6 +333,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
     displayName: profile.display_name,
     bio: profile.bio,
     city: profile.city,
+    avatarUrl: avatarUrl(profile.avatar_key),
     joinedAt: profile.created_at.slice(0, 10),
     listings: ((rows ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []),
   }

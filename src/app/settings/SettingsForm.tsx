@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
 import { updateProfileAction, type ProfileState } from '@/features/users/actions'
+import { AvatarPicker } from './AvatarPicker'
 import formStyles from '@/components/forms.module.css'
 import styles from './page.module.css'
 
@@ -13,11 +14,13 @@ export function SettingsForm({
   displayName,
   bio,
   city,
+  avatarUrl,
 }: {
   username: string
   displayName: string
   bio: string | null
   city: string | null
+  avatarUrl: string | null
 }) {
   const [state, formAction, pending] = useActionState(updateProfileAction, initial)
   const errors = !state.ok ? state.errors : undefined
@@ -25,6 +28,8 @@ export function SettingsForm({
 
   return (
     <form action={formAction} className={styles.form}>
+      <AvatarPicker name={displayName} initialUrl={avatarUrl} />
+
       {!state.ok && <FormMessage message={state.message} />}
       {state.ok && <p className={styles.saved}>✓ Хадгалагдлаа.</p>}
 
@@ -46,7 +51,7 @@ export function SettingsForm({
 
       <div className={formStyles.field}>
         <label className={formStyles.label} htmlFor="username">
-          Хаяг (username)
+          Хэрэглэгчийн нэр
         </label>
         <div className={styles.usernameRow}>
           <span className={styles.usernamePrefix}>solio.mn/u/</span>
@@ -63,7 +68,7 @@ export function SettingsForm({
           />
         </div>
         <span className={formStyles.hint}>
-          Жижиг үсэг, тоо, доогуур зураас. Энэ нь таны нийтийн хуудасны хаяг —
+          Жижиг үсэг, тоо, доогуур зураас. Нийтийн хуудсанд тань ингэж харагдана —
           одоогоор <strong>/u/{current}</strong>.
         </span>
         <FieldError errors={errors?.username} />

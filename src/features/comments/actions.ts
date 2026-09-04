@@ -52,7 +52,7 @@ export async function addCommentAction(
 
   if (error) {
     if (error.code === '42501') {
-      return { ok: false, message: 'Сэтгэгдлийн хязгаарт хүрсэн эсвэл данс идэвхгүй байна.' }
+      return { ok: false, message: 'Сэтгэгдлийн хязгаарт хүрсэн эсвэл хаяг тань идэвхгүй байна.' }
     }
     return { ok: false, message: toUserMessage(error, 'addComment') }
   }

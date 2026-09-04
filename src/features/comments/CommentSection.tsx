@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Avatar } from '@/components/Avatar'
 import { useActionState, useEffect, useRef, useTransition } from 'react'
 import { addCommentAction, deleteCommentAction, type CommentState } from './actions'
 import type { CommentView } from './queries'
@@ -81,6 +82,7 @@ export function CommentSection({
             <li key={c.id} className={styles.item} data-hidden={c.isHidden}>
               <div className={styles.head}>
                 <Link href={`/u/${c.authorUsername}`} className={styles.author}>
+                  <Avatar name={c.authorName} src={c.authorAvatarUrl} size={26} />
                   {c.authorName}
                 </Link>
                 <span className={styles.date}>{c.createdAt}</span>

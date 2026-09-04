@@ -52,3 +52,15 @@ html:not([data-theme]) .moon {
     display: none;
   }
 }
+/* Menu form: the icons stack in one cell, the labels swap with the theme. */
+.menuIcons {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+}
+
+span.sun,
+span.moon {
+  grid-area: auto;
+}

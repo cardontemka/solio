@@ -163,3 +163,31 @@
 .cover[data-has-image='true'] {
   background: var(--surface-2);
 }
+
+/* ── Status flag ────────────────────────────────────────────────────────── */
+
+.coverWrap {
+  position: relative;
+}
+
+.status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 62%);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(2px);
+}
+
+.status[data-status='swapped'] {
+  background: color-mix(in srgb, var(--ok) 82%, #000);
+}
+
+.status[data-status='reserved'] {
+  background: color-mix(in srgb, var(--warn) 82%, #000);
+}

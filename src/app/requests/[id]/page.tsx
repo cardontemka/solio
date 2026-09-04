@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
+import { Avatar } from '@/components/Avatar'
 import { Badge } from '@/components/ui'
 import { CommentSection } from '@/features/comments/CommentSection'
 import { getComments } from '@/features/comments/queries'
@@ -58,9 +59,7 @@ export default async function RequestPage({ params }: PageProps<'/requests/[id]'
 
           <div className={styles.meta}>
             <Link href={`/u/${request.authorUsername}`} className={styles.poster}>
-              <span className={styles.avatar} aria-hidden="true">
-                {request.authorName.charAt(0)}
-              </span>
+              <Avatar name={request.authorName} size={26} />
               {request.authorName}
             </Link>
             <span className={styles.date}>{request.createdAt}</span>

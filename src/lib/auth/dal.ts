@@ -3,6 +3,7 @@ import 'server-only'
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { avatarUrl } from '@/features/users/avatar'
 
 export type SessionUser = {
   id: string
@@ -10,6 +11,7 @@ export type SessionUser = {
   username: string
   displayName: string
   city: string | null
+  avatarUrl: string | null
   accountStatus: string
 }
 
@@ -26,7 +28,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, city, account_status')
+    .select('username, display_name, city, avatar_key, account_status')
     .eq('id', user.id)
     .single()
 
@@ -38,6 +40,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     username: profile.username,
     displayName: profile.display_name,
     city: profile.city,
+    avatarUrl: avatarUrl(profile.avatar_key),
     accountStatus: profile.account_status,
   }
 })

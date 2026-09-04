@@ -51,7 +51,7 @@ export async function createRequestAction(
 
   if (error) {
     if (error.code === '42501') {
-      return { ok: false, message: 'Хүсэлтийн хязгаарт хүрсэн эсвэл данс идэвхгүй байна.' }
+      return { ok: false, message: 'Хүсэлтийн хязгаарт хүрсэн эсвэл хаяг тань идэвхгүй байна.' }
     }
     return { ok: false, message: toUserMessage(error, 'createRequest') }
   }

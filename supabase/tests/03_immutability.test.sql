@@ -16,7 +16,7 @@ begin
   return v_id;
 end $$;
 
-select plan(11);
+select plan(13);
 
 -- audit_logs is empty in a fresh seed, and a row-level trigger cannot fire on
 -- zero rows — the test would pass for the wrong reason. Give it something to
@@ -46,7 +46,7 @@ select throws_ok(
 -- one a stolen session reaches. service_role differs only in bypassing RLS,
 -- which is not what stops it here.
 
-select pg_temp.login_as('altan@example.invalid');
+select set_config('test.alice', pg_temp.login_as('altan@example.invalid')::text, true);
 set local role authenticated;
 
 select throws_ok(
@@ -57,9 +57,22 @@ select throws_ok(
   $$ delete from public.audit_logs where true $$,
   '42501', null, 'a signed-in user cannot delete audit rows');
 
-select throws_ok(
+-- Deleting a listing is the owner's to do (20260902000300). What a signed-in
+-- user still cannot do is reach somebody else's: RLS narrows the statement to
+-- their own rows, so this deletes only Altan's and leaves the rest standing.
+select lives_ok(
   $$ delete from public.book_copies where true $$,
-  '42501', null, 'a signed-in user cannot hard-delete a book copy');
+  'a signed-in user can delete their own listings');
+
+select cmp_ok(
+  (select count(*)::int from public.book_copies
+    where owner_id <> current_setting('test.alice')::uuid), '>', 0,
+  'and other people''s listings are untouched');
+
+select is(
+  (select count(*)::int from public.book_copies
+    where owner_id = current_setting('test.alice')::uuid),
+  0, 'only the caller''s own rows went');
 
 select throws_ok(
   $$ truncate public.ownership_events $$,

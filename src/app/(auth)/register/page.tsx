@@ -15,7 +15,7 @@ export default function RegisterPage() {
         <div className={styles.authCard}>
           <h1 className={styles.authTitle}>Бүртгүүлэх</h1>
           <p className={styles.authSubtitle}>
-            Номоо бүртгэж, солилцоо эхлүүлэхийн тулд данс үүсгэнэ үү.
+            Номоо бүртгэж, солилцоо эхлүүлэхийн тулд хаяг үүсгэнэ үү.
           </p>
 
           <RegisterForm />
@@ -24,7 +24,7 @@ export default function RegisterPage() {
           <GoogleButton />
 
           <p className={styles.authAlt}>
-            Данстай юу? <Link href="/login">Нэвтрэх</Link>
+            Хаягтай юу? <Link href="/login">Нэвтрэх</Link>
           </p>
         </div>
       </div>

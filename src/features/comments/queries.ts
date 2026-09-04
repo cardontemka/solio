@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { avatarUrl } from '@/features/users/avatar'
 
 /**
  * Comments hang off whatever they are about — a listing or a request — so the
@@ -13,6 +14,7 @@ export type CommentView = {
   isMine: boolean
   authorName: string
   authorUsername: string
+  authorAvatarUrl: string | null
   isHidden: boolean
 }
 
@@ -24,7 +26,10 @@ type Row = {
   created_at: string
   user_id: string
   moderation_status: 'active' | 'hidden' | 'removed'
-  author: { username: string; display_name: string } | { username: string; display_name: string }[] | null
+  author:
+    | { username: string; display_name: string; avatar_key: string | null }
+    | { username: string; display_name: string; avatar_key: string | null }[]
+    | null
 }
 
 /**
@@ -40,7 +45,7 @@ export async function getComments(
     .from('comments')
     .select(
       `id, body, created_at, user_id, moderation_status,
-       author:profiles!comments_user_id_fkey ( username, display_name )`
+       author:profiles!comments_user_id_fkey ( username, display_name, avatar_key )`
     )
     .order('created_at', { ascending: false })
 
@@ -59,6 +64,7 @@ export async function getComments(
       isMine: r.user_id === viewerId,
       authorName: a?.display_name ?? 'Тодорхойгүй',
       authorUsername: a?.username ?? '',
+      authorAvatarUrl: avatarUrl(a?.avatar_key),
       isHidden: r.moderation_status !== 'active',
     }
   })

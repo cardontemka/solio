@@ -15,7 +15,7 @@ const BY_CODE: Record<string, string> = {
 }
 
 const BY_MESSAGE: Record<string, string> = {
-  ACCOUNT_NOT_ACTIVE: 'Таны данс түр хаагдсан байна.',
+  ACCOUNT_NOT_ACTIVE: 'Таны хаяг түр хаагдсан байна.',
   RATE_LIMIT_BOOK_CREATE: 'Өдөрт нэмэх номын хязгаарт хүрлээ. Маргааш дахин оролдоно уу.',
   RATE_LIMIT_SWAP_REQUEST: 'Өдөрт илгээх хүсэлтийн хязгаарт хүрлээ. Маргааш дахин оролдоно уу.',
   TITLE_REQUIRED: 'Номын нэрийг оруулна уу.',

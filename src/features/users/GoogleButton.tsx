@@ -28,6 +28,10 @@ export function GoogleButton({ next = '/my-books' }: { next?: string }) {
             provider: 'google',
             options: {
               redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
+              // Without this Google silently reuses whichever account is
+              // already signed in, so anyone with more than one — or sharing a
+              // browser — gets logged into the wrong one with no way to say so.
+              queryParams: { prompt: 'select_account' },
             },
           })
           if (error) {

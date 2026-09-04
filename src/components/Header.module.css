@@ -277,100 +277,48 @@
 
 /* ── Mobile ─────────────────────────────────────────────────────────────── */
 
-.toggle {
-  display: none;
-  margin-left: auto;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: pointer;
-  place-items: center;
-}
-
-.bars,
-.bars::before,
-.bars::after {
-  display: block;
-  width: 16px;
-  height: 1.5px;
-  background: var(--text);
-  border-radius: 2px;
-  transition: transform 0.18s, opacity 0.18s;
-}
-
-.bars::before,
-.bars::after {
-  content: '';
-  position: absolute;
-}
-
-.bars::before {
-  transform: translateY(-5px);
-}
-
-.bars::after {
-  transform: translateY(5px);
-}
-
-.bars[data-open='true'] {
-  background: transparent;
-}
-
-.bars[data-open='true']::before {
-  transform: rotate(45deg);
-}
-
-.bars[data-open='true']::after {
-  transform: rotate(-45deg);
-}
-
 @media (max-width: 860px) {
-  .toggle {
-    display: grid;
-    position: relative;
+  /* The links move into the user menu; the bar keeps the brand and the two
+     things people actually reach for. */
+  .nav {
+    display: none;
   }
 
   .brand {
     margin-right: auto;
   }
+}
 
-  .nav {
-    position: absolute;
-    inset: var(--header-h) 0 auto;
-    display: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-    padding: 10px 14px 16px;
-    background: var(--surface);
+/* Menu-only nav, the mirror of the rule above. */
+.menuNav {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .menuNav {
+    display: block;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
     border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    animation: menuIn 0.16s ease;
   }
+}
 
-  .nav[data-open='true'] {
-    display: flex;
-  }
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
 
-  .spacer {
-    display: none;
-  }
-
-  .link,
-  .login {
-    padding: 11px 12px;
-    border-radius: var(--radius-sm);
-    text-align: left;
-  }
-
-  .login {
-    margin-top: 6px;
-    text-align: center;
+@media (max-width: 380px) {
+  .brand {
+    font-size: 16px;
   }
 
   .actions {
-    margin-left: auto;
+    gap: 2px;
   }
 }

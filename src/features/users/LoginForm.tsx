@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
 import { loginAction, type AuthState } from './actions'
+import { formatCooldown, useRetryCooldown } from './useRetryCooldown'
 import styles from '@/components/forms.module.css'
 
 const initial: AuthState = { ok: false }
@@ -16,11 +17,17 @@ export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(loginAction, initial)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const cooldown = useRetryCooldown(state)
   const errors = !state.ok ? state.errors : undefined
 
   return (
     <form action={formAction}>
       {!state.ok && <FormMessage message={state.message} />}
+      {cooldown > 0 && (
+        <p className={styles.cooldown} role="status" aria-live="polite">
+          Дахин оролдох хүртэл <strong>{formatCooldown(cooldown)}</strong>
+        </p>
+      )}
       {next && <input type="hidden" name="next" value={next} />}
 
       <div className={styles.field}>
@@ -61,8 +68,12 @@ export function LoginForm({ next }: { next?: string }) {
         <FieldError errors={errors?.password} />
       </div>
 
-      <button className={styles.submit} type="submit" disabled={pending}>
-        {pending ? 'Нэвтэрч байна…' : 'Нэвтрэх'}
+      <button className={styles.submit} type="submit" disabled={pending || cooldown > 0}>
+        {pending
+          ? 'Нэвтэрч байна…'
+          : cooldown > 0
+            ? `Хүлээнэ үү — ${formatCooldown(cooldown)}`
+            : 'Нэвтрэх'}
       </button>
     </form>
   )

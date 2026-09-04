@@ -2,6 +2,7 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { toUserMessage } from '@/lib/db/errors'
 import { createBookSchema } from './schema'
@@ -73,7 +74,10 @@ export async function createBookAction(
   return { ok: true, bookId, copyId }
 }
 
-/** Owner-driven visibility toggle. The legal edges are enforced by the DB guard. */
+/**
+ * Re-offer a listing that is finished or taken down. The legal edges are
+ * enforced by the DB guard; this only names the one the owner asked for.
+ */
 export async function setCopyVisibilityAction(
   copyId: string,
   next: 'available' | 'inactive'
@@ -93,5 +97,93 @@ export async function setCopyVisibilityAction(
   if (error) return { ok: false, message: toUserMessage(error, 'setCopyVisibility') }
 
   revalidatePath('/my-books')
+  revalidatePath('/dashboard')
+  revalidatePath(`/books/${copyId}`)
+  revalidatePath('/')
+  return { ok: true }
+}
+
+/**
+ * Edit a listing. Two rows change — the catalogue fields on `books`, the
+ * physical ones on `book_copies` — and `books` has no update policy at all, so
+ * this goes through an RPC that checks ownership itself.
+ */
+export async function updateListingAction(
+  copyId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const parsed = createBookSchema.safeParse({
+    title: formData.get('title') ?? '',
+    author: formData.get('author') ?? '',
+    isbn: formData.get('isbn') ?? '',
+    publisher: formData.get('publisher') ?? '',
+    language: formData.get('language') ?? 'mn',
+    description: formData.get('description') ?? '',
+    publishedYear: formData.get('publishedYear') ?? '',
+    condition: formData.get('condition') ?? 'good',
+    conditionNote: formData.get('conditionNote') ?? '',
+  })
+  if (!parsed.success) {
+    return { ok: false, errors: parsed.error.flatten().fieldErrors as Record<string, string[]> }
+  }
+
+  const v = parsed.data
+  const { error } = await supabase.rpc('update_listing', {
+    p_copy_id: copyId,
+    p_title: v.title,
+    p_author: v.author || null,
+    p_isbn: v.isbn || null,
+    p_publisher: v.publisher || null,
+    p_language: v.language === 'other' ? null : (v.language ?? null),
+    p_description: v.description || null,
+    p_published_year: typeof v.publishedYear === 'number' ? v.publishedYear : null,
+    p_condition: v.condition,
+    p_condition_note: v.conditionNote || null,
+  })
+  if (error) return { ok: false, message: toUserMessage(error, 'updateListing') }
+
+  revalidatePath(`/books/${copyId}`)
+  revalidatePath('/my-books')
+  revalidatePath('/dashboard')
+  revalidatePath('/')
+  // Server-side, so the form never has to navigate from inside a render.
+  redirect(`/books/${copyId}`)
+}
+
+/**
+ * Delete a listing outright. The RPC refuses while a swap is live — that
+ * listing is a promise to somebody else until the swap ends.
+ */
+export async function deleteListingAction(copyId: string): Promise<ActionState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const { error } = await supabase.rpc('delete_listing', { p_copy_id: copyId })
+  if (error) {
+    if (error.message.includes('LISTING_IN_ACTIVE_SWAP')) {
+      return {
+        ok: false,
+        message: 'Энэ ном идэвхтэй солилцоонд байна. Эхлээд солилцоог дуусгах эсвэл цуцлана уу.',
+      }
+    }
+    if (error.message.includes('NOT_YOUR_LISTING')) {
+      return { ok: false, message: 'Зөвхөн өөрийн номоо устгана.' }
+    }
+    return { ok: false, message: toUserMessage(error, 'deleteListing') }
+  }
+
+  revalidatePath('/my-books')
+  revalidatePath('/dashboard')
+  revalidatePath('/')
   return { ok: true }
 }

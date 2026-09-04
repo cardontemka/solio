@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { BookCover } from '@/components/BookCard'
 import { Badge, EmptyState } from '@/components/ui'
 import { CONDITION_LABEL, COPY_STATUS_LABEL, type CopyStatus } from '@/types/domain'
-import { CopyVisibilityButton } from './CopyVisibilityButton'
+import { ListingMenu } from './ListingMenu'
 import type { Listing } from './queries'
 import styles from './MyBooksPanel.module.css'
 
@@ -81,12 +81,7 @@ export function MyBooksPanel({
                   </div>
 
                   <div className={styles.itemActions}>
-                    {(l.status === 'available' || l.status === 'inactive') && (
-                      <CopyVisibilityButton
-                        copyId={l.copyId}
-                        next={l.status === 'available' ? 'inactive' : 'available'}
-                      />
-                    )}
+                    <ListingMenu copyId={l.copyId} status={l.status} />
                   </div>
                 </li>
               ))}

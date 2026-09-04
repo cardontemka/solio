@@ -7,22 +7,26 @@ import type { NextConfig } from 'next'
  *
  * protocol, port, pathname and search are all pinned: omitting them widens the
  * pattern to `**`, which would let anyone route arbitrary URLs through the
- * image optimizer.
+ * image optimizer. Each prefix the application writes to gets its own entry —
+ * a missing one is not a warning but a 500 on every page that renders the
+ * image, so they are listed here beside the code that creates the keys:
+ *   · /copies/**  — book photos      (create_image_upload_intent)
+ *   · /avatars/** — profile pictures (/api/uploads/avatar)
  */
+const R2_PREFIXES = ['/copies/**', '/avatars/**'] as const
+
 function r2RemotePattern() {
   const raw = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
   if (!raw) return []
   try {
     const url = new URL(raw)
-    return [
-      {
-        protocol: url.protocol.replace(':', '') as 'https' | 'http',
-        hostname: url.hostname,
-        port: url.port,
-        pathname: '/copies/**',
-        search: '',
-      },
-    ]
+    return R2_PREFIXES.map((pathname) => ({
+      protocol: url.protocol.replace(':', '') as 'https' | 'http',
+      hostname: url.hostname,
+      port: url.port,
+      pathname,
+      search: '',
+    }))
   } catch {
     throw new Error(
       `NEXT_PUBLIC_R2_PUBLIC_URL is not a valid URL: ${raw}. ` +

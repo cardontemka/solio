@@ -163,7 +163,7 @@ export async function createReportAction(
       return { ok: false, message: 'Та энэ зүйл дээр аль хэдийн гомдол гаргасан байна.' }
     }
     if (error.code === '42501') {
-      return { ok: false, message: 'Гомдлын хязгаарт хүрсэн эсвэл данс идэвхгүй байна.' }
+      return { ok: false, message: 'Гомдлын хязгаарт хүрсэн эсвэл хаяг тань идэвхгүй байна.' }
     }
     return { ok: false, message: toUserMessage(error, 'createReport') }
   }

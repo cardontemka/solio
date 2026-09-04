@@ -32,8 +32,14 @@ function Items({ items }: { items: SwapItemView[] }) {
   return (
     <>
       {items.map((item) => (
-        <Link key={item.copyId} href={`/books/${item.bookId}`} className={styles.bookRow}>
-          <BookCover title={item.title} author={item.author} color={item.coverColor} size="sm" />
+        <Link key={item.copyId} href={`/books/${item.copyId}`} className={styles.bookRow}>
+          <BookCover
+            title={item.title}
+            author={item.author}
+            color={item.coverColor}
+            src={item.imageUrl}
+            size="sm"
+          />
           <div>
             <p className={styles.bookTitle}>{item.title}</p>
             {item.author && <p className={styles.bookAuthor}>{item.author}</p>}

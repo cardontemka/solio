@@ -240,3 +240,18 @@
 .textarea[aria-invalid='true']:focus {
   outline-color: var(--danger);
 }
+
+/* A rate limit states the wait rather than implying one; the number ticks. */
+.cooldown {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  color: var(--text);
+  font-size: 13px;
+}
+
+.cooldown strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}

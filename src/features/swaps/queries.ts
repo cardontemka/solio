@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
 import { coverColorFor } from '@/features/books/queries'
 import type { SwapStatus } from '@/types/domain'
 
@@ -17,6 +18,7 @@ type ItemRow = {
     status: string
     owner_id: string
     books: { id: string; title: string; author: string | null } | { id: string; title: string; author: string | null }[] | null
+    book_images: { storage_key: string; sort_order: number; status: string }[]
   } | null
 }
 
@@ -44,6 +46,7 @@ export type SwapItemView = {
   title: string
   author: string | null
   coverColor: string
+  imageUrl: string | null
 }
 
 export type SwapView = {
@@ -60,6 +63,16 @@ export type SwapView = {
   requested: SwapItemView[]
 }
 
+/** First ready photo of a copy, in sort order — the cover the cards show. */
+function coverOf(
+  images: { storage_key: string; sort_order: number; status: string }[] | null | undefined
+): string | null {
+  const ready = (images ?? [])
+    .filter((i) => i.status === 'ready')
+    .sort((a, b) => a.sort_order - b.sort_order)[0]
+  return ready ? bookImageStorage().publicUrl(ready.storage_key) : null
+}
+
 export async function getMySwaps(userId: string): Promise<SwapView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -69,7 +82,8 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
        requester:profiles!swaps_requester_id_fkey ( id, username, display_name ),
        responder:profiles!swaps_responder_id_fkey ( id, username, display_name ),
        swap_items ( side, book_copies ( id, condition, status, owner_id,
-                                        books ( id, title, author ) ) )`
+                                        books ( id, title, author ),
+                                        book_images ( storage_key, sort_order, status ) ) )`
     )
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -87,6 +101,7 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
             title: book.title,
             author: book.author,
             coverColor: coverColorFor(book.id),
+            imageUrl: coverOf(r.book_copies!.book_images),
           },
         ]
       })

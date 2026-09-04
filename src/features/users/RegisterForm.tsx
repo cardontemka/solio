@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
 import { registerAction, type AuthState } from './actions'
+import { formatCooldown, useRetryCooldown } from './useRetryCooldown'
 import styles from '@/components/forms.module.css'
 
 const initial: AuthState = { ok: false }
@@ -22,6 +23,7 @@ export function RegisterForm() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const cooldown = useRetryCooldown(state)
   const errors = !state.ok ? state.errors : undefined
 
   // Checked as you type so the reader learns the rule before submitting, not
@@ -48,6 +50,11 @@ export function RegisterForm() {
   return (
     <form action={formAction}>
       {!state.ok && <FormMessage message={state.message} />}
+      {cooldown > 0 && (
+        <p className={styles.cooldown} role="status" aria-live="polite">
+          Дахин оролдох хүртэл <strong>{formatCooldown(cooldown)}</strong>
+        </p>
+      )}
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="displayName">
@@ -87,8 +94,8 @@ export function RegisterForm() {
           aria-invalid={Boolean(errors?.username) || Boolean(usernameProblem)}
         />
         <span className={styles.hint}>
-          Латин үсэг, тоо, доогуур зураас. 3–24 тэмдэгт. Энэ нь таны нийтийн хуудасны хаяг
-          болно: solio.mn/u/{/^[a-z0-9_]{3,}$/.test(username) ? username : 'altan'}
+          Латин үсэг, тоо, доогуур зураас. 3–24 тэмдэгт. Нийтийн хуудсанд тань ингэж
+          харагдана: solio.mn/u/{/^[a-z0-9_]{3,}$/.test(username) ? username : 'altan'}
         </span>
         {usernameProblem ? (
           <p className={styles.error}>{usernameProblem}</p>
@@ -142,8 +149,12 @@ export function RegisterForm() {
         <FieldError errors={errors?.password} />
       </div>
 
-      <button className={styles.submit} type="submit" disabled={pending}>
-        {pending ? 'Үүсгэж байна…' : 'Данс үүсгэх'}
+      <button className={styles.submit} type="submit" disabled={pending || cooldown > 0}>
+        {pending
+          ? 'Үүсгэж байна…'
+          : cooldown > 0
+            ? `Хүлээнэ үү — ${formatCooldown(cooldown)}`
+            : 'Хаяг үүсгэх'}
       </button>
     </form>
   )

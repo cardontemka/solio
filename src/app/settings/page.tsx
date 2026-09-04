@@ -20,13 +20,14 @@ export default async function SettingsPage() {
       <div className={styles.shell}>
         <PageHeader
           title="Профайл"
-          subtitle="Нийтэд харагдах нэр, хаяг, байршлаа өөрчилнө."
+          subtitle="Нийтэд харагдах нэр, хэрэглэгчийн нэр, байршлаа өөрчилнө."
         />
         <SettingsForm
           username={me.username}
           displayName={me.displayName}
           bio={data?.bio ?? null}
           city={me.city}
+          avatarUrl={me.avatarUrl}
         />
       </div>
     </div>

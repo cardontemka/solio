@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
+import { Avatar } from '@/components/Avatar'
 import { BookGrid } from '@/components/BookCard'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { getPublicProfile } from '@/features/books/queries'
@@ -41,14 +42,17 @@ export default async function PublicProfilePage({ params }: Props) {
       />
 
       <div className={styles.identity}>
+        <Avatar name={profile.displayName} src={profile.avatarUrl} size={56} />
         {profile.city && <Badge>📍 {profile.city}</Badge>}
-        <Badge tone="accent">{profile.listings.length} ном нээлттэй</Badge>
+        <Badge tone="accent">
+          {profile.listings.filter((l) => l.status === 'available').length} ном нээлттэй
+        </Badge>
       </div>
 
       {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Солилцоонд нээлттэй номнууд</h2>
+        <h2 className={styles.sectionTitle}>Номнууд</h2>
 
         {profile.listings.length === 0 ? (
           <EmptyState
