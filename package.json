@@ -31,5 +31,20 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "typescript": "^5"
-  }
+  },
+  "optionalDependencies": {
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
+    "@emnapi/wasi-threads": "^1.2.1"
+  },
+  "browserslist": [
+    "chrome >= 87",
+    "edge >= 87",
+    "firefox >= 78",
+    "safari >= 14",
+    "ios_saf >= 14",
+    "samsung >= 14",
+    "opera >= 73",
+    "not dead"
+  ]
 }

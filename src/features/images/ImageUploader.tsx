@@ -82,26 +82,28 @@ export function ImageUploader({
 
       {remaining > 0 ? (
         <>
+          {/* See AddBookForm: a label rather than input.click(), because a
+              display:none input will not open the picker on some phones. */}
           <input
+            id={`copy-photos-${copyId}`}
             ref={inputRef}
             type="file"
             accept={IMAGE_ACCEPT}
             multiple
-            hidden
+            className={styles.fileInput}
             onChange={async (e) => {
               const files = Array.from(e.target.files ?? []).slice(0, remaining)
               for (const f of files) await upload(f)
               if (inputRef.current) inputRef.current.value = ''
             }}
           />
-          <button
-            type="button"
+          <label
+            htmlFor={`copy-photos-${copyId}`}
             className={styles.add}
-            disabled={busy !== null || pending}
-            onClick={() => inputRef.current?.click()}
+            data-disabled={busy !== null || pending}
           >
             {busy ? `Байршуулж байна: ${progress}%` : `+ Зураг нэмэх (${remaining} үлдсэн)`}
-          </button>
+          </label>
           {busy && (
             <div className={styles.progress}>
               <div className={styles.progressBar} style={{ width: `${progress}%` }} />

@@ -32,9 +32,16 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       {...(dataTheme ? { 'data-theme': dataTheme } : {})}
     >
       <head>
+        {/* Runs before the bundle. Three jobs: set the theme attribute so the
+            page does not flash the wrong colours; shim two APIs that browsers
+            older than Chromium 93 lack, without which the bundle throws and
+            nothing on the page responds to a tap; and, only when the URL
+            carries ?debug, print errors into a panel on the page. A phone has
+            no console you can open, and "nothing happens" is not a symptom
+            anyone can act on. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var c=document.cookie.match(/(?:^|; )solio-theme=([^;]*)/);var t=c&&c[1];if(!t){t=localStorage.getItem('solio-theme');}if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
+            __html: `(function(){try{var c=document.cookie.match(/(?:^|; )solio-theme=([^;]*)/);var t=c&&c[1];if(!t){t=localStorage.getItem('solio-theme');}if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}if(!Object.hasOwn){Object.hasOwn=function(o,k){return Object.prototype.hasOwnProperty.call(o,k);};}if(!Array.prototype.at){Object.defineProperty(Array.prototype,'at',{value:function(n){n=Math.trunc(n)||0;if(n<0)n+=this.length;return n<0||n>=this.length?undefined:this[n];},writable:true,configurable:true});}if(!String.prototype.at){Object.defineProperty(String.prototype,'at',{value:function(n){n=Math.trunc(n)||0;if(n<0)n+=this.length;return n<0||n>=this.length?undefined:this[n];},writable:true,configurable:true});}if(location.search.indexOf('debug')>-1){var box=null,n=0;var show=function(m){try{n++;if(!box){box=document.createElement('div');box.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;max-height:45vh;overflow:auto;background:#7f1d1d;color:#fff;font:12px/1.45 monospace;padding:10px 12px;white-space:pre-wrap;word-break:break-word';document.body.appendChild(box);}box.appendChild(document.createTextNode(n+'. '+m+'\\n'));}catch(e){}};addEventListener('error',function(ev){show((ev.message||'error')+' @ '+(ev.filename||'')+':'+(ev.lineno||0));},true);addEventListener('unhandledrejection',function(ev){show('promise: '+((ev.reason&&(ev.reason.message||ev.reason))||''));});var ce=console.error;console.error=function(){try{show('console: '+Array.prototype.slice.call(arguments).map(String).join(' ').slice(0,400));}catch(e){}return ce.apply(console,arguments);};addEventListener('DOMContentLoaded',function(){show('JS ажиллаж байна · UA: '+navigator.userAgent.slice(0,90));});}})();`,
           }}
         />
       </head>

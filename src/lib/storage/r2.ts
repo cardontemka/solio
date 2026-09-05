@@ -66,6 +66,18 @@ export class R2BookImageStorage implements BookImageStorage {
     }
   }
 
+  async put(storageKey: string, bytes: Uint8Array, mimeType: string): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: storageKey,
+        Body: bytes,
+        ContentType: mimeType,
+        ContentLength: bytes.byteLength,
+      })
+    )
+  }
+
   async readHead(storageKey: string, bytes: number): Promise<Uint8Array | null> {
     try {
       const res = await this.client.send(

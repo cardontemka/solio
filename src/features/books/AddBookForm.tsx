@@ -53,6 +53,7 @@ export function AddBookForm() {
     setImageError(null)
     setPreparing(true)
     const accepted: Picked[] = []
+    try {
     for (const file of files.slice(0, remaining)) {
       // Resized here rather than at submit time, so the preview is the same
       // image that will be uploaded and a bad file is reported while the reader
@@ -64,7 +65,10 @@ export function AddBookForm() {
       }
       accepted.push({ file: prepared.file, preview: URL.createObjectURL(prepared.file) })
     }
-    setPreparing(false)
+    } finally {
+      // Without this a thrown decoder leaves the picker disabled for good.
+      setPreparing(false)
+    }
     if (accepted.length > 0) setPicked((prev) => [...prev, ...accepted])
   }
 
@@ -132,29 +136,34 @@ export function AddBookForm() {
           <span className={styles.dropHint}>
             Утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT} · автоматаар жижигрүүлнэ
           </span>
+          {/* A label, not a button calling input.click(): several mobile
+              browsers refuse to open the picker for an input hidden with
+              display:none, which is what `hidden` does. The input stays in the
+              layout and is hidden visually instead, and the label opens it the
+              way the platform intends — no JavaScript in the path at all. */}
           <input
+            id="book-photos"
             ref={inputRef}
             type="file"
             accept={IMAGE_ACCEPT}
             multiple
-            hidden
+            className={styles.fileInput}
             onChange={async (e) => {
               await addFiles(Array.from(e.target.files ?? []))
               if (inputRef.current) inputRef.current.value = ''
             }}
           />
-          <button
-            type="button"
+          <label
+            htmlFor="book-photos"
             className={styles.dropButton}
-            disabled={busy || preparing || remaining <= 0}
-            onClick={() => inputRef.current?.click()}
+            data-disabled={busy || preparing || remaining <= 0}
           >
             {preparing
               ? 'Зураг бэлдэж байна…'
               : remaining > 0
                 ? `Зураг сонгох (${remaining} үлдсэн)`
                 : 'Хязгаарт хүрсэн'}
-          </button>
+          </label>
         </div>
 
         {picked.length > 0 && (

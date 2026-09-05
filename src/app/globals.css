@@ -196,8 +196,22 @@ p {
    nav row into it made the bar 100px tall on its own. */
 @media (max-width: 860px) {
   :root {
-    --header-row: 50px;
-    --header-h: 100px;
+    --header-row: 66px;
+    --header-h: 124px;
+  }
+}
+
+/* iOS zooms the whole page when a focused control's text is under 16px, and it
+   does not zoom back out — the layout is left scaled and awkward to use. The
+   fix is the font size itself; nothing else about the controls changes.
+   `!important` because every one of these is styled through a CSS module, whose
+   class beats a bare element selector. Scoped to coarse pointers, so the
+   desktop sizes are untouched. */
+@media (pointer: coarse), (max-width: 860px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }
 

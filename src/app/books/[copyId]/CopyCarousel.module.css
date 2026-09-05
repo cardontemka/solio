@@ -96,3 +96,18 @@
   background: #fff;
   transform: scale(1.25);
 }
+/* Fallback for browsers without aspect-ratio (Chromium below 88 — Samsung
+   Internet on older phones). Without a height the slide collapses and the
+   image never appears. */
+@supports not (aspect-ratio: 1 / 1) {
+  .slide::before {
+    content: '';
+    display: block;
+    padding-top: 133.333%;
+  }
+
+  .slide img {
+    position: absolute;
+    inset: 0;
+  }
+}

@@ -291,6 +291,7 @@ a.itemTitle:hover {
   margin: 0;
   padding: 8px 11px;
   border-radius: var(--radius-sm);
+  background: var(--surface-2);
   background: color-mix(in srgb, var(--ok) 12%, var(--surface));
   color: var(--ok);
   font-size: 13px;

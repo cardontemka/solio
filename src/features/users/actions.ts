@@ -351,7 +351,10 @@ export async function updateProfileAction(
   revalidatePath('/dashboard')
   revalidatePath('/settings')
   revalidatePath(`/u/${username}`)
-  return { ok: true, username }
+  // Straight to the page the edits are for, so the reader sees the result
+  // rather than a form with a tick on it. redirect() throws, so nothing after
+  // this runs.
+  redirect(`/u/${username}`)
 }
 
 // ── Profile picture ────────────────────────────────────────────────────────

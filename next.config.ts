@@ -36,6 +36,19 @@ function r2RemotePattern() {
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * Testing on a phone means loading the dev server by its address on the local
+   * network, and Next blocks cross-origin requests to dev assets by default —
+   * the script tags abort, React never hydrates, and the page looks fine while
+   * nothing responds to a tap. Development only; it has no effect on a build.
+   */
+  allowedDevOrigins: [
+    '192.168.*.*',
+    '10.*.*.*',
+    '172.16.*.*',
+    '*.local',
+    '*.ngrok-free.app',
+  ],
   images: {
     remotePatterns: r2RemotePattern(),
     formats: ['image/avif', 'image/webp'],

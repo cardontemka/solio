@@ -3,11 +3,14 @@
   z-index: 0;
   isolation: isolate;
   width: 100%;
-  min-height: 100svh;
+  /* Was a full viewport tall, which pushed every shelf below the fold. The
+     page is a place to browse books, so the hero introduces and gets out of
+     the way. */
+  min-height: 0;
   display: flex;
   align-items: center;
-  padding: 72px 0;
-  margin: -30px 0 44px;
+  padding: 40px 0 44px;
+  margin: -30px 0 36px;
   background:
     radial-gradient(55% 80% at 12% 12%, rgb(233 196 106 / 0.16), transparent 60%),
     radial-gradient(50% 70% at 92% 8%, rgb(244 162 97 / 0.16), transparent 60%),
@@ -60,7 +63,7 @@
 }
 
 .heroTitle {
-  font-size: clamp(30px, 4.6vw, 52px);
+  font-size: clamp(26px, 3.4vw, 38px);
   letter-spacing: -0.035em;
   line-height: 1.12;
 }
@@ -77,37 +80,13 @@
   line-height: 1.6;
 }
 
-.heroFeatures {
-  margin-top: 28px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px;
-}
-
-.feature {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  font-weight: 550;
-  color: var(--text-2);
-}
-
-.featureDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-
 /* ── Visual: fanned book stack + swap badge ──────────────────────────────── */
 
 .heroVisual {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 360px;
+  min-height: 230px;
 }
 
 .stack {
@@ -165,10 +144,6 @@
     margin-inline: auto;
   }
 
-  .heroFeatures {
-    justify-content: center;
-  }
-
   .heroVisual {
     min-height: 300px;
   }
@@ -201,7 +176,6 @@
      pushes the shelves further down. */
   .heroKicker,
   .heroText,
-  .heroFeatures,
   .heroVisual {
     display: none;
   }

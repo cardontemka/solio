@@ -33,6 +33,7 @@
 .primary {
   position: absolute;
   inset: auto 0 0;
+  background: var(--accent);
   background: color-mix(in srgb, var(--accent) 88%, transparent);
   color: #fff;
   font-size: 9.5px;
@@ -122,4 +123,48 @@
   background: var(--danger-soft);
   border-radius: var(--radius-sm);
   padding: 7px 10px;
+}
+
+
+/* Hidden from view but still laid out: an input removed with display:none
+   cannot be opened by a label on some mobile browsers. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.add {
+  display: inline-block;
+  text-align: center;
+}
+
+.add[data-disabled='true'] {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Fallback for browsers without aspect-ratio (Chromium below 88 — Samsung
+   Internet on older phones). Without a height the box collapses to nothing and
+   the image inside, which is absolutely positioned, never appears at all. The
+   padding trick reserves the same ratio. */
+@supports not (aspect-ratio: 1 / 1) {
+  .thumb::before {
+    content: '';
+    display: block;
+    padding-top: 150%;
+  }
+
+  .thumb > * {
+    position: absolute;
+    inset: 0;
+  }
 }

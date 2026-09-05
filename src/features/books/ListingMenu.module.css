@@ -70,6 +70,7 @@
 }
 
 .danger:hover {
+  background: var(--surface-2);
   background: color-mix(in srgb, var(--danger) 10%, var(--surface));
 }
 

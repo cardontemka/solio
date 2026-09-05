@@ -36,6 +36,9 @@
   aspect-ratio: 2 / 3;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  /* A gradient containing color-mix is invalid as a whole where color-mix is
+     unsupported, which would leave the placeholder cover blank. */
+  background: var(--cover);
   background: linear-gradient(
     155deg,
     var(--cover),
@@ -185,9 +188,28 @@
 }
 
 .status[data-status='swapped'] {
+  background: var(--ok);
   background: color-mix(in srgb, var(--ok) 82%, #000);
 }
 
 .status[data-status='reserved'] {
+  background: var(--warn);
   background: color-mix(in srgb, var(--warn) 82%, #000);
+}
+
+/* Fallback for browsers without aspect-ratio (Chromium below 88 — Samsung
+   Internet on older phones). Without a height the box collapses to nothing and
+   the image inside, which is absolutely positioned, never appears at all. The
+   padding trick reserves the same ratio. */
+@supports not (aspect-ratio: 1 / 1) {
+  .cover::before {
+    content: '';
+    display: block;
+    padding-top: 150%;
+  }
+
+  .cover > * {
+    position: absolute;
+    inset: 0;
+  }
 }

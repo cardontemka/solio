@@ -152,6 +152,27 @@ function put(
   })
 }
 
+/**
+ * Send the bytes through the application instead of straight to storage.
+ *
+ * Used when the direct PUT fails, which in practice means the page's origin is
+ * not in the bucket's CORS list — a preview deployment, a new domain, or a
+ * phone pointed at a laptop over the LAN. The file is already about 100KB by
+ * this point, so the detour is cheap.
+ */
+export async function putViaServer(storageKey: string, file: File): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/uploads/bytes?key=${encodeURIComponent(storageKey)}`, {
+      method: 'POST',
+      headers: { 'content-type': file.type },
+      body: file,
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export async function uploadImageToCopy(
   copyId: string,
   original: File,
@@ -177,7 +198,12 @@ export async function uploadImageToCopy(
       file,
       onProgress
     )
-    if (status < 200 || status >= 300) return { ok: false, message: 'Зураг байршуулж чадсангүй.' }
+
+    if (status < 200 || status >= 300) {
+      // status 0 is what a blocked CORS preflight looks like from here.
+      const viaServer = await putViaServer(intent.storageKey, file)
+      if (!viaServer) return { ok: false, message: 'Зураг байршуулж чадсангүй.' }
+    }
     onProgress?.(100)
 
     const confirmed = await confirmImageAction(intent.imageId)

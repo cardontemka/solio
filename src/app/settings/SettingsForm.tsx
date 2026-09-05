@@ -24,14 +24,13 @@ export function SettingsForm({
 }) {
   const [state, formAction, pending] = useActionState(updateProfileAction, initial)
   const errors = !state.ok ? state.errors : undefined
-  const current = state.ok ? state.username : username
+  const current = username
 
   return (
     <form action={formAction} className={styles.form}>
       <AvatarPicker name={displayName} initialUrl={avatarUrl} />
 
       {!state.ok && <FormMessage message={state.message} />}
-      {state.ok && <p className={styles.saved}>✓ Хадгалагдлаа.</p>}
 
       <div className={formStyles.field}>
         <label className={formStyles.label} htmlFor="displayName">

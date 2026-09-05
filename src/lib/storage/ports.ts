@@ -27,6 +27,16 @@ export interface BookImageStorage {
     mimeType: string
     byteSize: number
   }): Promise<UploadTarget>
+  /**
+   * Write bytes from the server.
+   *
+   * The browser normally PUTs straight to storage, which needs the page's
+   * origin to be in the bucket's CORS list. That is one more thing to keep in
+   * step with every new deployment URL, preview domain and LAN address used for
+   * testing — and when it drifts the upload fails with nothing to show the
+   * reader. This is the path that does not care where the page was served from.
+   */
+  put(storageKey: string, bytes: Uint8Array, mimeType: string): Promise<void>
   /** First N bytes, for server-side magic-number and dimension verification. */
   readHead(storageKey: string, bytes: number): Promise<Uint8Array | null>
   stat(storageKey: string): Promise<{ byteSize: number } | null>

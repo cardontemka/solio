@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRef, useState, useTransition } from 'react'
-import { IMAGE_ACCEPT, prepareImage } from '@/features/images/upload'
+import { IMAGE_ACCEPT, prepareImage, putViaServer } from '@/features/images/upload'
 import { removeAvatarAction, setAvatarAction } from '@/features/users/actions'
 import styles from './page.module.css'
 
@@ -50,12 +50,20 @@ export function AvatarPicker({
         return
       }
 
-      const put = await fetch(intent.upload.url, {
-        method: intent.upload.method,
-        headers: intent.upload.headers,
-        body: file,
-      })
-      if (!put.ok) {
+      let stored = false
+      try {
+        const direct = await fetch(intent.upload.url, {
+          method: intent.upload.method,
+          headers: intent.upload.headers,
+          body: file,
+        })
+        stored = direct.ok
+      } catch {
+        // A blocked CORS preflight throws here rather than returning a status.
+        stored = false
+      }
+      if (!stored) stored = await putViaServer(intent.storageKey, file)
+      if (!stored) {
         setError('Зураг байршуулж чадсангүй.')
         return
       }
@@ -84,11 +92,14 @@ export function AvatarPicker({
         <p className={styles.avatarLabel}>Профайл зураг</p>
         <p className={styles.avatarHint}>Утас, компьютерээс · автоматаар жижигрүүлнэ</p>
 
+        {/* See AddBookForm: a label rather than input.click(), because a
+            display:none input will not open the picker on some phones. */}
         <input
+          id="avatar-file"
           ref={inputRef}
           type="file"
           accept={IMAGE_ACCEPT}
-          hidden
+          className={styles.fileInput}
           onChange={async (e) => {
             const file = e.target.files?.[0]
             if (file) await upload(file)
@@ -97,14 +108,13 @@ export function AvatarPicker({
         />
 
         <div className={styles.avatarButtons}>
-          <button
-            type="button"
+          <label
+            htmlFor="avatar-file"
             className={styles.avatarButton}
-            disabled={busy || pending}
-            onClick={() => inputRef.current?.click()}
+            data-disabled={busy || pending}
           >
             {busy ? 'Байршуулж байна…' : url ? 'Солих' : 'Зураг сонгох'}
-          </button>
+          </label>
           {url && (
             <button
               type="button"

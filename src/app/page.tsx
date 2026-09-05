@@ -81,17 +81,6 @@ export default async function HomePage() {
                 Номоо бүртгэж, бусад хэрэглэгчийн номтой шууд солилцоорой.
                 Солилцоо бүрийн түүх бүрэн хадгалагдана.
               </p>
-              <div className={styles.heroFeatures}>
-                <span className={styles.feature}>
-                  <span className={styles.featureDot} aria-hidden="true" /> Ном хайх
-                </span>
-                <span className={styles.feature}>
-                  <span className={styles.featureDot} aria-hidden="true" /> Шууд солилцоо
-                </span>
-                <span className={styles.feature}>
-                  <span className={styles.featureDot} aria-hidden="true" /> Түүх хадгалагддаг
-                </span>
-              </div>
             </div>
 
             <div className={styles.heroVisual} aria-hidden="true">

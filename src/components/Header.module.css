@@ -2,6 +2,9 @@
   position: sticky;
   top: 0;
   z-index: 50;
+  /* Fallback first: without color-mix the header would have no background
+     at all and text would sit straight on the page behind it. */
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: saturate(160%) blur(10px);
   border-bottom: 1px solid var(--border);
@@ -391,7 +394,35 @@
 
 @media (max-width: 860px) {
   .inner {
-    gap: 10px;
+    gap: 12px;
+    /* Wider than the page's own gutter: on a phone every pixel the bar gives
+       back goes to the search field, which is the thing people came to use.
+       The vertical padding is what stops the row feeling packed — the controls
+       need air around them, not just space between them. */
+    padding-inline: 12px;
+    padding-block: 8px;
+  }
+
+  .navMobile > div {
+    padding-inline: 12px;
+  }
+
+  /* The bar was pinched: the logo, a shrunken field and three controls all
+     fighting for 390px. A little more room each makes it usable one-handed. */
+  .mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .search form {
+    padding: 9px 10px 9px 14px;
+  }
+
+  /* 44px is the size a fingertip reliably hits; 40 was catchable but fussy. */
+  .bell,
+  .userBtn {
+    min-height: 46px;
+    min-width: 46px;
   }
 
   /* The word "Хайх" costs more room than it earns once the field is this

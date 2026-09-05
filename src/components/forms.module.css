@@ -232,6 +232,7 @@
 .select[aria-invalid='true'],
 .textarea[aria-invalid='true'] {
   border-color: var(--danger);
+  background: var(--surface);
   background: color-mix(in srgb, var(--danger) 5%, var(--surface));
 }
 
@@ -246,6 +247,7 @@
   margin: 0 0 14px;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
+  background: var(--surface-2);
   background: color-mix(in srgb, var(--warn) 12%, var(--surface));
   color: var(--text);
   font-size: 13px;

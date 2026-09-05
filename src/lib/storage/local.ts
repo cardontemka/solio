@@ -42,6 +42,12 @@ export class LocalDevelopmentStorage implements BookImageStorage {
     }
   }
 
+  /** Same contract as the R2 adapter; the local one already wrote this way. */
+  // The mime type is not needed on disk; the interface carries it for R2.
+  async put(storageKey: string, bytes: Uint8Array): Promise<void> {
+    await this.write(storageKey, bytes)
+  }
+
   async write(storageKey: string, bytes: Uint8Array): Promise<void> {
     const path = safePath(storageKey)
     await mkdir(dirname(path), { recursive: true })
