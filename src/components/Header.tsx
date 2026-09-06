@@ -7,7 +7,7 @@ import { SearchBar } from './SearchBar'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { logoutAction } from '@/features/users/actions'
-import { ThemeToggle } from './ThemeToggle'
+import { ThemeMenuItem, ThemeToggle } from './ThemeToggle'
 import {
   BellIcon,
   BookIcon,
@@ -131,7 +131,9 @@ export function Header({
         </div>
 
         <div className={styles.actions}>
-          <ThemeToggle />
+          {/* Desktop only. On a phone it moves into the menu — see the
+              stylesheet — so the bar can give the width to the search field. */}
+          <ThemeToggle className={styles.themeButton} />
 
           {user && (
             <Link
@@ -227,6 +229,7 @@ function Menu({
       </Link>
 
       <div className={styles.menuDivider} role="separator">
+        <ThemeMenuItem className={`${styles.menuItem} ${styles.themeItem}`} />
         <form action={logoutAction}>
           <button type="submit" className={styles.menuItem}>
             <LogOutIcon size={17} />

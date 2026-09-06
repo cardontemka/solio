@@ -22,13 +22,18 @@ function apply(theme: Theme) {
  * Nothing depends on client state, so there is nothing to hydrate and no
  * server/client mismatch.
  */
+/**
+ * `className` is composed with the base class, never substituted for it: the
+ * caller passes one only to hide the button on a phone, and replacing the class
+ * outright stripped every style the control had.
+ */
 export function ThemeToggle({ className }: { className?: string }) {
   const onClick = () => apply(currentTheme() === 'dark' ? 'light' : 'dark')
 
   return (
     <button
       type="button"
-      className={className ?? styles.toggle}
+      className={className ? `${styles.toggle} ${className}` : styles.toggle}
       onClick={onClick}
       aria-label="Гэрэл / Харанхуй горим солих"
       title="Гэрэл / Харанхуй горим"

@@ -27,7 +27,7 @@
 .slide {
   position: relative;
   flex: 0 0 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 5;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -103,7 +103,7 @@
   .slide::before {
     content: '';
     display: block;
-    padding-top: 133.333%;
+    padding-top: 125%;
   }
 
   .slide img {

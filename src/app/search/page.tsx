@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { BookGrid } from '@/components/BookCard'
-import { SearchBar } from '@/components/SearchBar'
 import { EmptyState, Section } from '@/components/ui'
 import { getListings, searchListings, searchProfiles } from '@/features/books/queries'
 import type { ProfileResult } from '@/features/books/queries'
@@ -47,10 +46,6 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
 
   return (
     <div className="container">
-      <div className={styles.searchHead}>
-        <SearchBar initialQuery={q} size="lg" autoFocus={!q} />
-      </div>
-
       {q ? (
         <>
           <div className={styles.divider} />

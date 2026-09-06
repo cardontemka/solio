@@ -8,6 +8,7 @@ import { getComments } from '@/features/comments/queries'
 import { ReportButton } from '@/features/moderation/ReportButton'
 import { RequestActions } from '@/features/requests/RequestActions'
 import { getRequest } from '@/features/requests/queries'
+import { getOfferableCopies } from '@/features/swaps/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import styles from './page.module.css'
 
@@ -30,9 +31,11 @@ export async function generateMetadata({ params }: PageProps<'/requests/[id]'>) 
 export default async function RequestPage({ params }: PageProps<'/requests/[id]'>) {
   const { id } = await params
   const me = await getSessionUser()
-  const [request, comments] = await Promise.all([
+  const [request, comments, offerable] = await Promise.all([
     load(id, me?.id ?? null),
     getComments({ requestId: id }, me?.id ?? null),
+    // Only somebody else's request is worth answering with your own book.
+    me ? getOfferableCopies(me.id) : Promise.resolve([]),
   ])
   if (!request) notFound()
 
@@ -77,6 +80,7 @@ export default async function RequestPage({ params }: PageProps<'/requests/[id]'
           comments={comments}
           canComment={Boolean(me)}
           viewerId={me?.id ?? null}
+          offerable={request.isMine ? [] : offerable}
         />
       </div>
     </div>

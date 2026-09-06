@@ -39,6 +39,8 @@ export type ReportView = {
   reporterName: string
   resolutionNote: string | null
   targetLabel: string | null
+  /** Where the reported thing actually lives, so a moderator can look first. */
+  targetHref: string | null
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -76,13 +78,87 @@ export async function getReports(): Promise<ReportView[]> {
   }
   const rows = (data ?? []) as unknown as Row[]
 
-  // Resolve a human label for whatever the report points at.
-  const bookIds = rows.filter((r) => r.entity_type === 'book').map((r) => r.entity_id)
-  const titles = new Map<string, string>()
+  // Resolve a label and a link for whatever each report points at.
+  //
+  // Without this a moderator sees a type and eight characters of a UUID, and
+  // has to decide whether to hide something they cannot look at. Every kind is
+  // resolved here so the table can be acted on rather than guessed at.
+  const idsOf = (type: string) =>
+    rows.filter((r) => r.entity_type === type).map((r) => r.entity_id)
+
+  const label = new Map<string, string>()
+  const href = new Map<string, string>()
+
+  const bookIds = idsOf('book')
   if (bookIds.length > 0) {
     const { data: books } = await supabase.from('books').select('id, title').in('id', bookIds)
-    for (const b of (books ?? []) as { id: string; title: string }[]) titles.set(b.id, b.title)
+    for (const b of (books ?? []) as { id: string; title: string }[]) {
+      label.set(b.id, b.title)
+      // /books/[copyId] resolves a books id to one of its listings.
+      href.set(b.id, `/books/${b.id}`)
+    }
   }
+
+  const copyIds = idsOf('book_copy')
+  if (copyIds.length > 0) {
+    const { data: copies } = await supabase
+      .from('book_copies')
+      .select('id, books ( title )')
+      .in('id', copyIds)
+    type C = { id: string; books: { title: string } | { title: string }[] | null }
+    for (const c of (copies ?? []) as unknown as C[]) {
+      const book = Array.isArray(c.books) ? c.books[0] : c.books
+      label.set(c.id, book?.title ?? 'Ном')
+      href.set(c.id, `/books/${c.id}`)
+    }
+  }
+
+  const requestIds = idsOf('request')
+  if (requestIds.length > 0) {
+    const { data: reqs } = await supabase
+      .from('book_requests')
+      .select('id, title')
+      .in('id', requestIds)
+    for (const q of (reqs ?? []) as { id: string; title: string }[]) {
+      label.set(q.id, q.title)
+      href.set(q.id, `/requests/${q.id}`)
+    }
+  }
+
+  // A comment has no page of its own; it is linked in the thread it lives in,
+  // anchored so the moderator lands on the comment itself.
+  const commentIds = idsOf('comment')
+  if (commentIds.length > 0) {
+    const { data: comments } = await supabase
+      .from('comments')
+      .select('id, body, book_copy_id, request_id')
+      .in('id', commentIds)
+    type M = { id: string; body: string; book_copy_id: string | null; request_id: string | null }
+    for (const m of (comments ?? []) as M[]) {
+      label.set(m.id, m.body.slice(0, 60))
+      const parent = m.book_copy_id
+        ? `/books/${m.book_copy_id}`
+        : m.request_id
+          ? `/requests/${m.request_id}`
+          : null
+      if (parent) href.set(m.id, `${parent}#comment-${m.id}`)
+    }
+  }
+
+  const profileIds = idsOf('profile')
+  if (profileIds.length > 0) {
+    const { data: people } = await supabase
+      .from('profiles')
+      .select('id, username, display_name')
+      .in('id', profileIds)
+    type P = { id: string; username: string; display_name: string }
+    for (const p of (people ?? []) as P[]) {
+      label.set(p.id, p.display_name)
+      href.set(p.id, `/u/${p.username}`)
+    }
+  }
+
+  for (const id of idsOf('swap')) href.set(id, '/swaps')
 
   return rows.map((r) => {
     const reporter = Array.isArray(r.reporter) ? r.reporter[0] : r.reporter
@@ -96,7 +172,8 @@ export async function getReports(): Promise<ReportView[]> {
       createdAt: r.created_at.slice(0, 10),
       reporterName: reporter?.display_name ?? 'Тодорхойгүй',
       resolutionNote: r.resolution_note,
-      targetLabel: titles.get(r.entity_id) ?? null,
+      targetLabel: label.get(r.entity_id) ?? null,
+      targetHref: href.get(r.entity_id) ?? null,
     }
   })
 }

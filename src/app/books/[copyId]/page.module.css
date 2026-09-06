@@ -111,8 +111,11 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 460px) 1fr;
-  gap: 40px;
+  /* The photo was taking almost half the page. It is one person's snapshot of
+     a second-hand book, not a product shot — it should show the condition, not
+     dominate the page. */
+  grid-template-columns: minmax(0, 300px) 1fr;
+  gap: 34px;
   align-items: start;
 }
 
@@ -141,6 +144,7 @@
   .media,
   .carousel {
     width: 100%;
+    max-width: 240px;
     margin-inline: auto;
   }
 }

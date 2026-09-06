@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { Avatar } from '@/components/Avatar'
@@ -10,6 +11,27 @@ import styles from './CommentSection.module.css'
 const initial: CommentState = { ok: false }
 
 export type CommentTarget = { listingId: string } | { requestId: string }
+
+/** One of the viewer's own listings, offered as an answer to a request. */
+export type OfferableListing = { copyId: string; title: string }
+
+function OfferedCard({ offered }: { offered: NonNullable<CommentView['offered']> }) {
+  return (
+    <Link href={`/books/${offered.copyId}`} className={styles.offered}>
+      <span className={styles.offeredThumb}>
+        {offered.imageUrl ? (
+          <Image src={offered.imageUrl} alt="" width={72} height={96} />
+        ) : (
+          <span className={styles.offeredEmpty} aria-hidden="true" />
+        )}
+      </span>
+      <span className={styles.offeredText}>
+        <span className={styles.offeredLabel}>Энэ ном мөн үү?</span>
+        <span className={styles.offeredTitle}>{offered.title}</span>
+      </span>
+    </Link>
+  )
+}
 
 function TargetFields({ target, parentId }: { target: CommentTarget; parentId?: string }) {
   return (
@@ -73,6 +95,7 @@ function Comment({
         </div>
 
         <p className={styles.body}>{comment.body}</p>
+        {comment.offered && <OfferedCard offered={comment.offered} />}
 
         <div className={styles.actions}>
           {canComment && depth === 0 && (
@@ -152,12 +175,15 @@ export function CommentSection({
   canComment,
   viewerId,
   path,
+  offerable = [],
 }: {
   target: CommentTarget
   comments: CommentView[]
   canComment: boolean
   viewerId: string | null
   path: string
+  /** The viewer's own listings, offered on a request thread only. */
+  offerable?: OfferableListing[]
 }) {
   const [state, formAction, pending] = useActionState(addCommentAction, initial)
   const formRef = useRef<HTMLFormElement>(null)
@@ -184,8 +210,28 @@ export function CommentSection({
             rows={3}
             maxLength={4000}
             required
-            placeholder="Энэ номын талаар бичих…"
+            placeholder={
+              offerable.length > 0
+                ? 'Энэ ном танд байна уу? Хариу бичих…'
+                : 'Энэ номын талаар бичих…'
+            }
           />
+
+          {/* Answering a request with a book is the point of the thread, so the
+              picker sits in the reply box rather than somewhere separate. */}
+          {offerable.length > 0 && (
+            <label className={styles.offerPick}>
+              <span className={styles.offerPickLabel}>Өөрийн номоо хавсаргах</span>
+              <select className={styles.offerSelect} name="offeredCopyId" defaultValue="">
+                <option value="">— сонгохгүй —</option>
+                {offerable.map((o) => (
+                  <option key={o.copyId} value={o.copyId}>
+                    {o.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {!state.ok && state.errors?.body && (
             <p className={styles.error}>{state.errors.body[0]}</p>
           )}

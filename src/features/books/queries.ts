@@ -377,3 +377,62 @@ export async function getSwapHistory(userId: string): Promise<SwapHistoryEntry[]
     received: r.received_titles ?? [],
   }))
 }
+
+export type Suggestion = {
+  copyId: string
+  title: string
+  author: string | null
+  imageUrl: string | null
+  ownerName: string | null
+}
+
+/**
+ * Type-ahead matches for the search box.
+ *
+ * Deliberately the same source as the results page: a suggestion that leads
+ * nowhere is worse than none, so this only ever offers listings that exist and
+ * that the caller may open. Kept to the few fields a row shows, because it runs
+ * on every few keystrokes.
+ */
+export async function suggestListings(query: string, limit = 7): Promise<Suggestion[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const supabase = await createClient()
+  const escaped = q.replace(/[%,()]/g, ' ')
+  const { data, error } = await supabase
+    .from('book_copies')
+    .select(
+      `id, status,
+       books!inner ( title, author ),
+       owner:profiles!book_copies_owner_id_fkey ( display_name ),
+       book_images ( storage_key, sort_order, status )`
+    )
+    .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`, { referencedTable: 'books' })
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+
+  type Row = {
+    id: string
+    books: { title: string; author: string | null } | { title: string; author: string | null }[] | null
+    owner: { display_name: string } | { display_name: string }[] | null
+    book_images: { storage_key: string; sort_order: number; status: string }[]
+  }
+  const storage = bookImageStorage()
+  return ((data ?? []) as unknown as Row[]).flatMap((r) => {
+    const book = one(r.books)
+    if (!book) return []
+    const cover = (r.book_images ?? [])
+      .filter((i) => i.status === 'ready')
+      .sort((a, b) => a.sort_order - b.sort_order)[0]
+    return [
+      {
+        copyId: r.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: cover ? storage.publicUrl(cover.storage_key) : null,
+        ownerName: one(r.owner)?.display_name ?? null,
+      },
+    ]
+  })
+}

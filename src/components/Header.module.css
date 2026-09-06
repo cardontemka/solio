@@ -352,6 +352,12 @@
   border-bottom-color: var(--accent);
 }
 
+/* The theme switch has two homes: a button in the bar on a wide screen, a row
+   in the user menu on a phone. Only one is ever shown. */
+.themeItem {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .navMobile {
     display: block;
@@ -359,19 +365,54 @@
 
   .search {
     max-width: none;
-    margin-inline: 6px;
+    margin-inline: 4px;
+  }
+
+  .themeButton {
+    display: none;
+  }
+
+  .themeItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
   }
 }
 
 @media (max-width: 430px) {
-  /* The wordmark is the first thing to go: the logo alone still identifies
-     the site, and the search field needs the room more. */
+  /* Everything on this row gives the search field a little of its width back.
+     The wordmark goes first — the logo alone still identifies the site — then
+     the chevron, which says nothing the avatar does not, then the gaps. */
   .brandName {
     display: none;
   }
 
   .search {
-    margin-inline: 4px;
+    margin-inline: 0;
+  }
+
+  .inner {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  .chevron {
+    display: none;
+  }
+
+  .userBtn {
+    padding-inline: 4px;
+    min-width: 40px;
+  }
+
+  .actions {
+    gap: 0;
   }
 }
 
@@ -384,11 +425,11 @@
 }
 
 .search input {
-  padding: 6px 0;
+  padding: 4px 0;
   font-size: 14px;
 }
 
-.search button {
+.search button[type="submit"] {
   padding-block: 6px;
 }
 
@@ -414,8 +455,15 @@
     height: 32px;
   }
 
+  /* With the theme button gone from the bar, the field can breathe: it is the
+     one control on this row people came to use. */
   .search form {
     padding: 9px 10px 9px 14px;
+  }
+
+  .search input {
+    padding: 5px 0;
+    font-size: 15px;
   }
 
   /* 44px is the size a fingertip reliably hits; 40 was catchable but fussy. */
@@ -426,8 +474,10 @@
   }
 
   /* The word "Хайх" costs more room than it earns once the field is this
-     narrow; the magnifier already says what the form does. */
-  .search button {
+     narrow; the magnifier already says what the form does.
+     Scoped to the submit button: a bare `.search button` also matched every
+     row in the suggestion list, which made the whole dropdown invisible. */
+  .search button[type='submit'] {
     display: none;
   }
 }
@@ -468,5 +518,14 @@
 @media (prefers-reduced-motion: reduce) {
   .navMobile {
     transition: none;
+  }
+}
+
+/* Last word on the smallest screens: an earlier 860px block sets the logo to
+   32px, and equal specificity means whichever comes last wins. */
+@media (max-width: 430px) {
+  .mark {
+    width: 28px;
+    height: 28px;
   }
 }

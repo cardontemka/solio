@@ -12,6 +12,16 @@ const LABEL = {
   open: 'Шинэ', reviewing: 'Хянаж байна', resolved: 'Шийдвэрлэсэн', dismissed: 'Хэрэгсээгүй',
 } as const
 
+/** What each report is about, in words rather than a table name. */
+const ENTITY_LABEL: Record<string, string> = {
+  book: 'Ном',
+  book_copy: 'Ном',
+  request: 'Хүсэлт',
+  comment: 'Сэтгэгдэл',
+  profile: 'Хэрэглэгч',
+  swap: 'Солилцоо',
+}
+
 export default async function ReportsPage() {
   const reports = await getReports()
   if (reports.length === 0) {
@@ -39,16 +49,29 @@ export default async function ReportsPage() {
                 )}
               </td>
               <td>
-                {r.entityType === 'book' ? (
-                  <Link href={`/books/${r.entityId}`}>{r.targetLabel ?? 'Ном'}</Link>
-                ) : (
-                  <span className={styles.muted}>{r.entityType}</span>
-                )}
-                <div className={styles.mono}>{r.entityId.slice(0, 8)}…</div>
+                <span className={styles.muted}>{ENTITY_LABEL[r.entityType] ?? r.entityType}</span>
+                <div>
+                  {/* Every kind resolves to a page now. Deciding whether to hide
+                      something without being able to open it was guesswork. */}
+                  {r.targetHref ? (
+                    <Link href={r.targetHref} target="_blank" rel="noopener">
+                      {r.targetLabel ?? 'Нээж үзэх'} ↗
+                    </Link>
+                  ) : (
+                    <span className={styles.mono}>{r.entityId.slice(0, 8)}… (устсан)</span>
+                  )}
+                </div>
               </td>
               <td>{r.reporterName}</td>
               <td className={styles.muted}>{r.createdAt}</td>
-              <td><ReportActions id={r.id} status={r.status} /></td>
+              <td>
+                <ReportActions
+                  id={r.id}
+                  status={r.status}
+                  entityType={r.entityType}
+                  entityId={r.entityId}
+                />
+              </td>
             </tr>
           ))}
         </tbody>

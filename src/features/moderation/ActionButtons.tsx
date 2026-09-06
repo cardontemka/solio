@@ -39,13 +39,50 @@ function Row({
   )
 }
 
-export function ReportActions({ id, status }: { id: string; status: string }) {
+/**
+ * Resolving a report records a decision — it does not touch the content. That
+ * used to mean a moderator had to find the same item again on another page to
+ * act on it, so hiding is offered here, next to the thing being judged.
+ */
+export function ReportActions({
+  id,
+  status,
+  entityType,
+  entityId,
+}: {
+  id: string
+  status: string
+  entityType: string
+  entityId: string
+}) {
   const { pending, error, run } = useAction()
+  // Narrowed rather than cast: moderate_entity only knows these, and the list
+  // here is what decides whether the button is offered at all.
+  const HIDEABLE = ['book', 'book_copy', 'comment', 'request'] as const
+  type Hideable = (typeof HIDEABLE)[number]
+  const hideable = HIDEABLE.find((t) => t === entityType) as Hideable | undefined
+
   if (status === 'resolved' || status === 'dismissed') {
     return <span className={styles.done}>Шийдвэрлэсэн</span>
   }
   return (
     <Row pending={pending} error={error}>
+      {hideable && (
+        <button
+          className={styles.btn}
+          disabled={pending}
+          title="Контентыг нуугаад гомдлыг шийдвэрлэсэн болгоно"
+          onClick={() =>
+            run(async () => {
+              const hidden = await moderateEntityAction(hideable, entityId, 'hidden')
+              if (!hidden.ok) return hidden
+              return resolveReportAction(id, 'resolved', 'Контентыг нуусан')
+            })
+          }
+        >
+          Нуух
+        </button>
+      )}
       {status === 'open' && (
         <button className={styles.btn} disabled={pending}
                 onClick={() => run(() => resolveReportAction(id, 'reviewing'))}>
