@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
+import { PasswordField } from '@/components/PasswordField'
 import { loginAction, type AuthState } from './actions'
 import { formatCooldown, useRetryCooldown } from './useRetryCooldown'
 import styles from '@/components/forms.module.css'
@@ -49,24 +50,19 @@ export function LoginForm({ next }: { next?: string }) {
         <FieldError errors={errors?.email} />
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="password">
-          Нууц үг
-        </label>
-        <input
-          className={styles.input}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={Boolean(errors?.password)}
-        />
+      <PasswordField
+        label="Нууц үг"
+        id="password"
+        name="password"
+        autoComplete="current-password"
+        required
+        placeholder="••••••••"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        aria-invalid={Boolean(errors?.password)}
+      >
         <FieldError errors={errors?.password} />
-      </div>
+      </PasswordField>
 
       <button className={styles.submit} type="submit" disabled={pending || cooldown > 0}>
         {pending

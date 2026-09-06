@@ -13,7 +13,7 @@ import { getComments } from '@/features/comments/queries'
 import { OfferSwapForm } from '@/features/swaps/OfferSwapForm'
 import { getOfferableCopies } from '@/features/swaps/queries'
 import { getSessionUser } from '@/lib/auth/dal'
-import { CONDITION_LABEL, COPY_STATUS_LABEL } from '@/types/domain'
+import { CATEGORY_LABEL, CONDITION_LABEL, COPY_STATUS_LABEL } from '@/types/domain'
 import { CopyCarousel } from './CopyCarousel'
 import styles from './page.module.css'
 
@@ -96,6 +96,14 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                 <Badge tone={listing.status === 'available' ? 'ok' : 'neutral'}>
                   {COPY_STATUS_LABEL[listing.status]}
                 </Badge>
+                {listing.category && (
+                  <Link
+                    href={`/search?category=${listing.category}`}
+                    className={styles.categoryChip}
+                  >
+                    {CATEGORY_LABEL[listing.category]}
+                  </Link>
+                )}
                 {listing.language && (
                   <Badge>{LANGUAGE_LABEL[listing.language] ?? listing.language}</Badge>
                 )}
@@ -156,6 +164,24 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                   <>
                     <dt>Хэвлэсэн он</dt>
                     <dd>{listing.publishedAt.slice(0, 4)}</dd>
+                  </>
+                )}
+                {listing.pageCount && (
+                  <>
+                    <dt>Нүүрний тоо</dt>
+                    <dd>{listing.pageCount}</dd>
+                  </>
+                )}
+                {listing.sizeNote && (
+                  <>
+                    <dt>Хэмжээ</dt>
+                    <dd>{listing.sizeNote}</dd>
+                  </>
+                )}
+                {listing.weightG && (
+                  <>
+                    <dt>Жин</dt>
+                    <dd>{listing.weightG} г</dd>
                   </>
                 )}
                 {listing.isbn && (

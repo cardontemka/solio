@@ -42,3 +42,10 @@
     display: none;
   }
 }
+
+/* Above the bottom bar, not behind it. */
+@media (max-width: 860px) {
+  .fab {
+    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  }
+}

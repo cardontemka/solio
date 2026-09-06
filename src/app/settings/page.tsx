@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/ui'
 import { requireUser } from '@/lib/auth/dal'
 import { createClient } from '@/lib/supabase/server'
 import { SettingsForm } from './SettingsForm'
+import { PasswordForm } from './PasswordForm'
 import styles from './page.module.css'
 
 export const metadata = {
@@ -15,12 +16,19 @@ export default async function SettingsPage() {
   const supabase = await createClient()
   const { data } = await supabase.from('profiles').select('bio').eq('id', me.id).single()
 
+  // Someone who only ever signed in with Google has no password to change —
+  // the form sets a first one for them and skips asking for the old one.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const hasPassword = (user?.identities ?? []).some((i) => i.provider === 'email')
+
   return (
     <div className="container">
       <div className={styles.shell}>
         <PageHeader
           title="Профайл"
-          subtitle="Нийтэд харагдах нэр, хэрэглэгчийн нэр, байршлаа өөрчилнө."
+          subtitle="Нийтэд харагдах нэр, хэрэглэгчийн нэр, байршил, нууц үгээ өөрчилнө."
         />
         <SettingsForm
           username={me.username}
@@ -29,6 +37,7 @@ export default async function SettingsPage() {
           city={me.city}
           avatarUrl={me.avatarUrl}
         />
+        <PasswordForm hasPassword={hasPassword} />
       </div>
     </div>
   )

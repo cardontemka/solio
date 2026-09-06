@@ -245,3 +245,21 @@
   gap: 12px;
   align-items: flex-start;
 }
+
+/* The category doubles as a way into the shelf it belongs to. */
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.categoryChip:hover {
+  background: var(--accent);
+  color: #fff;
+}

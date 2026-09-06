@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
+import { CategoryBar } from '@/components/CategoryBar'
 import { SiteHeader } from '@/components/SiteHeader'
+import { SiteMobileNav } from '@/components/SiteMobileNav'
+import { NavProgress } from '@/components/NavProgress'
 import { AddBookFab } from '@/components/AddBookFab'
 import './globals.css'
 import styles from './layout.module.css'
@@ -46,9 +49,12 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
         />
       </head>
       <body>
+        <NavProgress />
         <SiteHeader />
+        <CategoryBar />
         <main className={styles.main}>{children}</main>
         <AddBookFab />
+        <SiteMobileNav />
         <footer className={styles.footer}>
           <div className={`container ${styles.footerInner}`}>
             <span>© 2026 Solio</span>

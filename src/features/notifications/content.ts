@@ -19,7 +19,7 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
   swap_rejected: { title: 'Хүсэлтээс татгалзсан' },
   swap_cancelled: { title: 'Солилцоо цуцлагдсан' },
   swap_confirmed: {
-    title: 'Нөгөө тал гардуулснаа баталгаажуулав',
+    title: 'Нөгөө тал биечлэн авсныг баталгаажуулав',
     body: 'Таны баталгаажуулалт солилцоог дуусгана.',
   },
   swap_completed: {

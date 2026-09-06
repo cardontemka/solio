@@ -273,3 +273,41 @@
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
+
+/* A completed swap gets one turn of the arrows on arrival: the books have
+   changed hands, and the card should say so without another line of text. */
+.swapIcon[data-done='true'] {
+  color: var(--ok);
+  animation: swapTurn 0.9s cubic-bezier(0.34, 1.3, 0.64, 1) 0.15s both;
+}
+
+@keyframes swapTurn {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  55% {
+    transform: rotate(180deg) scale(1.35);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swapIcon[data-done='true'] {
+    animation: none;
+  }
+}
+
+/* The other party is a person you can look up before agreeing to meet them. */
+.party {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.party:hover {
+  color: var(--accent);
+  border-bottom-color: currentColor;
+}

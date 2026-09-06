@@ -257,3 +257,40 @@
   font-variant-numeric: tabular-nums;
   font-weight: 650;
 }
+
+/* ── Password reveal ───────────────────────────────────────────────────────── */
+
+.passwordWrap {
+  position: relative;
+  display: flex;
+}
+
+.passwordInput {
+  /* Room for the button, so a long password never runs underneath it. */
+  padding-right: 46px;
+}
+
+.reveal {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.reveal:hover,
+.reveal[aria-pressed='true'] {
+  color: var(--text);
+}
+
+.reveal:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}

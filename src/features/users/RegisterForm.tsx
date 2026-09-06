@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
+import { PasswordField } from '@/components/PasswordField'
 import { registerAction, type AuthState } from './actions'
 import { formatCooldown, useRetryCooldown } from './useRetryCooldown'
 import styles from '@/components/forms.module.css'
@@ -23,6 +24,7 @@ export function RegisterForm({ next }: { next?: string }) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const cooldown = useRetryCooldown(state)
   const errors = !state.ok ? state.errors : undefined
 
@@ -36,6 +38,13 @@ export function RegisterForm({ next }: { next?: string }) {
         : username.length < 3
           ? `Хамгийн багадаа 3 тэмдэгт — дахиад ${3 - username.length} нэмнэ үү.`
           : null
+
+  // Only complained about once the second box has caught up in length: saying
+  // "they do not match" after the first keystroke is noise, not help.
+  const confirmProblem =
+    confirm.length === 0 || password.startsWith(confirm)
+      ? null
+      : 'Хоёр нууц үг таарахгүй байна.'
 
   if (state.ok && state.pendingConfirmation) {
     return (
@@ -125,30 +134,43 @@ export function RegisterForm({ next }: { next?: string }) {
         <FieldError errors={errors?.email} />
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="password">
-          Нууц үг
-        </label>
-        <input
-          className={styles.input}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          placeholder="Хамгийн багадаа 8 тэмдэгт"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={Boolean(errors?.password)}
-        />
-        <span className={styles.hint}>
-          {password.length > 0 && password.length < 8
+      <PasswordField
+        label="Нууц үг"
+        id="password"
+        name="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        placeholder="Хамгийн багадаа 8 тэмдэгт"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        aria-invalid={Boolean(errors?.password)}
+        hint={
+          password.length > 0 && password.length < 8
             ? `Дахиад ${8 - password.length} тэмдэгт нэмнэ үү.`
-            : 'Хамгийн багадаа 8 тэмдэгт.'}
-        </span>
+            : 'Хамгийн багадаа 8 тэмдэгт.'
+        }
+      >
         <FieldError errors={errors?.password} />
-      </div>
+      </PasswordField>
+
+      <PasswordField
+        label="Нууц үг давтах"
+        id="passwordConfirm"
+        name="passwordConfirm"
+        autoComplete="new-password"
+        required
+        placeholder="Дахиад нэг удаа"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        aria-invalid={Boolean(errors?.passwordConfirm) || Boolean(confirmProblem)}
+      >
+        {confirmProblem ? (
+          <p className={styles.error}>{confirmProblem}</p>
+        ) : (
+          <FieldError errors={errors?.passwordConfirm} />
+        )}
+      </PasswordField>
 
       <button className={styles.submit} type="submit" disabled={pending || cooldown > 0}>
         {pending

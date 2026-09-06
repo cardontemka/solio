@@ -2,7 +2,14 @@
 
 import { useActionState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
-import { BOOK_CONDITION, CONDITION_LABEL, type BookCondition } from '@/types/domain'
+import {
+  BOOK_CATEGORY,
+  BOOK_CONDITION,
+  CATEGORY_LABEL,
+  CONDITION_LABEL,
+  type BookCategory,
+  type BookCondition,
+} from '@/types/domain'
 import { updateListingAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
 import styles from './AddBookForm.module.css'
@@ -18,6 +25,10 @@ export type ListingDraft = {
   language: string | null
   publishedYear: number | null
   description: string | null
+  category: BookCategory | null
+  pageCount: number | null
+  weightG: number | null
+  sizeNote: string | null
   condition: BookCondition
   conditionNote: string | null
 }
@@ -138,6 +149,79 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
             defaultValue={listing.isbn ?? ''}
           />
           <FieldError errors={errors?.isbn} />
+        </div>
+
+
+        <div className={formStyles.field}>
+          <label className={formStyles.label} htmlFor="category">
+            Ангилал
+            <span className={formStyles.optional}>заавал биш</span>
+          </label>
+          <select className={formStyles.select} id="category" name="category" defaultValue={listing.category ?? ''}>
+            <option value="">— сонгоогүй —</option>
+            {BOOK_CATEGORY.map((c) => (
+              <option key={c} value={c}>
+                {CATEGORY_LABEL[c]}
+              </option>
+            ))}
+          </select>
+          <FieldError errors={errors?.category} />
+        </div>
+
+        <div className={formStyles.row}>
+          <div className={formStyles.field}>
+            <label className={formStyles.label} htmlFor="pageCount">
+              Нүүрний тоо
+              <span className={formStyles.optional}>заавал биш</span>
+            </label>
+            <input
+              className={formStyles.input}
+              id="pageCount"
+              name="pageCount"
+              type="number"
+              min={1}
+              max={20000}
+              inputMode="numeric"
+              placeholder="320"
+              defaultValue={listing.pageCount ?? ''}
+            />
+            <FieldError errors={errors?.pageCount} />
+          </div>
+          <div className={formStyles.field}>
+            <label className={formStyles.label} htmlFor="weightG">
+              Жин (грамм)
+              <span className={formStyles.optional}>заавал биш</span>
+            </label>
+            <input
+              className={formStyles.input}
+              id="weightG"
+              name="weightG"
+              type="number"
+              min={1}
+              max={20000}
+              inputMode="numeric"
+              placeholder="450"
+              defaultValue={listing.weightG ?? ''}
+            />
+            <FieldError errors={errors?.weightG} />
+          </div>
+        </div>
+
+        <div className={formStyles.field}>
+          <label className={formStyles.label} htmlFor="sizeNote">
+            Хэмжээ
+            <span className={formStyles.optional}>заавал биш</span>
+          </label>
+          <input
+            className={formStyles.input}
+            id="sizeNote"
+            name="sizeNote"
+            type="text"
+            maxLength={40}
+            placeholder="14×20 см"
+            defaultValue={listing.sizeNote ?? ''}
+          />
+          <FieldError errors={errors?.sizeNote} />
         </div>
 
         <div className={formStyles.field}>

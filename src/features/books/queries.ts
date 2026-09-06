@@ -3,7 +3,7 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
 import { avatarUrl } from '@/features/users/avatar'
-import type { BookCondition, CopyStatus } from '@/types/domain'
+import type { BookCategory, BookCondition, CopyStatus } from '@/types/domain'
 
 /**
  * Read side of the books feature.
@@ -67,6 +67,10 @@ export type Listing = {
   language: string | null
   description: string | null
   publishedAt: string | null
+  category: BookCategory | null
+  pageCount: number | null
+  weightG: number | null
+  sizeNote: string | null
   condition: BookCondition
   conditionNote: string | null
   status: CopyStatus
@@ -81,7 +85,8 @@ export type Listing = {
 // has to name the constraint or PostgREST refuses it as ambiguous.
 const LISTING_SELECT = `
   id, condition, condition_note, status, transfer_count, created_at,
-  books!inner ( id, title, author, isbn, publisher, language, description, published_at ),
+  books!inner ( id, title, author, isbn, publisher, language, description, published_at,
+                category, page_count, weight_g, size_note ),
   owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
   book_images ( id, storage_key, sort_order, status )
 `
@@ -103,6 +108,10 @@ type ListingRow = {
         language: string | null
         description: string | null
         published_at: string | null
+        category: BookCategory | null
+        page_count: number | null
+        weight_g: number | null
+        size_note: string | null
       }
     | {
         id: string
@@ -113,6 +122,10 @@ type ListingRow = {
         language: string | null
         description: string | null
         published_at: string | null
+        category: BookCategory | null
+        page_count: number | null
+        weight_g: number | null
+        size_note: string | null
       }[]
     | null
   owner:
@@ -137,6 +150,10 @@ function toListing(row: ListingRow): Listing | null {
     language: book.language,
     description: book.description,
     publishedAt: book.published_at,
+    category: book.category,
+    pageCount: book.page_count,
+    weightG: book.weight_g,
+    sizeNote: book.size_note,
     condition: row.condition,
     conditionNote: row.condition_note,
     status: row.status,
@@ -169,15 +186,23 @@ function toListing(row: ListingRow): Listing | null {
  * Moderated rows never appear: RLS drops them before this query sees them.
  */
 export async function getListings(
-  { limit = 12, offset = 0 }: { limit?: number; offset?: number } = {}
+  {
+    limit = 12,
+    offset = 0,
+    category,
+  }: { limit?: number; offset?: number; category?: string } = {}
 ): Promise<Listing[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('book_copies')
     .select(LISTING_SELECT)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
+  // Filtering on the embedded table narrows the join, so a listing whose book
+  // is in another category drops out rather than coming back empty.
+  if (category) query = query.eq('books.category', category)
+  const { data, error } = await query
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
 }
@@ -187,14 +212,16 @@ export async function getListings(
  * embedded resource; `books!inner` makes that a join rather than a left join,
  * so a non-matching listing drops out instead of coming back with books = null.
  */
-export async function searchListings(query: string): Promise<Listing[]> {
+export async function searchListings(query: string, category?: string): Promise<Listing[]> {
   const q = query.trim()
   if (!q) return []
   const supabase = await createClient()
   const escaped = q.replace(/[%,()]/g, ' ')
-  const { data, error } = await supabase
+  let builder = supabase
     .from('book_copies')
     .select(LISTING_SELECT)
+  if (category) builder = builder.eq('books.category', category)
+  const { data, error } = await builder
     .or(
       `title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%,` +
         `publisher.ilike.%${escaped}%`,

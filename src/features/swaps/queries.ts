@@ -56,6 +56,7 @@ export type SwapView = {
   createdAt: string
   direction: 'incoming' | 'outgoing'
   counterpartyName: string
+  counterpartyUsername: string | null
   /** Whether the viewer is the one who already confirmed handover. */
   iConfirmed: boolean
   awaitingMe: boolean
@@ -73,6 +74,16 @@ function coverOf(
   return ready ? bookImageStorage().publicUrl(ready.storage_key) : null
 }
 
+/**
+ * The viewer's own swaps.
+ *
+ * Filtered by hand rather than left to RLS. A moderator's policy lets them read
+ * every swap on the site, so without this the page showed strangers' trades
+ * with "you" written on both sides — direction and counterparty are computed
+ * against the viewer, so somebody else's swap read as theirs. RLS is the
+ * security boundary; deciding *whose* swaps a page is about is this query's
+ * job.
+ */
 export async function getMySwaps(userId: string): Promise<SwapView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -85,6 +96,7 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
                                         books ( id, title, author ),
                                         book_images ( storage_key, sort_order, status ) ) )`
     )
+    .or(`requester_id.eq.${userId},responder_id.eq.${userId}`)
     .order('created_at', { ascending: false })
   if (error) throw error
 
@@ -117,6 +129,7 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
       createdAt: s.created_at.slice(0, 10),
       direction: outgoing ? 'outgoing' : 'incoming',
       counterpartyName: other?.display_name ?? 'Тодорхойгүй',
+      counterpartyUsername: other?.username ?? null,
       iConfirmed,
       // Whose move is it? Drives which buttons the page offers.
       awaitingMe:

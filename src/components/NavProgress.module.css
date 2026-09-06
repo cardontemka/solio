@@ -1,0 +1,47 @@
+/* Pinned under the header, so the sense of progress stays visible however far
+   down the page the reader was. */
+.bar {
+  position: fixed;
+  inset: var(--header-h) 0 auto;
+  z-index: 40;
+  height: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  /* Held back for a moment: a navigation that resolves in 120ms should not
+     flash a bar, which reads as jank rather than progress. */
+  animation: appear 0.12s linear both;
+}
+
+.bar::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  width: 38%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: slide 1.1s ease-in-out infinite;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide {
+  0% {
+    left: -38%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar::after {
+    animation: none;
+  }
+}

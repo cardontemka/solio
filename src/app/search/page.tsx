@@ -37,11 +37,13 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
   const params = await searchParams
   const raw = params.q
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? ''
+  const rawCat = params.category
+  const category = (Array.isArray(rawCat) ? rawCat[0] : rawCat) || undefined
 
   // One box, two kinds of answer: books people are offering, and the people
   // themselves.
   const [results, people] = q
-    ? await Promise.all([searchListings(q), searchProfiles(q)])
+    ? await Promise.all([searchListings(q, category), searchProfiles(q)])
     : [[], []]
 
   return (
@@ -70,15 +72,15 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
       ) : (
         <>
           <div className={styles.divider} />
-          <ExploreSections />
+          <ExploreSections category={category} />
         </>
       )}
     </div>
   )
 }
 
-async function ExploreSections() {
-  const listings = await getListings({ limit: 24 })
+async function ExploreSections({ category }: { category?: string }) {
+  const listings = await getListings({ limit: 24, category })
   if (listings.length === 0) {
     return (
       <EmptyState

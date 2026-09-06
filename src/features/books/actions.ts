@@ -39,6 +39,10 @@ export async function createBookAction(
     language: formData.get('language') ?? 'mn',
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
+    category: formData.get('category') ?? '',
+    pageCount: formData.get('pageCount') ?? '',
+    weightG: formData.get('weightG') ?? '',
+    sizeNote: formData.get('sizeNote') ?? '',
     condition: formData.get('condition') ?? 'good',
     conditionNote: formData.get('conditionNote') ?? '',
   })
@@ -59,6 +63,10 @@ export async function createBookAction(
     p_published_year: typeof v.publishedYear === 'number' ? v.publishedYear : null,
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
+    p_category: v.category || null,
+    p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
+    p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
+    p_size_note: v.sizeNote || null,
   })
 
   if (error) return { ok: false, message: toUserMessage(error, 'createBookAction') }
@@ -127,6 +135,10 @@ export async function updateListingAction(
     language: formData.get('language') ?? 'mn',
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
+    category: formData.get('category') ?? '',
+    pageCount: formData.get('pageCount') ?? '',
+    weightG: formData.get('weightG') ?? '',
+    sizeNote: formData.get('sizeNote') ?? '',
     condition: formData.get('condition') ?? 'good',
     conditionNote: formData.get('conditionNote') ?? '',
   })
@@ -146,6 +158,10 @@ export async function updateListingAction(
     p_published_year: typeof v.publishedYear === 'number' ? v.publishedYear : null,
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
+    p_category: v.category || null,
+    p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
+    p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
+    p_size_note: v.sizeNote || null,
   })
   if (error) return { ok: false, message: toUserMessage(error, 'updateListing') }
 

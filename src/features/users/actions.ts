@@ -3,6 +3,7 @@
 import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { publicEnv } from '@/lib/validation/env'
@@ -48,6 +49,11 @@ function retryAfterFrom(message: string): number | null {
   return null
 }
 
+const PASSWORD_RULE = z
+  .string()
+  .min(8, 'Нууц үг хамгийн багадаа 8 тэмдэгт байх ёстой.')
+  .max(72, 'Нууц үг 72 тэмдэгтээс их байж болохгүй.')
+
 const registerSchema = z.object({
   displayName: z
     .string()
@@ -65,11 +71,15 @@ const registerSchema = z.object({
       'Хэрэглэгчийн нэрд зөвхөн жижиг латин үсэг, тоо, доогуур зураас (_) байж болно. Зай, том үсэг, кирилл болохгүй.'
     ),
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
-  password: z
-    .string()
-    .min(8, 'Нууц үг хамгийн багадаа 8 тэмдэгт байх ёстой.')
-    .max(72, 'Нууц үг 72 тэмдэгтээс их байж болохгүй.'),
+  password: PASSWORD_RULE,
+  passwordConfirm: z.string().min(1, 'Нууц үгээ дахин бичнэ үү.'),
 })
+  // Reported against the second box, so the error appears under the one the
+  // reader should retype rather than the one they most likely got right.
+  .refine((v) => v.password === v.passwordConfirm, {
+    path: ['passwordConfirm'],
+    message: 'Хоёр нууц үг таарахгүй байна.',
+  })
 
 const loginSchema = z.object({
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
@@ -82,6 +92,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     username: formData.get('username') ?? '',
     email: formData.get('email') ?? '',
     password: formData.get('password') ?? '',
+    passwordConfirm: formData.get('passwordConfirm') ?? '',
   })
   if (!parsed.success) {
     return {
@@ -438,4 +449,147 @@ export async function removeAvatarAction(): Promise<AvatarState> {
 
   revalidatePath('/', 'layout')
   return { ok: true, url: null }
+}
+
+// ── Password ───────────────────────────────────────────────────────────────
+
+export type PasswordState =
+  | { ok: true }
+  | { ok: false; message?: string; errors?: Record<string, string[]>; retryAfter?: number }
+
+const passwordChangeSchema = z
+  .object({
+    current: z.string(),
+    password: PASSWORD_RULE,
+    passwordConfirm: z.string().min(1, 'Шинэ нууц үгээ дахин бичнэ үү.'),
+  })
+  .refine((v) => v.password === v.passwordConfirm, {
+    path: ['passwordConfirm'],
+    message: 'Хоёр нууц үг таарахгүй байна.',
+  })
+
+/**
+ * Checks a password without touching the caller's session.
+ *
+ * Signing in on the request's own client would work, but it rotates the auth
+ * cookie as a side effect of a *check* — and if the new password is then
+ * rejected, the reader has been quietly re-issued a session for no reason. This
+ * throwaway client persists nothing, so a wrong guess costs exactly one refused
+ * request.
+ */
+async function passwordMatches(email: string, password: string) {
+  const probe = createSupabaseClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
+  const { data, error } = await probe.auth.signInWithPassword({ email, password })
+  // The session it just minted is not wanted; leaving it alive would pile up
+  // refresh tokens on every visit to this form.
+  if (data.session) await probe.auth.signOut({ scope: 'local' })
+  return { ok: !error, error }
+}
+
+/**
+ * Changes the signed-in reader's password.
+ *
+ * The current one is asked for and verified first. Supabase does not require it
+ * — a valid session is enough for updateUser — but a session is exactly what an
+ * unattended laptop hands to whoever walks past, and a password change locks
+ * the owner out. So the old password is the thing that proves it is really them.
+ *
+ * Someone who signed up with Google has no password at all. For them this sets
+ * a first one, and there is nothing to verify.
+ */
+export async function changePasswordAction(
+  _prev: PasswordState,
+  formData: FormData
+): Promise<PasswordState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const hasPassword = (user.identities ?? []).some((i) => i.provider === 'email')
+
+  const parsed = passwordChangeSchema.safeParse({
+    current: formData.get('current') ?? '',
+    password: formData.get('password') ?? '',
+    passwordConfirm: formData.get('passwordConfirm') ?? '',
+  })
+  if (!parsed.success) {
+    return { ok: false, errors: parsed.error.flatten().fieldErrors as Record<string, string[]> }
+  }
+
+  if (hasPassword) {
+    if (parsed.data.current.length === 0) {
+      return { ok: false, errors: { current: ['Одоогийн нууц үгээ бичнэ үү.'] } }
+    }
+    if (!user.email) {
+      return {
+        ok: false,
+        message: 'Хаяг дээр email байхгүй тул нууц үгийг шалгаж чадсангүй. Бидэнтэй холбогдоно уу.',
+      }
+    }
+    const check = await passwordMatches(user.email, parsed.data.current)
+    if (!check.ok) {
+      const code = check.error?.code
+      if (code === 'over_request_rate_limit') {
+        const wait = retryAfterFrom(check.error?.message ?? '')
+        return {
+          ok: false,
+          message: 'Хэт олон удаа оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
+          retryAfter: wait ?? undefined,
+        }
+      }
+      return { ok: false, errors: { current: ['Одоогийн нууц үг таарахгүй байна.'] } }
+    }
+    if (parsed.data.current === parsed.data.password) {
+      return {
+        ok: false,
+        errors: { password: ['Шинэ нууц үг хуучинтайгаа адилхан байна.'] },
+      }
+    }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
+  if (error) {
+    console.error('[changePasswordAction]', error.code, error.message)
+    switch (error.code) {
+      case 'weak_password':
+        return {
+          ok: false,
+          errors: {
+            password: ['Нууц үг хэтэрхий хялбар байна. Урт болгож, тоо болон том үсэг нэмнэ үү.'],
+          },
+        }
+      case 'same_password':
+        return { ok: false, errors: { password: ['Шинэ нууц үг хуучинтайгаа адилхан байна.'] } }
+      case 'over_request_rate_limit': {
+        const wait = retryAfterFrom(error.message)
+        return {
+          ok: false,
+          message: 'Хэт олон удаа оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
+          retryAfter: wait ?? undefined,
+        }
+      }
+      case 'reauthentication_needed':
+        return {
+          ok: false,
+          message: 'Аюулгүй байдлын тохиргоо нэмэлт баталгаажуулалт шаардаж байна. Дахин нэвтэрч оролдоно уу.',
+        }
+      default:
+        return {
+          ok: false,
+          message: `Нууц үгийг сольж чадсангүй (${error.code ?? error.status ?? 'тодорхойгүй'}).`,
+        }
+    }
+  }
+
+  // A changed password should end the sessions the owner did not change it
+  // from: if the reason for changing it was that somebody else had a session,
+  // leaving that session alive defeats the whole exercise. This browser keeps
+  // its own.
+  await supabase.auth.signOut({ scope: 'others' }).catch(() => {})
+
+  return { ok: true }
 }

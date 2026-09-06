@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BOOK_CONDITION } from '@/types/domain'
+import { BOOK_CATEGORY, BOOK_CONDITION } from '@/types/domain'
 
 /**
  * Validation shared by the client form and the Server Action. The action
@@ -24,6 +24,14 @@ export const createBookSchema = z.object({
   publishedYear: z
     .union([z.literal(''), z.coerce.number().int().min(1000).max(2027)])
     .optional(),
+  category: z.union([z.literal(''), z.enum(BOOK_CATEGORY)]).optional(),
+  pageCount: z
+    .union([z.literal(''), z.coerce.number().int().min(1).max(20000)])
+    .optional(),
+  weightG: z
+    .union([z.literal(''), z.coerce.number().int().min(1).max(20000)])
+    .optional(),
+  sizeNote: z.string().trim().max(40, 'Хэмжээ хэт урт байна.').optional(),
   condition: z.enum(BOOK_CONDITION),
   conditionNote: z.string().trim().max(1000, 'Тайлбар хэт урт байна.').optional(),
 })

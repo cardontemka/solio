@@ -36,6 +36,10 @@ export default async function EditListingPage({ params }: PageProps<'/books/[cop
             language: listing.language,
             publishedYear: listing.publishedAt ? Number(listing.publishedAt.slice(0, 4)) : null,
             description: listing.description,
+            category: listing.category,
+            pageCount: listing.pageCount,
+            weightG: listing.weightG,
+            sizeNote: listing.sizeNote,
             condition: listing.condition,
             conditionNote: listing.conditionNote,
           }}

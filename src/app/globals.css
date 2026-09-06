@@ -50,6 +50,7 @@
   /* …and the whole header, which grows a nav row on a phone. Sticky offsets
      are written against this one. */
   --header-h: 60px;
+  --bottom-nav-h: 0px;
   --max-w: 1120px;
 }
 
@@ -190,14 +191,14 @@ p {
   border-radius: 3px;
 }
 
-/* Shared layout helper */
-/* The header grows a second row on a phone. Keeping the row and the total
-   apart matters: the row is what the bar reserves for itself, and folding the
-   nav row into it made the bar 100px tall on its own. */
+/* The nav moved to a bar at the bottom of the screen, so the header is a single
+   row again and every sticky offset written against --header-h follows. The
+   bottom bar's height is reserved at the end of the page instead. */
 @media (max-width: 860px) {
   :root {
     --header-row: 66px;
-    --header-h: 124px;
+    --header-h: 74px;
+    --bottom-nav-h: 58px;
   }
 }
 
@@ -213,6 +214,11 @@ p {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* Room for the fixed bottom bar, plus the phone's own home indicator. */
+body {
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
 }
 
 .container {

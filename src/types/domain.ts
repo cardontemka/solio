@@ -10,6 +10,12 @@
 export const BOOK_CONDITION = ['new', 'like_new', 'good', 'fair', 'poor'] as const
 export type BookCondition = (typeof BOOK_CONDITION)[number]
 
+export const BOOK_CATEGORY = [
+  'fiction', 'nonfiction', 'history', 'science', 'business', 'selfhelp',
+  'psychology', 'children', 'textbook', 'language', 'art', 'other',
+] as const
+export type BookCategory = (typeof BOOK_CATEGORY)[number]
+
 export const COPY_STATUS = ['available', 'reserved', 'swapped', 'inactive'] as const
 export type CopyStatus = (typeof COPY_STATUS)[number]
 
@@ -33,6 +39,21 @@ export const CONDITION_LABEL: Record<BookCondition, string> = {
   good: 'Сайн',
   fair: 'Дунд',
   poor: 'Муу',
+}
+
+export const CATEGORY_LABEL: Record<BookCategory, string> = {
+  fiction: 'Уран зохиол',
+  nonfiction: 'Танин мэдэхүй',
+  history: 'Түүх',
+  science: 'Шинжлэх ухаан',
+  business: 'Бизнес, эдийн засаг',
+  selfhelp: 'Хувь хүний хөгжил',
+  psychology: 'Сэтгэл судлал',
+  children: 'Хүүхдийн',
+  textbook: 'Сурах бичиг',
+  language: 'Гадаад хэл',
+  art: 'Урлаг',
+  other: 'Бусад',
 }
 
 export const COPY_STATUS_LABEL: Record<CopyStatus, string> = {

@@ -202,3 +202,59 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
+
+/* ── Arrival ────────────────────────────────────────────────────────────── */
+
+/* The hero introduces itself once when the page opens: the words rise into
+   place, then the covers fan out one after another. Everything is a transform
+   and an opacity, so it costs no layout work, and it all ends — an animation
+   that keeps moving would compete with the shelves below.
+
+   Written as a `both` fill so nothing flashes at full opacity before its turn. */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes fanIn {
+  from {
+    opacity: 0;
+    transform: translateY(26px) rotate(0deg) scale(0.94);
+  }
+}
+
+.heroKicker {
+  animation: riseIn 0.5s ease-out both;
+}
+
+.heroTitle {
+  animation: riseIn 0.6s ease-out 0.06s both;
+}
+
+.heroText {
+  animation: riseIn 0.6s ease-out 0.14s both;
+}
+
+/* The stack's members carry their own rotation, so each keeps it: the keyframe
+   only supplies the starting offset and the resting state comes from the class
+   the element already has. */
+.cover {
+  animation: fanIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.coverA { animation-delay: 0.18s; }
+.coverB { animation-delay: 0.26s; }
+.coverC { animation-delay: 0.34s; }
+.coverD { animation-delay: 0.42s; }
+.coverE { animation-delay: 0.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .heroKicker,
+  .heroTitle,
+  .heroText,
+  .cover {
+    animation: none;
+  }
+}

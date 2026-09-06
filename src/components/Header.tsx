@@ -9,10 +9,14 @@ import { useEffect, useRef, useState } from 'react'
 import { logoutAction } from '@/features/users/actions'
 import { ThemeMenuItem, ThemeToggle } from './ThemeToggle'
 import {
+  HomeIcon,
+  SearchIcon,
+  HeartIcon,
   BellIcon,
   BookIcon,
   ChevronDownIcon,
   LogOutIcon,
+  PanelIcon,
   SettingsIcon,
   SwapIcon,
   UserIcon,
@@ -20,9 +24,9 @@ import {
 import styles from './Header.module.css'
 
 const NAV = [
-  { href: '/', label: 'Нүүр' },
-  { href: '/search', label: 'Номнууд' },
-  { href: '/requests', label: 'Ном хүсэх' },
+  { href: '/', label: 'Нүүр', Icon: HomeIcon },
+  { href: '/search', label: 'Номнууд', Icon: SearchIcon },
+  { href: '/requests', label: 'Ном хүсэх', Icon: HeartIcon },
 ] as const
 
 export type HeaderUser = { displayName: string; username: string; avatarUrl: string | null } | null
@@ -38,7 +42,6 @@ export function Header({
 }) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [navHidden, setNavHidden] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const isActive = (href: string) =>
@@ -53,30 +56,8 @@ export function Header({
 
   const navItems = [
     ...NAV,
-    ...(isStaff ? ([{ href: '/admin', label: 'Админ' }] as const) : []),
+    ...(isStaff ? ([{ href: '/admin', label: 'Админ', Icon: SettingsIcon }] as const) : []),
   ]
-
-  // Hide the nav row when scrolling down, show it again on the way up.
-  //
-  // Measured against the position of the last toggle, not the last event.
-  // Hiding the row shortens the sticky header, which nudges the scroll position
-  // by about the row's height; compared against the previous event that reads
-  // as a scroll in the opposite direction and the row oscillates, showing and
-  // hiding itself several times a second. A threshold larger than that nudge
-  // means only a real gesture can flip it.
-  useEffect(() => {
-    let anchorY = window.scrollY
-    const onScroll = () => {
-      const y = window.scrollY
-      const delta = y - anchorY
-      if (Math.abs(delta) < 56) return
-      // Never hidden near the top, where there is nothing to scroll away from.
-      setNavHidden(delta > 0 && y > 120)
-      anchorY = y
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   // Close the user menu on outside click / Escape.
   useEffect(() => {
@@ -110,9 +91,9 @@ export function Header({
           <span className={styles.brandName}>Solio</span>
         </Link>
 
-        {/* Desktop only. On a phone these live inside the user menu, so the
-            bar keeps just the two things people reach for: their messages and
-            themselves. */}
+        {/* Desktop only. On a phone the same links sit in a bar at the bottom
+            of the screen — see MobileNav — where a thumb reaches them without
+            crossing the page. */}
         <nav className={styles.nav}>
           {navItems.map((item) => (
             <Link
@@ -140,7 +121,8 @@ export function Header({
               href="/notifications"
               className={styles.bell}
               data-active={pathname.startsWith('/notifications')}
-              aria-label="Мэдэгдэл"
+              data-unread={unreadCount > 0}
+              aria-label={unreadCount > 0 ? `Мэдэгдэл (${unreadCount} шинэ)` : 'Мэдэгдэл'}
             >
               <BellIcon size={20} />
               {unreadCount > 0 && (
@@ -176,24 +158,64 @@ export function Header({
         </div>
       </div>
 
-      {/* Second row on a phone, where the top row has no space for links. It
-          steps out of the way while the reader is scrolling down a list and
-          comes back the moment they scroll up. */}
-      <nav className={styles.navMobile} data-hidden={navHidden} aria-label="Үндсэн цэс">
-        <div className="container">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={styles.mobileLink}
-              data-active={isActive(item.href)}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
     </header>
+  )
+}
+
+/**
+ * The phone's main navigation, pinned to the bottom of the screen where a thumb
+ * reaches. It steps out of the way while the reader is scrolling down a list
+ * and comes back the moment they scroll up.
+ *
+ * Rendered beside the header rather than inside it: it is fixed to the viewport
+ * now, and leaving it in the header would keep reserving space at the top.
+ */
+export function MobileNav({
+  isStaff = false,
+}: {
+  isStaff?: boolean
+}) {
+  const pathname = usePathname()
+  const [hidden, setHidden] = useState(false)
+
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  const items = [
+    ...NAV,
+    ...(isStaff ? ([{ href: '/admin', label: 'Админ', Icon: PanelIcon }] as const) : []),
+  ]
+
+  // Measured against the position of the last toggle, not the last event: the
+  // bar's own appearance nudges the scroll position, and comparing with the
+  // previous event reads that nudge as a scroll in the opposite direction.
+  useEffect(() => {
+    let anchorY = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      const delta = y - anchorY
+      if (Math.abs(delta) < 56) return
+      setHidden(delta > 0 && y > 120)
+      anchorY = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  return (
+    <nav className={styles.bottomNav} data-hidden={hidden} aria-label="Үндсэн цэс">
+      {items.map(({ href, label, Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className={styles.bottomLink}
+          data-active={isActive(href)}
+        >
+          <Icon size={21} />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </nav>
   )
 }
 

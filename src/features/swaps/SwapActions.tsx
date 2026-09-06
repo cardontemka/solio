@@ -40,7 +40,7 @@ function buttonsFor(
         : [{ kind: 'cancel', label: 'Цуцлах' }]
     case 'ACCEPTED':
       return [
-        { kind: 'confirm', label: 'Гардуулсныг баталгаажуулах', primary: true },
+        { kind: 'confirm', label: 'Биечлэн авсныг баталгаажуулах', primary: true },
         { kind: 'cancel', label: 'Цуцлах' },
       ]
     case 'CONFIRMED':

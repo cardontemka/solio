@@ -58,9 +58,15 @@ function SwapCard({ swap }: { swap: SwapView }) {
         <div className={styles.headLeft}>
           <Badge tone={TONE[swap.status]}>{SWAP_STATUS_LABEL[swap.status]}</Badge>
           <span className={styles.direction}>
-            {swap.direction === 'incoming'
-              ? `← ${swap.counterpartyName}-с ирсэн`
-              : `→ ${swap.counterpartyName} руу илгээсэн`}
+            {swap.direction === 'incoming' ? '← ' : '→ '}
+            {swap.counterpartyUsername ? (
+              <Link href={`/u/${swap.counterpartyUsername}`} className={styles.party}>
+                {swap.counterpartyName}
+              </Link>
+            ) : (
+              swap.counterpartyName
+            )}
+            {swap.direction === 'incoming' ? '-с ирсэн' : ' руу илгээсэн'}
           </span>
         </div>
         <span className={styles.date}>{swap.createdAt}</span>
@@ -73,7 +79,15 @@ function SwapCard({ swap }: { swap: SwapView }) {
           </p>
           <Items items={swap.offered} />
         </div>
-        <div className={styles.swapIcon} aria-hidden="true">⇄</div>
+        {/* The arrows turn over once when a swap is finished — the moment the
+            two books actually change hands is worth marking. */}
+        <div
+          className={styles.swapIcon}
+          data-done={swap.status === 'COMPLETED'}
+          aria-hidden="true"
+        >
+          ⇄
+        </div>
         <div className={styles.side}>
           <p className={styles.sideLabel}>
             {swap.direction === 'outgoing' ? 'Таны хүссэн ном' : 'Таны ном'}
@@ -97,7 +111,7 @@ function SwapCard({ swap }: { swap: SwapView }) {
 
       {swap.status === 'ACCEPTED' && (
         <p className={styles.hint}>
-          Номоо биечлэн солилцсоны дараа “Гардуулсныг баталгаажуулах” дарна уу. Хоёр тал
+          Номоо биечлэн солилцсоны дараа “Биечлэн авсныг баталгаажуулах” дарна уу. Хоёр тал
           баталгаажуулснаар өмчлөл шилжинэ.
         </p>
       )}
@@ -105,7 +119,7 @@ function SwapCard({ swap }: { swap: SwapView }) {
         <p className={styles.hint}>
           {swap.iConfirmed
             ? 'Та баталгаажуулсан. Нөгөө талын баталгаажуулалтыг хүлээж байна.'
-            : `${swap.counterpartyName} гардуулснаа баталгаажуулсан. Таны баталгаажуулалт солилцоог дуусгана.`}
+            : `${swap.counterpartyName} биечлэн авсныг баталгаажуулсан. Таны баталгаажуулалт солилцоог дуусгана.`}
         </p>
       )}
 
