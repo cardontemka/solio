@@ -183,7 +183,7 @@ export function SearchBar({
               >
                 <span className={styles.thumb}>
                   {item.imageUrl ? (
-                    <Image src={item.imageUrl} alt="" width={68} height={90} />
+                    <Image src={item.imageUrl} alt="" width={68} height={90} unoptimized />
                   ) : (
                     <span className={styles.thumbEmpty} aria-hidden="true" />
                   )}

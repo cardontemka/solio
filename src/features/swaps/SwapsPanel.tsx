@@ -128,6 +128,7 @@ function SwapCard({ swap }: { swap: SwapView }) {
         status={swap.status}
         direction={swap.direction}
         iConfirmed={swap.iConfirmed}
+        blocked={swap.blocked}
       />
     </article>
   )

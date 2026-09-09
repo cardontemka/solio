@@ -22,7 +22,26 @@ const MIN_EDGE = 200
 const MAX_SOURCE_BYTES = 32 * 1024 * 1024
 const JPEG_QUALITY = 0.85
 
-export type Prepared = { ok: true; file: File } | { ok: false; message: string }
+/**
+ * The second, small copy that grids show.
+ *
+ * A book card is about 180px wide, and 480 covers it on a 2× screen with room
+ * for the larger cards on a desktop grid. Made here rather than by an image
+ * service because the browser has already decoded the photo to draw the preview
+ * — a second canvas pass costs milliseconds, and it means no per-image
+ * transformation is metered anywhere.
+ */
+const THUMB_EDGE = 480
+const THUMB_QUALITY = 0.72
+
+/** The thumbnail's key is the original's, with `-t` before the extension. */
+export function thumbKeyFor(storageKey: string): string {
+  return storageKey.replace(/\.(jpg|jpeg|png|webp)$/i, '-t.jpg')
+}
+
+export type Prepared =
+  | { ok: true; file: File; thumb: File | null }
+  | { ok: false; message: string }
 
 /** Decode via <img>, which handles every format the browser can display. */
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -119,10 +138,41 @@ export async function prepareImage(file: File): Promise<Prepared> {
     if (!blob) break
     if (blob.size <= IMAGE_MAX_BYTES) {
       const name = file.name.replace(/\.[^.]+$/, '') || 'photo'
-      return { ok: true, file: new File([blob], `${name}.jpg`, { type: 'image/jpeg' }) }
+      const full = new File([blob], `${name}.jpg`, { type: 'image/jpeg' })
+      return { ok: true, file: full, thumb: await makeThumb(file, size, name) }
     }
   }
   return { ok: false, message: 'Зургийг шаардлагатай хэмжээнд шахаж чадсангүй.' }
+}
+
+/**
+ * The grid-sized copy. Returns null rather than failing the upload: a listing
+ * with no thumbnail falls back to the full image, which is worse but not broken,
+ * and losing the whole photo over the small copy would be the wrong trade.
+ */
+async function makeThumb(
+  file: File,
+  size: { width: number; height: number },
+  name: string
+): Promise<File | null> {
+  const longest = Math.max(size.width, size.height)
+  // Already small enough that a second file would only cost a round trip.
+  if (longest <= THUMB_EDGE) return null
+
+  try {
+    const scale = THUMB_EDGE / longest
+    const canvas = await drawToCanvas(
+      file,
+      Math.round(size.width * scale),
+      Math.round(size.height * scale)
+    )
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', THUMB_QUALITY)
+    )
+    return blob ? new File([blob], `${name}-t.jpg`, { type: 'image/jpeg' }) : null
+  } catch {
+    return null
+  }
 }
 
 export type UploadResult = { ok: true } | { ok: false; message: string }
@@ -181,6 +231,7 @@ export async function uploadImageToCopy(
   const prepared = await prepareImage(original)
   if (!prepared.ok) return prepared
   const file = prepared.file
+  const thumb = prepared.thumb
 
   try {
     const res = await fetch('/api/uploads/book-image', {
@@ -206,7 +257,22 @@ export async function uploadImageToCopy(
     }
     onProgress?.(100)
 
-    const confirmed = await confirmImageAction(intent.imageId)
+    // The small copy rides along on its own target. A failure here is not fatal
+    // — the reader still gets their photo, and the grid falls back to it.
+    let thumbUploaded = false
+    if (thumb && intent.thumbUpload) {
+      const thumbKey = thumbKeyFor(intent.storageKey)
+      const thumbStatus = await put(
+        intent.thumbUpload.url,
+        intent.thumbUpload.method,
+        intent.thumbUpload.headers,
+        thumb
+      )
+      thumbUploaded =
+        (thumbStatus >= 200 && thumbStatus < 300) || (await putViaServer(thumbKey, thumb))
+    }
+
+    const confirmed = await confirmImageAction(intent.imageId, thumbUploaded)
     if (!confirmed.ok) return { ok: false, message: confirmed.message }
     return { ok: true }
   } catch {

@@ -21,7 +21,14 @@ export function Avatar({
       aria-hidden="true"
     >
       {src ? (
-        <Image className={styles.image} src={src} alt="" width={size * 2} height={size * 2} />
+        <Image
+          className={styles.image}
+          src={src}
+          alt=""
+          width={size * 2}
+          height={size * 2}
+          unoptimized
+        />
       ) : (
         name.charAt(0).toUpperCase()
       )}

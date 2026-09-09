@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
 import { toUserMessage } from '@/lib/db/errors'
 import { flushPendingPush } from '@/lib/push/send'
 import { auditDenied } from './audit'
@@ -72,6 +73,80 @@ export async function moderateEntityAction(
   revalidatePath('/admin/content')
   revalidatePath('/')
   return result
+}
+
+/**
+ * Deletes content outright — rows gone, photos gone from the bucket.
+ *
+ * The counterpart to moderateEntityAction's 'hidden', which is reversible and
+ * leaves everything where it was. This one is not reversible, so the database
+ * restricts it to admins; a moderator's judgement call is the hide.
+ *
+ * The RPC returns the storage keys it orphaned rather than deleting the objects
+ * itself — the database has no reach into R2. A failed object delete is logged
+ * and swallowed: the rows are already gone, and refusing to report success over
+ * a leftover file would be a lie about what happened.
+ */
+export async function purgeEntityAction(
+  entityType: 'book' | 'book_copy' | 'comment' | 'request',
+  entityId: string,
+  reason?: string
+): Promise<ModState> {
+  if (!idSchema.safeParse(entityId).success) return { ok: false, message: 'Буруу хүсэлт.' }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const { data, error } = await supabase.rpc('purge_content', {
+    p_entity_type: entityType,
+    p_entity_id: entityId,
+    p_reason: reason?.slice(0, 500) ?? null,
+  })
+
+  if (error) {
+    if (error.message.includes('ADMIN_ONLY')) {
+      await auditDenied({
+        actorId: user.id,
+        action: `purge.${entityType}`,
+        entityType,
+        entityId,
+      })
+      return { ok: false, message: 'Бүрмөсөн устгах эрх зөвхөн админд байна.' }
+    }
+    if (error.message.includes('LISTING_IN_ACTIVE_SWAP')) {
+      return {
+        ok: false,
+        message: 'Энэ ном идэвхтэй солилцоонд байна. Эхлээд солилцоог дуусгах эсвэл цуцлана уу.',
+      }
+    }
+    if (error.message.includes('ENTITY_NOT_FOUND')) {
+      return { ok: false, message: 'Аль хэдийн устсан байна.' }
+    }
+    return { ok: false, message: toUserMessage(error, 'purgeContent') }
+  }
+
+  const keys = ((data ?? []) as { storage_key: string }[]).map((r) => r.storage_key)
+  if (keys.length > 0) {
+    const storage = bookImageStorage()
+    await Promise.all(
+      keys.map((key) =>
+        storage.delete(key).catch((e) => {
+          console.error('[purgeEntityAction] orphaned object', key, (e as Error).message)
+        })
+      )
+    )
+  }
+
+  after(flushPendingPush)
+
+  revalidatePath('/admin/reports')
+  revalidatePath('/admin/content')
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { ok: true }
 }
 
 export async function moderateProfileAction(
@@ -175,6 +250,10 @@ export async function createReportAction(
     }
     return { ok: false, message: toUserMessage(error, 'createReport') }
   }
+
+  // The insert trigger has already written a notification for every moderator;
+  // this is what turns those rows into a push while the request is still warm.
+  after(flushPendingPush)
 
   return { ok: true }
 }

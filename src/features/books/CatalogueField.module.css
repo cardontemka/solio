@@ -1,0 +1,126 @@
+.box {
+  position: relative;
+}
+
+.panel {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  padding: 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  /* The same doubled edge the focused field above it has, so the two read as
+     one control rather than a box that happened to appear nearby. */
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    0 16px 36px rgb(0 0 0 / 16%);
+}
+
+.panelHead {
+  margin: 2px 6px 8px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover,
+.row[data-active='true'] {
+  background: var(--surface-2);
+}
+
+.cover {
+  flex: none;
+  width: 34px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowPick {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* On a phone the row needs the width for the title itself. */
+@media (max-width: 560px) {
+  .rowPick {
+    display: none;
+  }
+}
+
+.dismiss {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: none;
+  color: var(--text-3);
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  color: var(--text);
+}

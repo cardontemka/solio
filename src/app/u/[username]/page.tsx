@@ -4,8 +4,10 @@ import { cache } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { BookGrid } from '@/components/BookCard'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
+import { Pager } from '@/components/Pager'
 import { getPublicProfile, getSwapHistory } from '@/features/books/queries'
 import { getSessionUser } from '@/lib/auth/dal'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from './page.module.css'
 
 /**
@@ -15,10 +17,19 @@ import styles from './page.module.css'
  */
 const loadProfile = cache(getPublicProfile)
 
-type Props = { params: Promise<{ username: string }> }
+const PER_PAGE = 24
+const HISTORY_PER_PAGE = 10
+
+type Props = {
+  params: Promise<{ username: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
 
 export async function generateMetadata({ params }: Props) {
-  const profile = await loadProfile((await params).username)
+  // Page one deliberately: the title and description need the profile, not its
+  // listings, and asking for the same page the body asks for would only matter
+  // if they differed — they do not, because cache() keys on the arguments.
+  const profile = await loadProfile((await params).username, { limit: PER_PAGE + 1, offset: 0 })
   if (!profile) return { title: 'Хэрэглэгч олдсонгүй' }
   return {
     title: `${profile.displayName} (@${profile.username})`,
@@ -26,13 +37,24 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
-export default async function PublicProfilePage({ params }: Props) {
+export default async function PublicProfilePage({ params, searchParams }: Props) {
   const { username } = await params
-  const [profile, me] = await Promise.all([loadProfile(username), getSessionUser()])
+  const query = await searchParams
+  const info = pageFrom(query, PER_PAGE)
+  const historyInfo = pageFrom(query, HISTORY_PER_PAGE, 'hpage')
+
+  const [profile, me] = await Promise.all([
+    loadProfile(username, { limit: info.fetch, offset: info.offset }),
+    getSessionUser(),
+  ])
   if (!profile) notFound()
 
   const isMe = me?.id === profile.id
-  const history = await getSwapHistory(profile.id)
+  const { items: listings, hasMore } = splitPage(profile.listings, info)
+  const { items: history, hasMore: moreHistory } = splitPage(
+    await getSwapHistory(profile.id, { limit: historyInfo.fetch, offset: historyInfo.offset }),
+    historyInfo
+  )
 
   return (
     <div className="container">
@@ -45,9 +67,7 @@ export default async function PublicProfilePage({ params }: Props) {
       <div className={styles.identity}>
         <Avatar name={profile.displayName} src={profile.avatarUrl} size={56} />
         {profile.city && <Badge>📍 {profile.city}</Badge>}
-        <Badge tone="accent">
-          {profile.listings.filter((l) => l.status === 'available').length} ном нээлттэй
-        </Badge>
+        <Badge tone="accent">{profile.availableCount} ном нээлттэй</Badge>
       </div>
 
       {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
@@ -55,7 +75,7 @@ export default async function PublicProfilePage({ params }: Props) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Номнууд</h2>
 
-        {profile.listings.length === 0 ? (
+        {listings.length === 0 ? (
           <EmptyState
             title="Нээлттэй ном байхгүй"
             description={
@@ -65,15 +85,21 @@ export default async function PublicProfilePage({ params }: Props) {
             }
           />
         ) : (
-          <BookGrid listings={profile.listings} />
+          <>
+            <BookGrid listings={listings} priorityCount={4} />
+            <Pager
+              page={info.page}
+              hasMore={hasMore}
+              params={query}
+              basePath={`/u/${profile.username}`}
+            />
+          </>
         )}
       </section>
 
       {history.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            Солилцооны түүх <span className={styles.count}>{history.length}</span>
-          </h2>
+          <h2 className={styles.sectionTitle}>Солилцооны түүх</h2>
           <ul className={styles.history}>
             {history.map((h) => (
               <li key={h.swapId} className={styles.historyItem}>
@@ -92,6 +118,13 @@ export default async function PublicProfilePage({ params }: Props) {
               </li>
             ))}
           </ul>
+          <Pager
+            page={historyInfo.page}
+            hasMore={moreHistory}
+            params={query}
+            basePath={`/u/${profile.username}`}
+            paramKey="hpage"
+          />
         </section>
       )}
     </div>

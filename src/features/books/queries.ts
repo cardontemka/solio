@@ -67,7 +67,7 @@ export type Listing = {
   language: string | null
   description: string | null
   publishedAt: string | null
-  category: BookCategory | null
+  categories: BookCategory[]
   pageCount: number | null
   weightG: number | null
   sizeNote: string | null
@@ -77,7 +77,7 @@ export type Listing = {
   transferCount: number
   createdAt: string
   coverColor: string
-  images: { id: string; url: string; sortOrder: number }[]
+  images: { id: string; url: string; thumbUrl: string; sortOrder: number }[]
   owner: ListingOwner | null
 }
 
@@ -86,9 +86,9 @@ export type Listing = {
 const LISTING_SELECT = `
   id, condition, condition_note, status, transfer_count, created_at,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at,
-                category, page_count, weight_g, size_note ),
+                categories, page_count, weight_g, size_note ),
   owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
-  book_images ( id, storage_key, sort_order, status )
+  book_images ( id, storage_key, thumb_key, sort_order, status )
 `
 
 type ListingRow = {
@@ -108,7 +108,7 @@ type ListingRow = {
         language: string | null
         description: string | null
         published_at: string | null
-        category: BookCategory | null
+        categories: BookCategory[] | null
         page_count: number | null
         weight_g: number | null
         size_note: string | null
@@ -122,7 +122,7 @@ type ListingRow = {
         language: string | null
         description: string | null
         published_at: string | null
-        category: BookCategory | null
+        categories: BookCategory[] | null
         page_count: number | null
         weight_g: number | null
         size_note: string | null
@@ -132,7 +132,13 @@ type ListingRow = {
     | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }
     | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }[]
     | null
-  book_images: { id: string; storage_key: string; sort_order: number; status: string }[]
+  book_images: {
+    id: string
+    storage_key: string
+    thumb_key: string | null
+    sort_order: number
+    status: string
+  }[]
 }
 
 function toListing(row: ListingRow): Listing | null {
@@ -150,7 +156,7 @@ function toListing(row: ListingRow): Listing | null {
     language: book.language,
     description: book.description,
     publishedAt: book.published_at,
-    category: book.category,
+    categories: book.categories ?? [],
     pageCount: book.page_count,
     weightG: book.weight_g,
     sizeNote: book.size_note,
@@ -163,7 +169,14 @@ function toListing(row: ListingRow): Listing | null {
     images: (row.book_images ?? [])
       .filter((i) => i.status === 'ready')
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((i) => ({ id: i.id, url: storage.publicUrl(i.storage_key), sortOrder: i.sort_order })),
+      .map((i) => ({
+        id: i.id,
+        url: storage.publicUrl(i.storage_key),
+        // Photos uploaded before thumbnails existed have none; the full image
+        // stands in, which costs bandwidth but never shows a hole.
+        thumbUrl: storage.publicUrl(i.thumb_key ?? i.storage_key),
+        sortOrder: i.sort_order,
+      })),
     owner: owner
       ? {
           id: owner.id,
@@ -199,9 +212,11 @@ export async function getListings(
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
-  // Filtering on the embedded table narrows the join, so a listing whose book
-  // is in another category drops out rather than coming back empty.
-  if (category) query = query.eq('books.category', category)
+  // Containment, not equality: a book carries several headings now, and the
+  // filter asks whether the chosen one is among them. Filtering on the embedded
+  // table narrows the join, so a listing whose book does not match drops out
+  // rather than coming back with books = null.
+  if (category) query = query.contains('books.categories', [category])
   const { data, error } = await query
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
@@ -212,7 +227,11 @@ export async function getListings(
  * embedded resource; `books!inner` makes that a join rather than a left join,
  * so a non-matching listing drops out instead of coming back with books = null.
  */
-export async function searchListings(query: string, category?: string): Promise<Listing[]> {
+export async function searchListings(
+  query: string,
+  category?: string,
+  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<Listing[]> {
   const q = query.trim()
   if (!q) return []
   const supabase = await createClient()
@@ -220,7 +239,7 @@ export async function searchListings(query: string, category?: string): Promise<
   let builder = supabase
     .from('book_copies')
     .select(LISTING_SELECT)
-  if (category) builder = builder.eq('books.category', category)
+  if (category) builder = builder.contains('books.categories', [category])
   const { data, error } = await builder
     .or(
       `title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%,` +
@@ -228,7 +247,8 @@ export async function searchListings(query: string, category?: string): Promise<
       { referencedTable: 'books' }
     )
     .order('created_at', { ascending: false })
-    .limit(48)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
 }
@@ -248,7 +268,13 @@ export async function searchProfiles(query: string): Promise<ProfileResult[]> {
   const escaped = q.replace(/[%,()]/g, ' ')
   const { data, error } = await supabase
     .from('profiles')
-    .select('username, display_name, city, book_copies!book_copies_owner_id_fkey ( status )')
+    // count(), not the rows: the embed used to pull every listing each matching
+    // person owns just to count the available ones — 250 rows for one line of
+    // text under their name.
+    .select(
+      'username, display_name, city, ' +
+        'book_copies!book_copies_owner_id_fkey ( count )'
+    )
     .eq('account_status', 'active')
     .or(`username.ilike.%${escaped}%,display_name.ilike.%${escaped}%`)
     .limit(12)
@@ -257,13 +283,13 @@ export async function searchProfiles(query: string): Promise<ProfileResult[]> {
     username: string
     display_name: string
     city: string | null
-    book_copies: { status: string }[]
+    book_copies: { count: number }[]
   }
   return ((data ?? []) as unknown as Row[]).map((r) => ({
     username: r.username,
     displayName: r.display_name,
     city: r.city,
-    listingCount: (r.book_copies ?? []).filter((c) => c.status === 'available').length,
+    listingCount: r.book_copies?.[0]?.count ?? 0,
   }))
 }
 
@@ -296,13 +322,25 @@ export async function findListingIdForBook(bookId: string): Promise<string | nul
   return (rows.find((r) => r.status === 'available') ?? rows[0])?.id ?? null
 }
 
-export async function getMyCopies(userId: string) {
+/**
+ * The viewer's own listings, one page at a time.
+ *
+ * Unbounded before, which was fine while everyone had five books and became a
+ * megabyte of HTML for anybody who had two hundred. `fetch` is one more than the
+ * page shows — the extra row is what answers "is there another page?".
+ */
+export async function getMyCopies(
+  userId: string,
+  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_copies')
     .select(LISTING_SELECT)
     .eq('owner_id', userId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
 }
@@ -315,7 +353,14 @@ export type PublicProfile = {
   city: string | null
   avatarUrl: string | null
   joinedAt: string
+  /** One page of listings. */
   listings: Listing[]
+  /**
+   * How many of their listings are open to swap, across every page. Counted in
+   * the database: with paging in place, counting the rows on screen would report
+   * "24 ном нээлттэй" to somebody who has three hundred.
+   */
+  availableCount: number
 }
 
 /**
@@ -326,7 +371,10 @@ export type PublicProfile = {
  * A suspended account resolves to null so a moderated profile stops being a
  * browsable page.
  */
-export async function getPublicProfile(username: string): Promise<PublicProfile | null> {
+export async function getPublicProfile(
+  username: string,
+  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<PublicProfile | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -347,11 +395,21 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
   }
   if (profile.account_status !== 'active') return null
 
+  const { count: availableCount } = await supabase
+    .from('book_copies')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', profile.id)
+    .eq('status', 'available')
+
+  // Paged for the same reason as /my-books: a profile with 250 listings served
+  // a megabyte of HTML, measured. The extra row tells the page there is more.
   const { data: rows, error: copiesError } = await supabase
     .from('book_copies')
     .select(LISTING_SELECT)
     .eq('owner_id', profile.id)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (copiesError) throw copiesError
 
   return {
@@ -363,6 +421,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfile 
     avatarUrl: avatarUrl(profile.avatar_key),
     joinedAt: profile.created_at.slice(0, 10),
     listings: ((rows ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []),
+    availableCount: availableCount ?? 0,
   }
 }
 
@@ -383,9 +442,15 @@ export type SwapHistoryEntry = {
  * listings were public and the ownership transfer is visible on the copies —
  * but the join is not one an anonymous reader could make.
  */
-export async function getSwapHistory(userId: string): Promise<SwapHistoryEntry[]> {
+export async function getSwapHistory(
+  userId: string,
+  { limit = 10, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<SwapHistoryEntry[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('get_swap_history', { p_user: userId })
+  // The RPC returns a set, so PostgREST's range applies to it like a table.
+  const { data, error } = await supabase
+    .rpc('get_swap_history', { p_user: userId })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   type Row = {
     swap_id: string
@@ -432,7 +497,7 @@ export async function suggestListings(query: string, limit = 7): Promise<Suggest
       `id, status,
        books!inner ( title, author ),
        owner:profiles!book_copies_owner_id_fkey ( display_name ),
-       book_images ( storage_key, sort_order, status )`
+       book_images ( storage_key, thumb_key, sort_order, status )`
     )
     .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%`, { referencedTable: 'books' })
     .order('created_at', { ascending: false })
@@ -443,7 +508,12 @@ export async function suggestListings(query: string, limit = 7): Promise<Suggest
     id: string
     books: { title: string; author: string | null } | { title: string; author: string | null }[] | null
     owner: { display_name: string } | { display_name: string }[] | null
-    book_images: { storage_key: string; sort_order: number; status: string }[]
+    book_images: {
+      storage_key: string
+      thumb_key: string | null
+      sort_order: number
+      status: string
+    }[]
   }
   const storage = bookImageStorage()
   return ((data ?? []) as unknown as Row[]).flatMap((r) => {
@@ -457,9 +527,82 @@ export async function suggestListings(query: string, limit = 7): Promise<Suggest
         copyId: r.id,
         title: book.title,
         author: book.author,
-        imageUrl: cover ? storage.publicUrl(cover.storage_key) : null,
+        imageUrl: cover ? storage.publicUrl(cover.thumb_key ?? cover.storage_key) : null,
         ownerName: one(r.owner)?.display_name ?? null,
       },
     ]
   })
+}
+
+/**
+ * A catalogue row somebody has already described, offered while a title is
+ * being typed into the add-book form.
+ *
+ * Not the same thing as a search suggestion: that one points at one person's
+ * listing, this one carries the description a new listing can adopt. Titles only
+ * — the reader is answering "is this the same book?", and matching their
+ * half-typed title against a stranger's description turns that into a guess.
+ */
+export type CatalogueMatch = {
+  bookId: string
+  title: string
+  author: string | null
+  isbn: string | null
+  publisher: string | null
+  language: string | null
+  description: string | null
+  publishedYear: number | null
+  categories: BookCategory[]
+  pageCount: number | null
+  weightG: number | null
+  sizeNote: string | null
+  /** How many people already list this exact row. */
+  copyCount: number
+  coverUrl: string | null
+}
+
+export async function suggestCatalogue(query: string, limit = 6): Promise<CatalogueMatch[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('suggest_catalogue', {
+    p_query: q,
+    p_limit: limit,
+  })
+  if (error) throw error
+
+  type Row = {
+    id: string
+    title: string
+    author: string | null
+    isbn: string | null
+    publisher: string | null
+    language: string | null
+    description: string | null
+    published_at: string | null
+    categories: string[] | null
+    page_count: number | null
+    weight_g: number | null
+    size_note: string | null
+    copy_count: number | string
+    cover_key: string | null
+  }
+  const storage = bookImageStorage()
+  return ((data ?? []) as Row[]).map((r) => ({
+    bookId: r.id,
+    title: r.title,
+    author: r.author,
+    isbn: r.isbn,
+    publisher: r.publisher,
+    language: r.language,
+    description: r.description,
+    // The form asks for a year; the column stores the first of January.
+    publishedYear: r.published_at ? Number(r.published_at.slice(0, 4)) : null,
+    categories: (r.categories ?? []) as BookCategory[],
+    pageCount: r.page_count,
+    weightG: r.weight_g,
+    sizeNote: r.size_note,
+    copyCount: Number(r.copy_count ?? 0),
+    coverUrl: r.cover_key ? storage.publicUrl(r.cover_key) : null,
+  }))
 }

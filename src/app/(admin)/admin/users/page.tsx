@@ -2,10 +2,20 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui'
 import { UserActions } from '@/features/moderation/ActionButtons'
 import { getStaffRoles, getUsers } from '@/features/moderation/queries'
+import { Pager } from '@/components/Pager'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from '../admin.module.css'
 
-export default async function UsersPage() {
-  const [users, myRoles] = await Promise.all([getUsers(), getStaffRoles()])
+const PER_PAGE = 40
+
+export default async function UsersPage({ searchParams }: PageProps<'/admin/users'>) {
+  const params = await searchParams
+  const info = pageFrom(params, PER_PAGE)
+  const [rows, myRoles] = await Promise.all([
+    getUsers({ limit: info.fetch, offset: info.offset }),
+    getStaffRoles(),
+  ])
+  const { items: users, hasMore } = splitPage(rows, info)
   const viewerIsAdmin = myRoles.includes('admin')
 
   return (
@@ -60,6 +70,7 @@ export default async function UsersPage() {
           </tbody>
         </table>
       </div>
+      <Pager page={info.page} hasMore={hasMore} params={params} basePath="/admin/users" />
     </>
   )
 }

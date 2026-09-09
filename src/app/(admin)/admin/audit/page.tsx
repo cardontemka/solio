@@ -1,9 +1,18 @@
 import { Badge } from '@/components/ui'
 import { getAuditLog } from '@/features/moderation/queries'
+import { Pager } from '@/components/Pager'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from '../admin.module.css'
 
-export default async function AuditPage() {
-  const rows = await getAuditLog(100)
+const PER_PAGE = 40
+
+export default async function AuditPage({ searchParams }: PageProps<'/admin/audit'>) {
+  const params = await searchParams
+  const info = pageFrom(params, PER_PAGE)
+  const { items: rows, hasMore } = splitPage(
+    await getAuditLog({ limit: info.fetch, offset: info.offset }),
+    info
+  )
 
   return (
     <>
@@ -52,6 +61,7 @@ export default async function AuditPage() {
           </table>
         )}
       </div>
+      <Pager page={info.page} hasMore={hasMore} params={params} basePath="/admin/audit" />
     </>
   )
 }

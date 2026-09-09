@@ -35,9 +35,9 @@ type Row = {
   moderation_status: 'active' | 'hidden' | 'removed'
   offered:
     | { id: string; books: { title: string } | { title: string }[] | null;
-        book_images: { storage_key: string; sort_order: number; status: string }[] }
+        book_images: { storage_key: string; thumb_key: string | null; sort_order: number; status: string }[] }
     | { id: string; books: { title: string } | { title: string }[] | null;
-        book_images: { storage_key: string; sort_order: number; status: string }[] }[]
+        book_images: { storage_key: string; thumb_key: string | null; sort_order: number; status: string }[] }[]
     | null
   author:
     | { username: string; display_name: string; avatar_key: string | null }
@@ -64,13 +64,22 @@ function offeredOf(r: Row): CommentView['offered'] {
   return {
     copyId: copy.id,
     title: book?.title ?? 'Ном',
-    imageUrl: cover ? bookImageStorage().publicUrl(cover.storage_key) : null,
+    imageUrl: cover ? bookImageStorage().publicUrl(cover.thumb_key ?? cover.storage_key) : null,
   }
 }
 
+/**
+ * A thread, newest first.
+ *
+ * Capped rather than paged: replies are nested under their parent here, and a
+ * page boundary that separates a reply from the comment it answers reads as a
+ * bug. Two hundred is far past any thread this site has, and the cap is what
+ * stops one runaway thread from deciding how big a book page is.
+ */
 export async function getComments(
   target: CommentTarget,
-  viewerId: string | null
+  viewerId: string | null,
+  limit = 200
 ): Promise<CommentView[]> {
   const supabase = await createClient()
   const query = supabase
@@ -79,9 +88,10 @@ export async function getComments(
       `id, body, created_at, user_id, parent_id, offered_copy_id, moderation_status,
        author:profiles!comments_user_id_fkey ( username, display_name, avatar_key ),
        offered:book_copies!comments_offered_copy_id_fkey (
-         id, books ( title ), book_images ( storage_key, sort_order, status ) )`
+         id, books ( title ), book_images ( storage_key, thumb_key, sort_order, status ) )`
     )
     .order('created_at', { ascending: false })
+    .limit(limit)
 
   const { data, error } =
     'listingId' in target

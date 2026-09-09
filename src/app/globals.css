@@ -233,3 +233,41 @@ body {
     padding-inline: 14px;
   }
 }
+
+
+/* ── Crossing between palettes ─────────────────────────────────────────────
+   Set for 300ms by the theme toggle and then removed. Every colour on the site
+   comes from a custom property, and changing one repaints instantly with no way
+   to transition it — so for the length of the switch each element is given a
+   colour transition of its own and the page fades across instead of cutting.
+
+   It is deliberately temporary. Left on, this would put 300ms of lag on every
+   hover, every focus ring and every button press on the site.
+
+   transform and opacity are in the list so the toggle's own sun and moon keep
+   sliding: this rule is !important and would otherwise replace the transition
+   they declare for themselves. CSS animations outrank transitions, so nothing
+   already animating — the hero's fan, the bell — is disturbed. */
+html[data-theme-switching],
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease,
+    box-shadow 300ms ease,
+    transform 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 220ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme-switching],
+  html[data-theme-switching] *,
+  html[data-theme-switching] *::before,
+  html[data-theme-switching] *::after {
+    transition: none !important;
+  }
+}

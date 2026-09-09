@@ -35,13 +35,16 @@ type Row = {
   created_at: string
 }
 
-export async function getNotifications(limit = 50): Promise<NotificationView[]> {
+export async function getNotifications(
+  { limit = 30, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<NotificationView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('notifications')
     .select('id, type, entity_type, entity_id, payload, read_at, created_at')
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   return ((data ?? []) as Row[]).map((n) => {
@@ -51,7 +54,7 @@ export async function getNotifications(limit = 50): Promise<NotificationView[]> 
       type: n.type,
       title: copy.title,
       body: copy.body ?? null,
-      href: notificationHrefFor(n.entity_type, n.entity_id, n.payload),
+      href: notificationHrefFor(n.type, n.entity_type, n.entity_id, n.payload),
       createdAt: n.created_at,
       isRead: n.read_at !== null,
     }

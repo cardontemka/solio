@@ -20,7 +20,7 @@ function OfferedCard({ offered }: { offered: NonNullable<CommentView['offered']>
     <Link href={`/books/${offered.copyId}`} className={styles.offered}>
       <span className={styles.offeredThumb}>
         {offered.imageUrl ? (
-          <Image src={offered.imageUrl} alt="" width={72} height={96} />
+          <Image src={offered.imageUrl} alt="" width={72} height={96} unoptimized />
         ) : (
           <span className={styles.offeredEmpty} aria-hidden="true" />
         )}

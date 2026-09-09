@@ -54,7 +54,9 @@ const REASON_LABEL: Record<string, string> = {
 
 export const REPORT_REASON_LABEL = REASON_LABEL
 
-export async function getReports(): Promise<ReportView[]> {
+export async function getReports(
+  { limit = 30, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<ReportView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('reports')
@@ -63,6 +65,8 @@ export async function getReports(): Promise<ReportView[]> {
        reporter:profiles!reports_reporter_id_fkey ( display_name )`
     )
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   type Row = {
@@ -189,7 +193,9 @@ export type UserRow = {
   joinedAt: string
 }
 
-export async function getUsers(): Promise<UserRow[]> {
+export async function getUsers(
+  { limit = 30, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<UserRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -199,9 +205,11 @@ export async function getUsers(): Promise<UserRow[]> {
     .select(
       `id, username, display_name, city, account_status, created_at,
        user_roles!user_roles_user_id_fkey ( role ),
-       book_copies!book_copies_owner_id_fkey ( id )`
+       book_copies!book_copies_owner_id_fkey ( count )`
     )
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   type Row = {
@@ -212,7 +220,9 @@ export async function getUsers(): Promise<UserRow[]> {
     account_status: UserRow['accountStatus']
     created_at: string
     user_roles: { role: StaffRole }[]
-    book_copies: { id: string }[]
+    // count(), not the ids: the table shows a number, and pulling every listing
+    // row of every user to measure its length is the same mistake twice.
+    book_copies: { count: number }[]
   }
   return ((data ?? []) as unknown as Row[]).map((p) => ({
     id: p.id,
@@ -221,7 +231,7 @@ export async function getUsers(): Promise<UserRow[]> {
     city: p.city,
     accountStatus: p.account_status,
     roles: (p.user_roles ?? []).map((r) => r.role),
-    copyCount: (p.book_copies ?? []).length,
+    copyCount: p.book_copies?.[0]?.count ?? 0,
     joinedAt: p.created_at.slice(0, 10),
   }))
 }
@@ -235,13 +245,16 @@ export type ContentRow = {
   createdAt: string
 }
 
-export async function getContent(): Promise<ContentRow[]> {
+export async function getContent(
+  { limit = 30, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<ContentRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('books')
     .select('id, title, author, moderation_status, created_at, book_copies ( id )')
     .order('created_at', { ascending: false })
-    .limit(100)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   type Row = {
@@ -274,7 +287,9 @@ export type AuditRow = {
   createdAt: string
 }
 
-export async function getAuditLog(limit = 100): Promise<AuditRow[]> {
+export async function getAuditLog(
+  { limit = 30, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<AuditRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('audit_logs')
@@ -283,7 +298,8 @@ export async function getAuditLog(limit = 100): Promise<AuditRow[]> {
        actor:profiles!audit_logs_actor_id_fkey ( display_name )`
     )
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   type Row = Omit<AuditRow, 'actorName' | 'entityType' | 'entityId' | 'actorRole' | 'createdAt'> & {

@@ -132,6 +132,10 @@
 }
 
 .actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   margin-bottom: 6px;
 }
 
@@ -288,4 +292,44 @@
     position: absolute;
     inset: 0;
   }
+}
+
+/* ── Adopted catalogue row ─────────────────────────────────────────────────── */
+
+.adopted {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -6px 0 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adopted strong {
+  color: var(--text);
+}
+
+.adopted button {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adopted button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.needPhoto {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--text-3);
 }

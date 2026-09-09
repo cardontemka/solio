@@ -10,7 +10,6 @@ import { logoutAction } from '@/features/users/actions'
 import { ThemeMenuItem, ThemeToggle } from './ThemeToggle'
 import {
   HomeIcon,
-  SearchIcon,
   HeartIcon,
   BellIcon,
   BookIcon,
@@ -23,9 +22,14 @@ import {
 } from './Icons'
 import styles from './Header.module.css'
 
+/**
+ * "Номнууд" is deliberately absent: /search still exists and the header's search
+ * box still reaches it, but as a nav destination it was the home page again with
+ * a different heading, and it cost the bottom bar a slot that notifications
+ * needed more.
+ */
 const NAV = [
   { href: '/', label: 'Нүүр', Icon: HomeIcon },
-  { href: '/search', label: 'Номнууд', Icon: SearchIcon },
   { href: '/requests', label: 'Ном хүсэх', Icon: HeartIcon },
 ] as const
 
@@ -82,7 +86,7 @@ export function Header({
         <Link href="/" className={styles.brand}>
           <Image
             className={styles.mark}
-            src="/logo.png"
+            src="/header-logo.png"
             alt=""
             width={64}
             height={64}
@@ -172,8 +176,12 @@ export function Header({
  */
 export function MobileNav({
   isStaff = false,
+  signedIn = false,
+  unreadCount = 0,
 }: {
   isStaff?: boolean
+  signedIn?: boolean
+  unreadCount?: number
 }) {
   const pathname = usePathname()
   const [hidden, setHidden] = useState(false)
@@ -181,8 +189,14 @@ export function MobileNav({
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
+  // Notifications live down here on a phone rather than in the top bar: it is
+  // the one thing people open repeatedly, and a thumb reaches the bottom of the
+  // screen without crossing the page.
   const items = [
     ...NAV,
+    ...(signedIn
+      ? ([{ href: '/notifications', label: 'Мэдэгдэл', Icon: BellIcon }] as const)
+      : []),
     ...(isStaff ? ([{ href: '/admin', label: 'Админ', Icon: PanelIcon }] as const) : []),
   ]
 
@@ -211,7 +225,12 @@ export function MobileNav({
           className={styles.bottomLink}
           data-active={isActive(href)}
         >
-          <Icon size={21} />
+          <span className={styles.bottomIcon}>
+            <Icon size={21} />
+            {href === '/notifications' && unreadCount > 0 && (
+              <span className={styles.bottomBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
+          </span>
           <span>{label}</span>
         </Link>
       ))}

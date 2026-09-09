@@ -82,7 +82,7 @@ export function AvatarPicker({
     <div className={styles.avatarRow}>
       <span className={styles.avatarPreview} aria-hidden="true">
         {url ? (
-          <Image src={url} alt="" width={144} height={144} />
+          <Image src={url} alt="" width={144} height={144} unoptimized />
         ) : (
           name.charAt(0).toUpperCase()
         )}

@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { BOOK_CATEGORY, BOOK_CONDITION } from '@/types/domain'
+import type { BookCategory } from '@/types/domain'
+import { BOOK_CATEGORY, BOOK_CATEGORY_MAX, BOOK_CONDITION } from '@/types/domain'
+
+const KNOWN_CATEGORY = new Set<string>(BOOK_CATEGORY)
 
 /**
  * Validation shared by the client form and the Server Action. The action
@@ -24,7 +27,25 @@ export const createBookSchema = z.object({
   publishedYear: z
     .union([z.literal(''), z.coerce.number().int().min(1000).max(2027)])
     .optional(),
-  category: z.union([z.literal(''), z.enum(BOOK_CATEGORY)]).optional(),
+  /**
+   * Several headings per book. Unknown values are dropped rather than refused:
+   * the picker only ever sends known ones, so a stray value means a stale tab,
+   * and failing the whole form over it would lose everything else that was typed.
+   */
+  categories: z
+    .array(z.string())
+    .transform((v) => [...new Set(v.filter((c): c is BookCategory => KNOWN_CATEGORY.has(c)))])
+    .refine(
+      (v) => v.length <= BOOK_CATEGORY_MAX,
+      `Хамгийн ихдээ ${BOOK_CATEGORY_MAX} ангилал сонгоно.`
+    ),
+  /**
+   * The catalogue row the reader picked from "энэ ном биш биз?". The database
+   * treats it as a hint and ignores it unless the rest of the submission still
+   * describes that book, so a forged id cannot attach a listing to a row it does
+   * not match.
+   */
+  bookId: z.union([z.literal(''), z.guid()]).optional(),
   pageCount: z
     .union([z.literal(''), z.coerce.number().int().min(1).max(20000)])
     .optional(),

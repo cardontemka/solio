@@ -2,19 +2,29 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui'
 import { ContentActions } from '@/features/moderation/ActionButtons'
 import { getContent } from '@/features/moderation/queries'
+import { Pager } from '@/components/Pager'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from '../admin.module.css'
 
 const LABEL = { active: 'Идэвхтэй', hidden: 'Нуусан', removed: 'Устгасан' } as const
 const TONE = { active: 'ok', hidden: 'warn', removed: 'danger' } as const
 
-export default async function ContentPage() {
-  const books = await getContent()
+const PER_PAGE = 40
+
+export default async function ContentPage({ searchParams }: PageProps<'/admin/content'>) {
+  const params = await searchParams
+  const info = pageFrom(params, PER_PAGE)
+  const { items: books, hasMore } = splitPage(
+    await getContent({ limit: info.fetch, offset: info.offset }),
+    info
+  )
 
   return (
     <>
       <p className={styles.note}>
-        Контент устгагдахгүй — төлөв нь л өөрчлөгдөнө. Тиймээс шийдвэрийг буцаах боломжтой ба
-        өмчлөлийн түүх бүрэн хэвээр үлдэнэ.
+        <strong>Нуух</strong> нь буцаах боломжтой — төлөв нь л өөрчлөгдөнө.
+        <strong> Устгах</strong> нь мөрүүдийг болон зургийг нь бүрмөсөн арилгана; зөвхөн
+        админ хийж чадах ба audit бичлэг л үлдэнэ.
       </p>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -37,6 +47,7 @@ export default async function ContentPage() {
           </tbody>
         </table>
       </div>
+      <Pager page={info.page} hasMore={hasMore} params={params} basePath="/admin/content" />
     </>
   )
 }

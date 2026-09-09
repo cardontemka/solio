@@ -8,5 +8,11 @@ import { MobileNav } from './Header'
  */
 export async function SiteMobileNav() {
   const user = await getSessionUser()
-  return <MobileNav isStaff={user?.isStaff ?? false} />
+  return (
+    <MobileNav
+      isStaff={user?.isStaff ?? false}
+      signedIn={Boolean(user)}
+      unreadCount={user?.unreadCount ?? 0}
+    />
+  )
 }

@@ -96,14 +96,11 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                 <Badge tone={listing.status === 'available' ? 'ok' : 'neutral'}>
                   {COPY_STATUS_LABEL[listing.status]}
                 </Badge>
-                {listing.category && (
-                  <Link
-                    href={`/search?category=${listing.category}`}
-                    className={styles.categoryChip}
-                  >
-                    {CATEGORY_LABEL[listing.category]}
+                {listing.categories.map((c) => (
+                  <Link key={c} href={`/search?category=${c}`} className={styles.categoryChip}>
+                    {CATEGORY_LABEL[c]}
                   </Link>
-                )}
+                ))}
                 {listing.language && (
                   <Badge>{LANGUAGE_LABEL[listing.language] ?? listing.language}</Badge>
                 )}

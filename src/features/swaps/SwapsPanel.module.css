@@ -311,3 +311,12 @@
   color: var(--accent);
   border-bottom-color: currentColor;
 }
+
+/* Why the usual buttons are not there. Sits above them, in the row's own width. */
+.actionNote {
+  flex-basis: 100%;
+  margin: 0 0 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}

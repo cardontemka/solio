@@ -43,10 +43,15 @@ export async function POST(request: NextRequest) {
   } else if (key.startsWith('copies/')) {
     // RLS scopes this select, so a key belonging to somebody else's listing
     // simply does not come back.
+    // Two keys are legitimate for one pending row: the photo's own, and the
+    // grid-sized copy that goes with it — the same key with `-t` before the
+    // extension. Anything else names no row and is refused.
+    const isThumb = /-t\.jpg$/i.test(key)
+    const rowKey = isThumb ? key.replace(/-t\.jpg$/i, '.jpg') : key
     const { data: row } = await supabase
       .from('book_images')
       .select('id, status, uploaded_by')
-      .eq('storage_key', key)
+      .eq('storage_key', rowKey)
       .maybeSingle()
     if (!row || row.status !== 'pending' || row.uploaded_by !== user.id) {
       return NextResponse.json({ error: 'Зураг олдсонгүй.' }, { status: 403 })

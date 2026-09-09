@@ -16,9 +16,10 @@ type ItemRow = {
     id: string
     condition: string
     status: string
+    moderation_status: string
     owner_id: string
     books: { id: string; title: string; author: string | null } | { id: string; title: string; author: string | null }[] | null
-    book_images: { storage_key: string; sort_order: number; status: string }[]
+    book_images: { storage_key: string; thumb_key: string | null; sort_order: number; status: string }[]
   } | null
 }
 
@@ -60,18 +61,31 @@ export type SwapView = {
   /** Whether the viewer is the one who already confirmed handover. */
   iConfirmed: boolean
   awaitingMe: boolean
+  /**
+   * True when this swap can no longer be carried out — a book in it has changed
+   * hands, been handed over elsewhere, or been taken down. The database is the
+   * authority (private.swap_is_fulfillable); this is the same question asked
+   * from the rows already on hand, so the page can offer a way out instead of
+   * a button that will be refused.
+   */
+  blocked: boolean
   offered: SwapItemView[]
   requested: SwapItemView[]
 }
 
 /** First ready photo of a copy, in sort order — the cover the cards show. */
 function coverOf(
-  images: { storage_key: string; sort_order: number; status: string }[] | null | undefined
+  images:
+    | { storage_key: string; thumb_key: string | null; sort_order: number; status: string }[]
+    | null
+    | undefined
 ): string | null {
   const ready = (images ?? [])
     .filter((i) => i.status === 'ready')
     .sort((a, b) => a.sort_order - b.sort_order)[0]
-  return ready ? bookImageStorage().publicUrl(ready.storage_key) : null
+  // These are all small thumbnails on cards and rows, so the grid-sized copy
+  // is what they want; the full photo stands in for older uploads.
+  return ready ? bookImageStorage().publicUrl(ready.thumb_key ?? ready.storage_key) : null
 }
 
 /**
@@ -84,7 +98,10 @@ function coverOf(
  * security boundary; deciding *whose* swaps a page is about is this query's
  * job.
  */
-export async function getMySwaps(userId: string): Promise<SwapView[]> {
+export async function getMySwaps(
+  userId: string,
+  { limit = 20, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<SwapView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('swaps')
@@ -92,12 +109,14 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
       `id, requester_id, responder_id, status, confirmed_by, message, created_at,
        requester:profiles!swaps_requester_id_fkey ( id, username, display_name ),
        responder:profiles!swaps_responder_id_fkey ( id, username, display_name ),
-       swap_items ( side, book_copies ( id, condition, status, owner_id,
+       swap_items ( side, book_copies ( id, condition, status, moderation_status, owner_id,
                                         books ( id, title, author ),
-                                        book_images ( storage_key, sort_order, status ) ) )`
+                                        book_images ( storage_key, thumb_key, sort_order, status ) ) )`
     )
     .or(`requester_id.eq.${userId},responder_id.eq.${userId}`)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   const toItems = (rows: ItemRow[], side: 'offered' | 'requested'): SwapItemView[] =>
@@ -131,6 +150,16 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
       counterpartyName: other?.display_name ?? 'Тодорхойгүй',
       counterpartyUsername: other?.username ?? null,
       iConfirmed,
+      blocked: (s.swap_items ?? []).some((item) => {
+        const copy = item.book_copies
+        // Gone, or hidden from this reader by moderation — either way there is
+        // nothing left to hand over.
+        if (!copy) return true
+        if (copy.moderation_status === 'removed') return true
+        if (copy.status === 'swapped') return true
+        const shouldOwn = item.side === 'offered' ? s.requester_id : s.responder_id
+        return copy.owner_id !== shouldOwn
+      }),
       // Whose move is it? Drives which buttons the page offers.
       awaitingMe:
         (s.status === 'REQUESTED' && !outgoing) ||
@@ -142,8 +171,14 @@ export async function getMySwaps(userId: string): Promise<SwapView[]> {
   })
 }
 
-/** The viewer's own available copies — what they can put on the table. */
-export async function getOfferableCopies(userId: string) {
+/**
+ * The viewer's own available copies — what they can put on the table.
+ *
+ * Capped: this fills a picker, and a picker with two hundred entries is not a
+ * picker. Newest first, because a book someone just added is the one they are
+ * most likely to be offering.
+ */
+export async function getOfferableCopies(userId: string, limit = 60) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_copies')
@@ -151,6 +186,7 @@ export async function getOfferableCopies(userId: string) {
     .eq('owner_id', userId)
     .eq('status', 'available')
     .order('created_at', { ascending: false })
+    .limit(limit)
   if (error) throw error
 
   type Row = {

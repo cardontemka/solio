@@ -52,6 +52,11 @@ export function CopyCarousel({ images, alt }: { images: Slide[]; alt: string }) 
               fill
               sizes="(max-width: 920px) 92vw, 460px"
               draggable={false}
+              /* The first slide is the whole point of this page and is on screen
+                 before anything is scrolled — it is the LCP, so it is fetched
+                 eagerly. The rest wait until they are swiped to. */
+              priority={i === 0}
+              unoptimized
             />
           </li>
         ))}

@@ -5,7 +5,7 @@
 export type NotificationType =
   | 'swap_requested' | 'swap_accepted' | 'swap_rejected' | 'swap_cancelled'
   | 'swap_confirmed' | 'swap_completed'
-  | 'comment_received' | 'report_resolved' | 'moderation_action'
+  | 'comment_received' | 'report_filed' | 'report_resolved' | 'moderation_action'
 
 export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?: string }> = {
   swap_requested: {
@@ -30,6 +30,10 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
     title: 'Шинэ сэтгэгдэл',
     body: 'Таны ном эсвэл хүсэлт дээр хэн нэгэн сэтгэгдэл бичлээ.',
   },
+  report_filed: {
+    title: 'Шинэ гомдол',
+    body: 'Хэрэглэгч контент дээр гомдол гаргалаа — админ хэсгээс шалгана уу.',
+  },
   report_resolved: { title: 'Таны гомдол шийдвэрлэгдлээ' },
   moderation_action: { title: 'Модерацийн шийдвэр' },
 }
@@ -42,11 +46,21 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
  * id because the notification's own entity is the thread it lives in.
  */
 export function notificationHrefFor(
+  type: NotificationType | string,
   entityType: string,
   entityId: string,
   payload?: { comment_id?: string } | null
 ): string | null {
   const anchor = payload?.comment_id ? `#comment-${payload.comment_id}` : ''
+
+  // A report has two audiences and they belong on different pages: the staff who
+  // must act on it, and the person who filed it. Only the first has anywhere to
+  // go — sending a reporter to /admin/reports would bounce them off a page they
+  // cannot open.
+  if (entityType === 'report') {
+    return type === 'report_filed' ? `/admin/reports#report-${entityId}` : null
+  }
+
   switch (entityType) {
     case 'swap':
       return `/swaps#swap-${entityId}`

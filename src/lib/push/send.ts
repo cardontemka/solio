@@ -75,7 +75,9 @@ export async function flushPendingPush(): Promise<void> {
       if (targets.length === 0) return
 
       const copy = NOTIFICATION_COPY[row.type] ?? { title: 'Solio' }
-      const href = notificationHrefFor(row.entity_type, row.entity_id, row.payload) ?? '/notifications'
+      const href =
+        notificationHrefFor(row.type, row.entity_type, row.entity_id, row.payload) ??
+        '/notifications'
       const payload = JSON.stringify({
         title: copy.title,
         body: copy.body ?? 'Solio дээр шинэ мэдэгдэл байна.',

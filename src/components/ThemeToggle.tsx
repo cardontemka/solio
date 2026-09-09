@@ -3,13 +3,66 @@
 import { isTheme, THEME_COOKIE, THEME_STORAGE, type Theme } from './theme'
 import styles from './ThemeToggle.module.css'
 
+/**
+ * What the reader is looking at right now — which is not the same as what they
+ * have chosen. With no stored choice there is no data-theme attribute at all and
+ * the page follows the system, so reading the attribute alone reported "light"
+ * to somebody sitting in front of a dark screen. Their first click then set
+ * `dark`, which is what it already was, and nothing happened; only the second
+ * click did anything.
+ */
 function currentTheme(): Theme {
   const attr = document.documentElement.getAttribute('data-theme')
-  return isTheme(attr) ? attr : 'light'
+  if (isTheme(attr)) return attr
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+/** How long the page spends crossing between palettes. Mirrors globals.css. */
+const CROSSFADE_MS = 300
+
+const timers: ReturnType<typeof setTimeout>[] = []
+function later(ms: number, fn: () => void) {
+  timers.push(setTimeout(fn, ms))
+}
+
+/**
+ * Swaps the palette, and lets the page cross rather than cut.
+ *
+ * The colours all come from custom properties, and a custom property cannot be
+ * transitioned into a repaint of everything that reads it. So the switch marks
+ * the document for a moment and globals.css gives every element a short colour
+ * transition while the mark is there — the standard way round it, and the reason
+ * it is temporary: leaving that transition on permanently would put a lag on
+ * every hover on the site.
+ */
 function apply(theme: Theme) {
-  document.documentElement.setAttribute('data-theme', theme)
+  const root = document.documentElement
+  const was = currentTheme()
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  timers.splice(0).forEach(clearTimeout)
+
+  if (!still) {
+    root.setAttribute('data-theme-switching', '')
+
+    // color-scheme is what the browser paints the scrollbar, the form controls
+    // and the canvas beyond the page with, and it cannot be transitioned — it
+    // flips in one frame. Left alone it flipped at the *start*, so for the whole
+    // fade a dark scrollbar sat beside a page that was still light. Holding the
+    // old value and releasing it halfway puts the one unavoidable jump where the
+    // page is halfway too, which is where it is least visible.
+    root.style.colorScheme = was
+    later(CROSSFADE_MS / 2, () => {
+      root.style.colorScheme = ''
+    })
+
+    // Comfortably past the longest transition. Removing the rule at exactly
+    // CROSSFADE_MS was a race with the transitions it starts: whenever the timer
+    // won, every colour still in flight snapped to its end value.
+    later(CROSSFADE_MS + 140, () => root.removeAttribute('data-theme-switching'))
+  }
+
+  root.setAttribute('data-theme', theme)
   try {
     window.localStorage.setItem(THEME_STORAGE, theme)
     document.cookie = `${THEME_COOKIE}=${theme};path=/;max-age=31536000;samesite=lax`

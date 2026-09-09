@@ -58,7 +58,7 @@ export function ImageUploader({
         <ul className={styles.grid}>
           {images.map((img, i) => (
             <li key={img.id} className={styles.thumb}>
-              <Image src={img.url} alt="" width={74} height={111} />
+              <Image src={img.url} alt="" width={74} height={111} unoptimized />
               {i === 0 && <span className={styles.primary}>Үндсэн</span>}
               <button
                 type="button"

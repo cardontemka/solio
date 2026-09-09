@@ -9,7 +9,10 @@ import {
   prepareImage,
   uploadImageToCopy,
 } from '@/features/images/upload'
-import { BOOK_CATEGORY, BOOK_CONDITION, CATEGORY_LABEL, CONDITION_LABEL } from '@/types/domain'
+import { BOOK_CONDITION, CONDITION_LABEL } from '@/types/domain'
+import { CatalogueField } from './CatalogueField'
+import { CategoryPicker } from './CategoryPicker'
+import type { CatalogueMatch } from './queries'
 import { createBookAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
 import styles from './AddBookForm.module.css'
@@ -27,6 +30,29 @@ import styles from './AddBookForm.module.css'
  */
 type Picked = { file: File; preview: string }
 
+/**
+ * The catalogue half of the form, held in React so a chosen suggestion can fill
+ * it. Everything under "таны хувийн нөхцөл" stays uncontrolled — it describes
+ * this copy, and nothing else's description should ever write to it.
+ */
+type BookFields = {
+  title: string
+  author: string
+  publisher: string
+  language: string
+  publishedYear: string
+  isbn: string
+  pageCount: string
+  weightG: string
+  sizeNote: string
+  description: string
+}
+
+const BLANK: BookFields = {
+  title: '', author: '', publisher: '', language: 'mn', publishedYear: '',
+  isbn: '', pageCount: '', weightG: '', sizeNote: '', description: '',
+}
+
 export function AddBookForm() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -37,6 +63,45 @@ export function AddBookForm() {
   const [uploadIndex, setUploadIndex] = useState(0)
   const [imageError, setImageError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
+  const [fields, setFields] = useState<BookFields>(BLANK)
+  const [categories, setCategories] = useState<string[]>([])
+  /**
+   * The catalogue row whose description is on screen. Kept even while the reader
+   * edits: the database compares the submission against the row and reuses it
+   * only if it still matches, so leaving this in place means reverting an edit
+   * quietly rejoins the shared row instead of stranding a near-duplicate.
+   */
+  const [adopted, setAdopted] = useState<CatalogueMatch | null>(null)
+  /** Remounts the picker so a chosen suggestion's headings actually appear. */
+  const [pickerKey, setPickerKey] = useState(0)
+
+  const set = <K extends keyof BookFields>(key: K, v: BookFields[K]) =>
+    setFields((f) => ({ ...f, [key]: v }))
+
+  function adopt(match: CatalogueMatch) {
+    setFields({
+      title: match.title,
+      author: match.author ?? '',
+      publisher: match.publisher ?? '',
+      language: match.language ?? 'other',
+      publishedYear: match.publishedYear ? String(match.publishedYear) : '',
+      isbn: match.isbn ?? '',
+      pageCount: match.pageCount ? String(match.pageCount) : '',
+      weightG: match.weightG ? String(match.weightG) : '',
+      sizeNote: match.sizeNote ?? '',
+      description: match.description ?? '',
+    })
+    setCategories(match.categories)
+    setAdopted(match)
+    setPickerKey((k) => k + 1)
+  }
+
+  function unadopt() {
+    setAdopted(null)
+    setCategories([])
+    setFields({ ...BLANK, title: fields.title })
+    setPickerKey((k) => k + 1)
+  }
 
   const busy = phase !== 'idle'
   const errors = !state.ok ? state.errors : undefined
@@ -83,6 +148,13 @@ export function AddBookForm() {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy) return
+
+    // Guarded here as well as on the button: a form can still be submitted by
+    // pressing Enter in a text field.
+    if (picked.length === 0) {
+      setImageError('Номынхоо нэг зургийг нэмнэ үү — зураггүй ном солилцоонд хүлээн авахад хүндрэлтэй.')
+      return
+    }
 
     setImageError(null)
     setPhase('saving')
@@ -134,7 +206,8 @@ export function AddBookForm() {
           <span className={styles.dropIcon} aria-hidden="true" />
           <span className={styles.dropTitle}>Өөрийн номныхоо зургийг нэмээрэй</span>
           <span className={styles.dropHint}>
-            Утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT} · автоматаар жижигрүүлнэ
+            Заавал · утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT} · автоматаар
+            жижигрүүлнэ
           </span>
           {/* A label, not a button calling input.click(): several mobile
               browsers refuse to open the picker for an input hidden with
@@ -201,28 +274,57 @@ export function AddBookForm() {
 
         {imageError && <p className={styles.error}>{imageError}</p>}
 
+        {/* The catalogue row this description came from, if any. The database
+            treats it as a hint: it attaches the copy to that row only while the
+            submission still matches, and quietly forks a private row when it
+            does not. So an edit needs no bookkeeping here. */}
+        {adopted && <input type="hidden" name="bookId" value={adopted.bookId} />}
+
         <div className={formStyles.field}>
           <label className={formStyles.label} htmlFor="title">
             Номын нэр
           </label>
-          <input
-            className={formStyles.input}
-            id="title"
-            name="title"
-            type="text"
-            required
-            maxLength={300}
-            placeholder="Монголын нууц товчоо"
+          <CatalogueField
+            value={fields.title}
+            onChange={(v) => set('title', v)}
+            onAdopt={adopt}
+            disabled={busy}
+            invalid={Boolean(errors?.title)}
           />
+          <span className={formStyles.hint}>
+            Бичиж байхад манай санд байгаа ижил номыг санал болгоно — сонговол доорх
+            мэдээлэл автоматаар дүүрнэ.
+          </span>
           <FieldError errors={errors?.title} />
         </div>
+
+        {adopted && (
+          <p className={styles.adopted}>
+            <span>
+              <strong>{adopted.title}</strong>-ын мэдээллийг хуулж авлаа
+              {adopted.copyCount > 0 ? ` · ${adopted.copyCount} хүн ижил номыг бүртгэсэн` : ''}.
+              Ямар ч хэсгийг чөлөөтэй засаж болно.
+            </span>
+            <button type="button" onClick={unadopt} disabled={busy}>
+              Цэвэрлэх
+            </button>
+          </p>
+        )}
 
         <div className={formStyles.row}>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="author">
               Зохиогч
             </label>
-            <input className={formStyles.input} id="author" name="author" type="text" maxLength={200} />
+            <input
+              className={formStyles.input}
+              id="author"
+              name="author"
+              type="text"
+              maxLength={200}
+              value={fields.author}
+              onChange={(e) => set('author', e.target.value)}
+            />
             <FieldError errors={errors?.author} />
           </div>
           <div className={formStyles.field}>
@@ -236,6 +338,8 @@ export function AddBookForm() {
               name="publisher"
               type="text"
               maxLength={200}
+              value={fields.publisher}
+              onChange={(e) => set('publisher', e.target.value)}
             />
           </div>
         </div>
@@ -245,7 +349,13 @@ export function AddBookForm() {
             <label className={formStyles.label} htmlFor="language">
               Хэл
             </label>
-            <select className={formStyles.select} id="language" name="language" defaultValue="mn">
+            <select
+              className={formStyles.select}
+              id="language"
+              name="language"
+              value={fields.language}
+              onChange={(e) => set('language', e.target.value)}
+            >
               <option value="mn">Монгол</option>
               <option value="en">Англи</option>
               <option value="ru">Орос</option>
@@ -265,6 +375,8 @@ export function AddBookForm() {
               min={1000}
               max={2027}
               placeholder="2019"
+              value={fields.publishedYear}
+              onChange={(e) => set('publishedYear', e.target.value)}
             />
             <FieldError errors={errors?.publishedYear} />
           </div>
@@ -282,28 +394,21 @@ export function AddBookForm() {
             type="text"
             placeholder="978-99929-0-123-4"
             inputMode="numeric"
+            value={fields.isbn}
+            onChange={(e) => set('isbn', e.target.value)}
           />
-          <span className={formStyles.hint}>
-            Хайлтад тусалдаг нэмэлт мэдээлэл. Бусад хүний ижил номтой нэгтгэхгүй.
-          </span>
+          <span className={formStyles.hint}>Хайлтад тусалдаг нэмэлт мэдээлэл.</span>
           <FieldError errors={errors?.isbn} />
         </div>
 
 
         <div className={formStyles.field}>
-          <label className={formStyles.label} htmlFor="category">
+          <span className={formStyles.label}>
             Ангилал
             <span className={formStyles.optional}>заавал биш</span>
-          </label>
-          <select className={formStyles.select} id="category" name="category" defaultValue={""}>
-            <option value="">— сонгоогүй —</option>
-            {BOOK_CATEGORY.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABEL[c]}
-              </option>
-            ))}
-          </select>
-          <FieldError errors={errors?.category} />
+          </span>
+          <CategoryPicker key={pickerKey} initial={categories as never} disabled={busy} />
+          <FieldError errors={errors?.categories} />
         </div>
 
         <div className={formStyles.row}>
@@ -321,7 +426,9 @@ export function AddBookForm() {
               max={20000}
               inputMode="numeric"
               placeholder="320"
-                          />
+              value={fields.pageCount}
+              onChange={(e) => set('pageCount', e.target.value)}
+            />
             <FieldError errors={errors?.pageCount} />
           </div>
           <div className={formStyles.field}>
@@ -338,7 +445,9 @@ export function AddBookForm() {
               max={20000}
               inputMode="numeric"
               placeholder="450"
-                          />
+              value={fields.weightG}
+              onChange={(e) => set('weightG', e.target.value)}
+            />
             <FieldError errors={errors?.weightG} />
           </div>
         </div>
@@ -355,7 +464,9 @@ export function AddBookForm() {
             type="text"
             maxLength={40}
             placeholder="14×20 см"
-                      />
+            value={fields.sizeNote}
+            onChange={(e) => set('sizeNote', e.target.value)}
+          />
           <FieldError errors={errors?.sizeNote} />
         </div>
 
@@ -370,6 +481,8 @@ export function AddBookForm() {
             name="description"
             maxLength={8000}
             placeholder="Номын товч агуулга…"
+            value={fields.description}
+            onChange={(e) => set('description', e.target.value)}
           />
           <FieldError errors={errors?.description} />
         </div>
@@ -404,7 +517,14 @@ export function AddBookForm() {
       </fieldset>
 
       <div className={styles.actions}>
-        <button className={formStyles.submit} type="submit" disabled={busy}>
+        {picked.length === 0 && (
+          <span className={styles.needPhoto}>Нийтлэхийн тулд дор хаяж нэг зураг нэмнэ үү.</span>
+        )}
+        <button
+          className={formStyles.submit}
+          type="submit"
+          disabled={busy || picked.length === 0}
+        >
           {phase === 'saving'
             ? 'Хадгалж байна…'
             : phase === 'uploading'

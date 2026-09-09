@@ -28,7 +28,8 @@ const RUN: Record<Kind, (id: string) => Promise<SwapActionState>> = {
 function buttonsFor(
   status: SwapStatus,
   direction: 'incoming' | 'outgoing',
-  iConfirmed: boolean
+  iConfirmed: boolean,
+  blocked: boolean
 ): { kind: Kind; label: string; primary?: boolean }[] {
   switch (status) {
     case 'REQUESTED':
@@ -44,8 +45,17 @@ function buttonsFor(
         { kind: 'cancel', label: 'Цуцлах' },
       ]
     case 'CONFIRMED':
-      return iConfirmed
-        ? []
+      // Confirming is an assertion about the physical world, and the person who
+      // made it used to be left with no buttons at all — if the other side never
+      // answered, or a book in the swap disappeared, the swap could not be
+      // finished or abandoned by anyone. Withdrawing your own confirmation is
+      // not backing out of somebody else's, so it is offered here.
+      if (iConfirmed) {
+        return [{ kind: 'cancel', label: 'Баталгаажуулалтаа буцаах' }]
+      }
+      return blocked
+        ? // Nothing left to hand over, so the only useful move is to close it.
+          [{ kind: 'cancel', label: 'Цуцлах', primary: true }]
         : [{ kind: 'confirm', label: 'Хүлээн авсныг баталгаажуулах', primary: true }]
     default:
       return []
@@ -57,20 +67,28 @@ export function SwapActions({
   status,
   direction,
   iConfirmed,
+  blocked = false,
 }: {
   swapId: string
   status: SwapStatus
   direction: 'incoming' | 'outgoing'
   iConfirmed: boolean
+  blocked?: boolean
 }) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const buttons = buttonsFor(status, direction, iConfirmed)
+  const buttons = buttonsFor(status, direction, iConfirmed, blocked)
 
-  if (buttons.length === 0 && !error) return null
+  if (buttons.length === 0 && !error && !blocked) return null
 
   return (
     <div className={styles.actions}>
+      {blocked && status !== 'COMPLETED' && status !== 'CANCELLED' && status !== 'REJECTED' && (
+        <p className={styles.actionNote}>
+          Энэ солилцоон дахь ном өөрчлөгдсөн байна — өмчлөгч нь солигдсон, өөр солилцоонд
+          орсон, эсвэл устсан. Дуусгах боломжгүй тул цуцлана уу.
+        </p>
+      )}
       {buttons.map((b) => (
         <button
           key={b.kind}

@@ -17,7 +17,9 @@ async function RecentlyAdded() {
       />
     )
   }
-  return <BookGrid listings={listings} />
+  // The first row is what a reader sees before scrolling, and one of those
+  // covers is this page's LCP.
+  return <BookGrid listings={listings} priorityCount={4} />
 }
 
 /**
@@ -73,9 +75,9 @@ export default async function HomePage() {
             <div className={styles.heroCopy}>
               <span className={styles.heroKicker}>Solio ном солилцоо</span>
               <h1 className={styles.heroTitle}>
-                Уншсан номоо солилцож,
+                Уншсан номоо солилцож, 
                 <br />
-                <span className={styles.heroAccent}>хүссэн номоо ол.</span>
+                <span className={styles.heroAccent}> хүссэн номоо ол.</span>
               </h1>
               <p className={styles.heroText}>
                 Номоо бүртгэж, бусад хэрэглэгчийн номтой шууд солилцоорой.

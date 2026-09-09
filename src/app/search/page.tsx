@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { BookGrid } from '@/components/BookCard'
 import { EmptyState, Section } from '@/components/ui'
+import { Pager } from '@/components/Pager'
 import { getListings, searchListings, searchProfiles } from '@/features/books/queries'
 import type { ProfileResult } from '@/features/books/queries'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from './page.module.css'
 
 export const metadata = { title: 'Номнууд' }
@@ -33,18 +35,26 @@ function PeopleResults({ people }: { people: ProfileResult[] }) {
   )
 }
 
+const PER_PAGE = 24
+
 export default async function SearchPage({ searchParams }: PageProps<'/search'>) {
   const params = await searchParams
   const raw = params.q
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? ''
   const rawCat = params.category
   const category = (Array.isArray(rawCat) ? rawCat[0] : rawCat) || undefined
+  const info = pageFrom(params, PER_PAGE)
 
   // One box, two kinds of answer: books people are offering, and the people
-  // themselves.
-  const [results, people] = q
-    ? await Promise.all([searchListings(q, category), searchProfiles(q)])
+  // themselves. People are not paged — the list is capped at twelve and is a
+  // sidebar to the books, not a result set of its own.
+  const [rows, people] = q
+    ? await Promise.all([
+        searchListings(q, category, { limit: info.fetch, offset: info.offset }),
+        searchProfiles(q),
+      ])
     : [[], []]
+  const { items: results, hasMore } = splitPage(rows, info)
 
   return (
     <div className="container">
@@ -52,14 +62,20 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
         <>
           <div className={styles.divider} />
           <p className={styles.summary}>
-            <strong>{q}</strong> — {results.length} ном
-            {people.length > 0 ? `, ${people.length} хэрэглэгч` : ''}
+            <strong>{q}</strong>
+            {info.page > 1 ? ` — хуудас ${info.page}` : ''}
+            {people.length > 0 ? ` · ${people.length} хэрэглэгч` : ''}
           </p>
 
           <PeopleResults people={people} />
 
           {results.length > 0 ? (
-            <BookGrid listings={results} />
+            /* Results are the first thing on this page, so one of these covers
+               is its LCP. */
+            <>
+              <BookGrid listings={results} priorityCount={4} />
+              <Pager page={info.page} hasMore={hasMore} params={params} basePath="/search" />
+            </>
           ) : (
             people.length === 0 && (
               <EmptyState
@@ -72,15 +88,26 @@ export default async function SearchPage({ searchParams }: PageProps<'/search'>)
       ) : (
         <>
           <div className={styles.divider} />
-          <ExploreSections category={category} />
+          <ExploreSections category={category} params={params} info={info} />
         </>
       )}
     </div>
   )
 }
 
-async function ExploreSections({ category }: { category?: string }) {
-  const listings = await getListings({ limit: 24, category })
+async function ExploreSections({
+  category,
+  params,
+  info,
+}: {
+  category?: string
+  params: Record<string, string | string[] | undefined>
+  info: ReturnType<typeof pageFrom>
+}) {
+  const { items: listings, hasMore } = splitPage(
+    await getListings({ limit: info.fetch, offset: info.offset, category }),
+    info
+  )
   if (listings.length === 0) {
     return (
       <EmptyState
@@ -92,16 +119,12 @@ async function ExploreSections({ category }: { category?: string }) {
   return (
     <>
       <Section
-        title="Саяхан нэмэгдсэн"
+        title={info.page > 1 ? `Номнууд — хуудас ${info.page}` : 'Саяхан нэмэгдсэн'}
         description="Хэрэглэгчид солилцохоор нээлттэй болгосон номнууд"
       >
-        <BookGrid listings={listings.slice(0, 12)} />
+        <BookGrid listings={listings} priorityCount={4} />
       </Section>
-      {listings.length > 12 && (
-        <Section title="Цааш үзэх" description="Бусад нээлттэй номнууд">
-          <BookGrid listings={listings.slice(12)} />
-        </Section>
-      )}
+      <Pager page={info.page} hasMore={hasMore} params={params} basePath="/search" />
     </>
   )
 }

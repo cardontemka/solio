@@ -24,11 +24,20 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
+  /* A fixed grey rather than a theme colour: background-image is one of the
+     properties CSS cannot interpolate, so a gradient built from a palette
+     variable snaps in one frame while the rest of the page is still fading.
+     Mid-grey reads on both grounds, and the per-theme difference moves to
+     opacity, which does fade. */
+  background-image: radial-gradient(rgb(128 128 128 / 62%) 1px, transparent 1px);
   background-size: 26px 26px;
-  opacity: 0.35;
+  opacity: 0.32;
   -webkit-mask-image: radial-gradient(70% 70% at 70% 30%, #000 0%, transparent 75%);
   mask-image: radial-gradient(70% 70% at 70% 30%, #000 0%, transparent 75%);
+}
+
+html[data-theme='dark'] .hero::before {
+  opacity: 0.22;
 }
 
 .heroGrid {
@@ -93,6 +102,12 @@
   position: relative;
   width: 210px;
   height: 300px;
+  /* Depth is carried by the covers' own transforms rather than by z-index — see
+     the animation at the bottom of this file for why that matters. Sorting
+     children by their 3D position is what this switches on; with no perspective
+     on the box the projection stays flat, so nothing about the fan's size or
+     placement changes. */
+  transform-style: preserve-3d;
 }
 
 .cover {
@@ -107,30 +122,37 @@
   border: 1px solid rgb(0 0 0 / 8%);
 }
 
+/* The five resting places of the fan, unchanged from the original layout — the
+   animation below only moves covers between them.
+
+   Each slot carries its depth as a translateZ rather than a z-index. The two
+   look identical here (no perspective, so a millimetre of Z changes nothing you
+   can see) but only one of them is part of `transform`, and being part of
+   transform is what lets the animation stay off the main thread. The order they
+   produce is the one the fan always had: centre on top, right side over left. */
 .coverA {
   background: linear-gradient(165deg, #e9c46a, #d4a44b);
-  transform: rotate(-14deg) translate(10px, 6px);
+  transform: rotate(-14deg) translate(10px, 6px) translateZ(1px);
 }
 
 .coverB {
   background: linear-gradient(165deg, #f4a261, #e1834a);
-  transform: rotate(-5deg);
+  transform: rotate(-5deg) translateZ(2px);
 }
 
 .coverC {
   background: linear-gradient(165deg, #e76f51, #d0583d);
-  transform: rotate(4deg) translate(4px, 8px);
-  z-index: 2;
+  transform: rotate(4deg) translate(4px, 8px) translateZ(5px);
 }
 
 .coverD {
   background: linear-gradient(165deg, #f4a261, #e1834a);
-  transform: rotate(14deg) translate(-2px, 10px);
+  transform: rotate(14deg) translate(-2px, 10px) translateZ(3px);
 }
 
 .coverE {
   background: linear-gradient(165deg, #e9c46a, #d4a44b);
-  transform: rotate(24deg) translate(-6px, 18px);
+  transform: rotate(24deg) translate(-6px, 18px) translateZ(4px);
 }
 
 @media (max-width: 900px) {
@@ -152,6 +174,7 @@
     transform: scale(0.9);
   }
 }
+
 
 @media (max-width: 640px) {
   /* A phone opens this page to look for books, and the search box now lives in
@@ -218,13 +241,6 @@
   }
 }
 
-@keyframes fanIn {
-  from {
-    opacity: 0;
-    transform: translateY(26px) rotate(0deg) scale(0.94);
-  }
-}
-
 .heroKicker {
   animation: riseIn 0.5s ease-out both;
 }
@@ -237,18 +253,118 @@
   animation: riseIn 0.6s ease-out 0.14s both;
 }
 
-/* The stack's members carry their own rotation, so each keeps it: the keyframe
-   only supplies the starting offset and the resting state comes from the class
-   the element already has. */
-.cover {
-  animation: fanIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+/* The fan deals itself, once every seven seconds.
+ *
+ * Five covers, five resting places, and each cover steps to the next one — A to
+ * B, B to C, and the one at the far right slipping back to the far left. In
+ * between it holds perfectly still: 5.25s of stillness, 1.75s of movement, so
+ * the eye reads a slow deal rather than a machine turning. Nothing on this page
+ * is waiting on it, so it can afford to take its time.
+ *
+ * The curve eases in and out. A pure ease-out starts at full speed, which reads
+ * as a flick at this duration; easing in as well means each cover gathers pace,
+ * crosses, and settles, with no abrupt edge at either end.
+ *
+ * Two things make this cost the page nothing.
+ *
+ * The first is that `transform` is the only property that changes. A
+ * transform-only animation is handed to the compositor and runs there, so no
+ * frame of it wakes the main thread. An earlier draft carried the depth in
+ * `z-index`, which cannot be composited — and one uncompositable property drags
+ * the whole animation back onto the main thread, where it cost a style
+ * recalculation every frame for as long as the page was open. Depth is a
+ * translateZ instead, and the whole thing moved back to the GPU.
+ *
+ * The second is the pair of keyframes around each departure — 14.9% and 15%,
+ * and so on. The transform holds still across that 35ms and only the depth
+ * changes, so a cover takes on the depth of the slot it is heading for the
+ * instant before it sets off, and keeps it for the whole journey. Depth never
+ * slides through the values in between, which is what stops two covers from
+ * meeting at the same depth and appearing to cut through one another. At every
+ * moment, moving or resting, all five sit at five different depths.
+ *
+ * The cover returning from the right does so at the depth of the leftmost slot —
+ * underneath the pile — so it tucks beneath the fan and reappears on the far
+ * side rather than sweeping across the front of it.
+ */
+
+@keyframes fanDeal {
+  0%,
+  14.9% {
+    transform: rotate(-14deg) translate(10px, 6px) translateZ(1px);
+  }
+  15% {
+    transform: rotate(-14deg) translate(10px, 6px) translateZ(2px);
+  }
+
+  20%,
+  34.9% {
+    transform: rotate(-5deg) translate(0, 0) translateZ(2px);
+  }
+  35% {
+    transform: rotate(-5deg) translate(0, 0) translateZ(5px);
+  }
+
+  40%,
+  54.9% {
+    transform: rotate(4deg) translate(4px, 8px) translateZ(5px);
+  }
+  55% {
+    transform: rotate(4deg) translate(4px, 8px) translateZ(3px);
+  }
+
+  60%,
+  74.9% {
+    transform: rotate(14deg) translate(-2px, 10px) translateZ(3px);
+  }
+  75% {
+    transform: rotate(14deg) translate(-2px, 10px) translateZ(4px);
+  }
+
+  80%,
+  94.9% {
+    transform: rotate(24deg) translate(-6px, 18px) translateZ(4px);
+  }
+  95% {
+    transform: rotate(24deg) translate(-6px, 18px) translateZ(1px);
+  }
+
+  100% {
+    transform: rotate(-14deg) translate(10px, 6px) translateZ(1px);
+  }
 }
 
-.coverA { animation-delay: 0.18s; }
-.coverB { animation-delay: 0.26s; }
-.coverC { animation-delay: 0.34s; }
-.coverD { animation-delay: 0.42s; }
-.coverE { animation-delay: 0.5s; }
+/* Arriving at the page should show what the fan does, not a still picture of it.
+   Two things arrange that: the covers fade in one after another, and the deal
+   clock is wound forward so the first move lands about a second after the page
+   settles instead of up to seven seconds later. */
+@keyframes fanEnter {
+  from {
+    opacity: 0;
+  }
+}
+
+.cover {
+  animation:
+    fanEnter 0.5s ease-out both,
+    fanDeal 35s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+  /* Promotes each cover once, rather than letting the browser decide again at
+     every deal. Five small layers; nothing else on the page asks for one. */
+  will-change: transform;
+}
+
+/* Two delays per cover: when it fades in, and where it stands in the deal.
+
+   The second is seven seconds apart per cover — one slot — and negative, so each
+   cover is already in its own place on the first frame rather than dealing
+   itself there. The common -4.25s offset is what brings the first move forward:
+   a cover leaves its slot at 15% of 35s, which is 5.25s, so starting the clock
+   4.25s in puts the first deal one second after load. */
+.coverA { animation-delay: 0.05s, -4.25s; }
+.coverB { animation-delay: 0.11s, -11.25s; }
+.coverC { animation-delay: 0.17s, -18.25s; }
+.coverD { animation-delay: 0.23s, -25.25s; }
+.coverE { animation-delay: 0.29s, -32.25s; }
 
 @media (prefers-reduced-motion: reduce) {
   .heroKicker,
@@ -256,5 +372,12 @@
   .heroText,
   .cover {
     animation: none;
+  }
+
+  /* Nothing else to say: with the animation off each cover falls back to the
+     transform on its own class, which is the fan exactly as it was. The layer
+     hint goes too — there is no longer anything to promote it for. */
+  .cover {
+    will-change: auto;
   }
 }

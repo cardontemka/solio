@@ -89,13 +89,18 @@ export async function getRequest(
 }
 
 /** The viewer's own posts, cancelled ones included. */
-export async function getMyRequests(viewerId: string): Promise<RequestView[]> {
+export async function getMyRequests(
+  viewerId: string,
+  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<RequestView[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('book_requests')
     .select(SELECT)
     .eq('user_id', viewerId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return ((data ?? []) as unknown as Row[]).map((r) => toView(r, viewerId))
 }

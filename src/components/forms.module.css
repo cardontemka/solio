@@ -30,12 +30,14 @@
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
+/* Same as the search field: the edge doubles rather than the field growing a
+   halo. Drawn inside, so nothing moves when a box takes focus. */
 .input:focus,
 .textarea:focus,
 .select:focus {
   outline: 0;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .textarea {

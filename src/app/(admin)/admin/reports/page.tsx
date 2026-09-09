@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui'
 import { ReportActions } from '@/features/moderation/ActionButtons'
 import { getReports } from '@/features/moderation/queries'
+import { Pager } from '@/components/Pager'
+import { pageFrom, splitPage } from '@/lib/paging'
 import styles from '../admin.module.css'
 
 const TONE = {
@@ -22,13 +24,28 @@ const ENTITY_LABEL: Record<string, string> = {
   swap: 'Солилцоо',
 }
 
-export default async function ReportsPage() {
-  const reports = await getReports()
+const PER_PAGE = 30
+
+export default async function ReportsPage({ searchParams }: PageProps<'/admin/reports'>) {
+  const params = await searchParams
+  const info = pageFrom(params, PER_PAGE)
+  const { items: reports, hasMore } = splitPage(
+    await getReports({ limit: info.fetch, offset: info.offset }),
+    info
+  )
   if (reports.length === 0) {
-    return <div className={styles.tableWrap}><p className={styles.empty}>Гомдол алга.</p></div>
+    return (
+      <>
+        <div className={styles.tableWrap}>
+          <p className={styles.empty}>Гомдол алга.</p>
+        </div>
+        <Pager page={info.page} hasMore={hasMore} params={params} basePath="/admin/reports" />
+      </>
+    )
   }
 
   return (
+    <>
     <div className={styles.tableWrap}>
       <table className={styles.table}>
         <thead>
@@ -39,7 +56,7 @@ export default async function ReportsPage() {
         </thead>
         <tbody>
           {reports.map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} id={`report-${r.id}`}>
               <td><Badge tone={TONE[r.status]}>{LABEL[r.status]}</Badge></td>
               <td>
                 {r.reason}
@@ -77,5 +94,7 @@ export default async function ReportsPage() {
         </tbody>
       </table>
     </div>
+    <Pager page={info.page} hasMore={hasMore} params={params} basePath="/admin/reports" />
+    </>
   )
 }

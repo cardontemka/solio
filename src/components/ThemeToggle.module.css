@@ -9,6 +9,8 @@
   color: var(--text-2);
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
+  /* The two icons travel through this box; what leaves it should be gone. */
+  overflow: hidden;
 }
 
 .toggle:hover {
@@ -16,51 +18,116 @@
   color: var(--text);
 }
 
+/* ── Sun and moon on one strip ─────────────────────────────────────────────
+   Both icons are always rendered, stacked in the same grid cell, and the theme
+   decides where along the horizontal they stand: one in the middle of the
+   button, the other waiting outside it. Switching the theme slides the pair —
+   the sun leaves to the left as the moon arrives from the right, and back the
+   other way — so the change reads as the sky turning rather than a swap.
+
+   They were `display: none` before, which cannot be animated at all: the icon
+   simply ceased to exist and the other appeared in the same frame. */
 .sun,
 .moon {
   grid-area: 1 / 1;
+  transition:
+    transform 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 220ms ease;
 }
 
-/* Explicit dark */
+/* Light — the default when nothing is stored and the system asks for it. */
+.sun {
+  transform: translateX(0) rotate(0deg);
+  opacity: 1;
+}
+
+.moon {
+  transform: translateX(150%) rotate(35deg);
+  opacity: 0;
+}
+
+/* Dark: the strip slides one place to the left. */
 html[data-theme='dark'] .sun {
-  display: none;
+  transform: translateX(-150%) rotate(-35deg);
+  opacity: 0;
 }
+
 html[data-theme='dark'] .moon {
-  display: inline;
+  transform: translateX(0) rotate(0deg);
+  opacity: 1;
 }
 
-/* Explicit light */
-html[data-theme='light'] .sun {
-  display: inline;
-}
-html[data-theme='light'] .moon {
-  display: none;
-}
-
-/* No saved choice: default to OS preference */
-html:not([data-theme]) .sun {
-  display: none;
-}
-html:not([data-theme]) .moon {
-  display: inline;
-}
-@media (prefers-color-scheme: light) {
+/* No saved choice: follow the system, with the same two positions. */
+@media (prefers-color-scheme: dark) {
   html:not([data-theme]) .sun {
-    display: inline;
+    transform: translateX(-150%) rotate(-35deg);
+    opacity: 0;
   }
+
   html:not([data-theme]) .moon {
-    display: none;
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
   }
 }
-/* Menu form: the icons stack in one cell, the labels swap with the theme. */
+
+@media (prefers-reduced-motion: reduce) {
+  .sun,
+  .moon {
+    transition: none;
+  }
+}
+
+/* ── Menu form ─────────────────────────────────────────────────────────────
+   In the user menu the control is a row with a label, and the label has to
+   change with the theme. There is nothing to slide there — a line of text
+   swapping mid-sentence is not a transition anyone wants — so the labels keep
+   the display swap and only the icons travel. */
 .menuIcons {
   display: grid;
   place-items: center;
   width: 17px;
   height: 17px;
+  overflow: hidden;
 }
 
 span.sun,
 span.moon {
   grid-area: auto;
+  transition: none;
+  transform: none;
+  opacity: 1;
+}
+
+html[data-theme='dark'] span.sun {
+  display: none;
+}
+
+html[data-theme='dark'] span.moon {
+  display: inline;
+}
+
+html[data-theme='light'] span.sun {
+  display: inline;
+}
+
+html[data-theme='light'] span.moon {
+  display: none;
+}
+
+html:not([data-theme]) span.sun {
+  display: inline;
+}
+
+html:not([data-theme]) span.moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) span.sun {
+    display: none;
+  }
+
+  html:not([data-theme]) span.moon {
+    display: inline;
+  }
 }

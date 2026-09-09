@@ -284,8 +284,8 @@
 /* ── Mobile ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 860px) {
-  /* The links move into the user menu; the bar keeps the brand and the two
-     things people actually reach for. */
+  /* The links live in the bar at the bottom of the screen on a phone; this row
+     keeps the brand and the search field. */
   .nav {
     display: none;
   }
@@ -423,8 +423,15 @@
     font-size: 15px;
   }
 
+  /* The bell is gone from this row: notifications have their own place in the
+     bottom bar, with the same unread count on them, and the 46px it was taking
+     is 46px the search field did not have. Only the account button is left, so
+     the field runs from the logo to the edge of it. */
+  .bell {
+    display: none;
+  }
+
   /* 44px is the size a fingertip reliably hits; 40 was catchable but fussy. */
-  .bell,
   .userBtn {
     min-height: 46px;
     min-width: 46px;
@@ -553,4 +560,28 @@
   .bottomNav {
     transition: none;
   }
+}
+
+/* The unread count rides the bell in the bottom bar, the same way it does in the
+   top one — the number is the reason to look. */
+.bottomIcon {
+  position: relative;
+  display: inline-flex;
+}
+
+.bottomBadge {
+  position: absolute;
+  top: -5px;
+  left: 11px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
 }

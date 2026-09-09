@@ -10,11 +10,25 @@
 export const BOOK_CONDITION = ['new', 'like_new', 'good', 'fair', 'poor'] as const
 export type BookCondition = (typeof BOOK_CONDITION)[number]
 
+/**
+ * Ordered as the picker and the category strip show them: kinds of story first,
+ * then subjects, then the practical shelves. Twelve headings sent most books to
+ * "бусад", which is a filter that tells you nothing.
+ *
+ * The same list is a CHECK on public.book_category — a value added here without
+ * the migration is refused by the database.
+ */
 export const BOOK_CATEGORY = [
-  'fiction', 'nonfiction', 'history', 'science', 'business', 'selfhelp',
-  'psychology', 'children', 'textbook', 'language', 'art', 'other',
+  'fiction', 'classic', 'poetry', 'drama', 'detective', 'scifi', 'fantasy', 'comics',
+  'nonfiction', 'biography', 'history', 'science', 'nature', 'technology', 'medicine',
+  'religion', 'politics', 'law', 'business',
+  'selfhelp', 'psychology', 'parenting', 'cooking', 'travel', 'sport', 'art',
+  'children', 'textbook', 'language', 'reference', 'other',
 ] as const
 export type BookCategory = (typeof BOOK_CATEGORY)[number]
+
+/** How many headings one book may carry. Mirrors books_categories_len. */
+export const BOOK_CATEGORY_MAX = 5
 
 export const COPY_STATUS = ['available', 'reserved', 'swapped', 'inactive'] as const
 export type CopyStatus = (typeof COPY_STATUS)[number]
@@ -43,16 +57,35 @@ export const CONDITION_LABEL: Record<BookCondition, string> = {
 
 export const CATEGORY_LABEL: Record<BookCategory, string> = {
   fiction: 'Уран зохиол',
+  classic: 'Классик',
+  poetry: 'Яруу найраг',
+  drama: 'Драм, жүжиг',
+  detective: 'Детектив, триллер',
+  scifi: 'Шинжлэх ухааны зөгнөлт',
+  fantasy: 'Фантастик',
+  comics: 'Комик, манга',
   nonfiction: 'Танин мэдэхүй',
+  biography: 'Намтар, дурсамж',
   history: 'Түүх',
   science: 'Шинжлэх ухаан',
+  nature: 'Байгаль, амьтан',
+  technology: 'Технологи, программчлал',
+  medicine: 'Эрүүл мэнд',
+  religion: 'Шашин, философи',
+  politics: 'Улс төр',
+  law: 'Эрх зүй',
   business: 'Бизнес, эдийн засаг',
   selfhelp: 'Хувь хүний хөгжил',
   psychology: 'Сэтгэл судлал',
+  parenting: 'Хүүхэд хүмүүжил',
+  cooking: 'Хоол, ундаа',
+  travel: 'Аялал',
+  sport: 'Спорт',
+  art: 'Урлаг',
   children: 'Хүүхдийн',
   textbook: 'Сурах бичиг',
   language: 'Гадаад хэл',
-  art: 'Урлаг',
+  reference: 'Толь бичиг, лавлах',
   other: 'Бусад',
 }
 

@@ -2,14 +2,8 @@
 
 import { useActionState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
-import {
-  BOOK_CATEGORY,
-  BOOK_CONDITION,
-  CATEGORY_LABEL,
-  CONDITION_LABEL,
-  type BookCategory,
-  type BookCondition,
-} from '@/types/domain'
+import { BOOK_CONDITION, CONDITION_LABEL, type BookCategory, type BookCondition } from '@/types/domain'
+import { CategoryPicker } from './CategoryPicker'
 import { updateListingAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
 import styles from './AddBookForm.module.css'
@@ -25,7 +19,7 @@ export type ListingDraft = {
   language: string | null
   publishedYear: number | null
   description: string | null
-  category: BookCategory | null
+  categories: BookCategory[]
   pageCount: number | null
   weightG: number | null
   sizeNote: string | null
@@ -153,19 +147,12 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
 
 
         <div className={formStyles.field}>
-          <label className={formStyles.label} htmlFor="category">
+          <span className={formStyles.label}>
             Ангилал
             <span className={formStyles.optional}>заавал биш</span>
-          </label>
-          <select className={formStyles.select} id="category" name="category" defaultValue={listing.category ?? ''}>
-            <option value="">— сонгоогүй —</option>
-            {BOOK_CATEGORY.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABEL[c]}
-              </option>
-            ))}
-          </select>
-          <FieldError errors={errors?.category} />
+          </span>
+          <CategoryPicker initial={listing.categories} />
+          <FieldError errors={errors?.categories} />
         </div>
 
         <div className={formStyles.row}>

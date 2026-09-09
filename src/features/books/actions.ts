@@ -4,6 +4,7 @@ import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
 import { toUserMessage } from '@/lib/db/errors'
 import { createBookSchema } from './schema'
 
@@ -39,12 +40,13 @@ export async function createBookAction(
     language: formData.get('language') ?? 'mn',
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
-    category: formData.get('category') ?? '',
+    categories: formData.getAll('categories').map(String),
     pageCount: formData.get('pageCount') ?? '',
     weightG: formData.get('weightG') ?? '',
     sizeNote: formData.get('sizeNote') ?? '',
     condition: formData.get('condition') ?? 'good',
     conditionNote: formData.get('conditionNote') ?? '',
+    bookId: formData.get('bookId') ?? '',
   })
 
   if (!parsed.success) {
@@ -63,10 +65,14 @@ export async function createBookAction(
     p_published_year: typeof v.publishedYear === 'number' ? v.publishedYear : null,
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
-    p_category: v.category || null,
+    p_categories: v.categories,
     p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
     p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
     p_size_note: v.sizeNote || null,
+    // Attaches this copy to a catalogue row that already exists — but only if
+    // what was submitted still matches it. The check is in the database, so
+    // this is a hint rather than a claim.
+    p_book_id: v.bookId || null,
   })
 
   if (error) return { ok: false, message: toUserMessage(error, 'createBookAction') }
@@ -135,7 +141,7 @@ export async function updateListingAction(
     language: formData.get('language') ?? 'mn',
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
-    category: formData.get('category') ?? '',
+    categories: formData.getAll('categories').map(String),
     pageCount: formData.get('pageCount') ?? '',
     weightG: formData.get('weightG') ?? '',
     sizeNote: formData.get('sizeNote') ?? '',
@@ -158,7 +164,7 @@ export async function updateListingAction(
     p_published_year: typeof v.publishedYear === 'number' ? v.publishedYear : null,
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
-    p_category: v.category || null,
+    p_categories: v.categories,
     p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
     p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
     p_size_note: v.sizeNote || null,
@@ -184,7 +190,7 @@ export async function deleteListingAction(copyId: string): Promise<ActionState> 
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
 
-  const { error } = await supabase.rpc('delete_listing', { p_copy_id: copyId })
+  const { data, error } = await supabase.rpc('delete_listing', { p_copy_id: copyId })
   if (error) {
     if (error.message.includes('LISTING_IN_ACTIVE_SWAP')) {
       return {
@@ -196,6 +202,20 @@ export async function deleteListingAction(copyId: string): Promise<ActionState> 
       return { ok: false, message: 'Зөвхөн өөрийн номоо устгана.' }
     }
     return { ok: false, message: toUserMessage(error, 'deleteListing') }
+  }
+
+  // The rows are gone; the photos they pointed at are not, until now. The RPC
+  // returns the keys because the database cannot reach the bucket itself.
+  const keys = ((data ?? []) as { storage_key: string }[]).map((r) => r.storage_key)
+  if (keys.length > 0) {
+    const storage = bookImageStorage()
+    await Promise.all(
+      keys.map((key) =>
+        storage.delete(key).catch((e) => {
+          console.error('[deleteListingAction] orphaned object', key, (e as Error).message)
+        })
+      )
+    )
   }
 
   revalidatePath('/my-books')

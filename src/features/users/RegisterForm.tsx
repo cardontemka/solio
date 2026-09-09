@@ -11,33 +11,24 @@ const initial: AuthState = { ok: false }
 
 /**
  * Controlled fields, because React resets an uncontrolled form once a form
- * action returns: a rejected signup used to clear all four boxes, so fixing one
+ * action returns: a rejected signup used to clear the boxes, so fixing one
  * character meant retyping everything.
  *
- * The username box lowercases as you type, which is what anyone expects, but it
- * does not strip anything else: typing Cyrillic and watching the letters vanish
- * is more baffling than being told the rule. So the rule is told, live.
+ * There is no username box. The rule it had to explain — lowercase Latin, no
+ * spaces, 3 to 24 characters — is a database constraint, not something a reader
+ * signing up has any reason to care about, and Cyrillic names could not satisfy
+ * it at all. The signup trigger derives one from the address instead, and
+ * anybody who wants a different one changes it in settings, where the URL it
+ * appears in is right there on the page.
  */
 export function RegisterForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(registerAction, initial)
   const [displayName, setDisplayName] = useState('')
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const cooldown = useRetryCooldown(state)
   const errors = !state.ok ? state.errors : undefined
-
-  // Checked as you type so the reader learns the rule before submitting, not
-  // after. The server checks the same thing — this is only feedback.
-  const usernameProblem =
-    username.length === 0
-      ? null
-      : !/^[a-z0-9_]*$/.test(username)
-        ? 'Зөвхөн латин үсэг, тоо, доогуур зураас (_) байж болно. Кирилл үсэг, зай, тусгай тэмдэг болохгүй.'
-        : username.length < 3
-          ? `Хамгийн багадаа 3 тэмдэгт — дахиад ${3 - username.length} нэмнэ үү.`
-          : null
 
   // Only complained about once the second box has caught up in length: saying
   // "they do not match" after the first keystroke is noise, not help.
@@ -83,35 +74,11 @@ export function RegisterForm({ next }: { next?: string }) {
           onChange={(e) => setDisplayName(e.target.value)}
           aria-invalid={Boolean(errors?.displayName)}
         />
-        <FieldError errors={errors?.displayName} />
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="username">
-          Хэрэглэгчийн нэр
-        </label>
-        <input
-          className={styles.input}
-          id="username"
-          name="username"
-          type="text"
-          autoComplete="username"
-          required
-          maxLength={24}
-          placeholder="altan"
-          value={username}
-          onChange={(e) => setUsername(e.target.value.toLowerCase())}
-          aria-invalid={Boolean(errors?.username) || Boolean(usernameProblem)}
-        />
         <span className={styles.hint}>
-          Латин үсэг, тоо, доогуур зураас. 3–24 тэмдэгт. Нийтийн хуудсанд тань ингэж
-          харагдана: solio.mn/u/{/^[a-z0-9_]{3,}$/.test(username) ? username : 'altan'}
+          Бусдад ингэж харагдана. Хаягийн богино нэр (solio.mn/u/…) автоматаар үүсэх ба
+          Тохиргооноос өөрчилж болно.
         </span>
-        {usernameProblem ? (
-          <p className={styles.error}>{usernameProblem}</p>
-        ) : (
-          <FieldError errors={errors?.username} />
-        )}
+        <FieldError errors={errors?.displayName} />
       </div>
 
       <div className={styles.field}>

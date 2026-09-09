@@ -69,16 +69,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Зураг нэмэх боломжгүй байна.' }, { status: 400 })
   }
 
-  const target = await storage.createUploadTarget({
-    storageKey: intent.storage_key,
-    mimeType: parsed.data.mimeType,
-    byteSize: parsed.data.byteSize,
-  })
+  // Two targets: the photo, and the grid-sized copy that goes with it. The
+  // thumbnail's key is the photo's with `-t` before the extension — the same
+  // rule publish_image checks against, so neither side can invent one.
+  const thumbKey = String(intent.storage_key).replace(/\.(jpg|jpeg|png|webp)$/i, '-t.jpg')
+  const [target, thumbTarget] = await Promise.all([
+    storage.createUploadTarget({
+      storageKey: intent.storage_key,
+      mimeType: parsed.data.mimeType,
+      byteSize: parsed.data.byteSize,
+    }),
+    storage.createUploadTarget({
+      storageKey: thumbKey,
+      mimeType: 'image/jpeg',
+      byteSize: parsed.data.byteSize,
+    }),
+  ])
 
   return NextResponse.json({
     imageId: intent.image_id,
     storageKey: intent.storage_key,
+    thumbKey,
     provider: storage.provider,
     upload: target,
+    thumbUpload: thumbTarget,
   })
 }

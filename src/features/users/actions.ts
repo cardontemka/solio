@@ -16,7 +16,7 @@ export type AuthState =
       message?: string
       errors?: Record<string, string[]>
       /** Echoed back so a rejected form keeps what was typed. Never a password. */
-      values?: { displayName?: string; username?: string; email?: string }
+      values?: { displayName?: string; email?: string }
       /** Seconds to wait before retrying, when the refusal was a rate limit. */
       retryAfter?: number
     }
@@ -60,16 +60,6 @@ const registerSchema = z.object({
     .trim()
     .min(1, 'Харагдах нэрээ бичнэ үү.')
     .max(60, 'Харагдах нэр 60 тэмдэгтээс их байж болохгүй.'),
-  username: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .min(3, 'Хэрэглэгчийн нэр хамгийн багадаа 3 тэмдэгт байна.')
-    .max(24, 'Хэрэглэгчийн нэр 24 тэмдэгтээс их байж болохгүй.')
-    .regex(
-      /^[a-z0-9_]+$/,
-      'Хэрэглэгчийн нэрд зөвхөн жижиг латин үсэг, тоо, доогуур зураас (_) байж болно. Зай, том үсэг, кирилл болохгүй.'
-    ),
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
   password: PASSWORD_RULE,
   passwordConfirm: z.string().min(1, 'Нууц үгээ дахин бичнэ үү.'),
@@ -89,7 +79,6 @@ const loginSchema = z.object({
 export async function registerAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = registerSchema.safeParse({
     displayName: formData.get('displayName') ?? '',
-    username: formData.get('username') ?? '',
     email: formData.get('email') ?? '',
     password: formData.get('password') ?? '',
     passwordConfirm: formData.get('passwordConfirm') ?? '',
@@ -100,7 +89,6 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
       errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
       values: {
         displayName: String(formData.get('displayName') ?? ''),
-        username: String(formData.get('username') ?? ''),
         email: String(formData.get('email') ?? ''),
       },
     }
@@ -108,35 +96,21 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
 
   const supabase = await createClient()
 
-  // Usernames are public (/u/<username>), so checking one here reveals nothing
-  // that the profile pages do not. Without this the signup trigger silently
-  // appends a digit and the person ends up with a name they never chose.
-  const { data: taken } = await supabase
-    .from('profiles')
-    .select('username')
-    .ilike('username', parsed.data.username)
-    .maybeSingle()
-  if (taken) {
-    return {
-      ok: false,
-      errors: { username: ['Энэ хэрэглэгчийн нэр эзэмшигдсэн байна. Өөрийг сонгоно уу.'] },
-      values: { displayName: parsed.data.displayName, username: '', email: parsed.data.email },
-    }
-  }
-
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      // Read by the on_auth_user_created trigger to seed the profile row.
-      data: { username: parsed.data.username, display_name: parsed.data.displayName },
+      // Read by the on_auth_user_created trigger to seed the profile row. No
+      // username: the trigger derives one from the address and settles any
+      // collision with a numeric suffix, which is the same path a Google signup
+      // takes. Nobody is asked to invent a handle to get through this form.
+      data: { display_name: parsed.data.displayName },
       emailRedirectTo: `${publicEnv.siteUrl.replace(/\/+$/, '')}/api/auth/callback`,
     },
   })
 
   const keep = {
     displayName: parsed.data.displayName,
-    username: parsed.data.username,
     email: parsed.data.email,
   }
 

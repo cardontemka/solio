@@ -23,7 +23,10 @@ const idSchema = z.guid()
  * mismatch removes the object rather than publishing it — otherwise arbitrary
  * bytes with an image extension would be served from the image CDN.
  */
-export async function confirmImageAction(imageId: string): Promise<ImageState> {
+export async function confirmImageAction(
+  imageId: string,
+  withThumb = false
+): Promise<ImageState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
@@ -70,11 +73,18 @@ export async function confirmImageAction(imageId: string): Promise<ImageState> {
     return fail(`Зураг ${MIN_DIMENSION}–${MAX_DIMENSION}px хооронд байх ёстой.`)
   }
 
+  // The thumbnail is recorded only if it is really in the bucket. The client
+  // says whether it uploaded one; this checks, because a column pointing at a
+  // missing object would show a broken picture on every card.
+  const thumbKey = image.storage_key.replace(/\.(jpg|jpeg|png|webp)$/i, '-t.jpg')
+  const thumbPresent = withThumb ? Boolean(await storage.stat(thumbKey)) : false
+
   const { error } = await supabase.rpc('publish_image', {
     p_image_id: imageId,
     p_width: dims.width,
     p_height: dims.height,
     p_byte_size: info.byteSize,
+    p_thumb_key: thumbPresent ? thumbKey : null,
   })
   if (error) return { ok: false, message: toUserMessage(error, 'publishImage') }
 
@@ -91,7 +101,7 @@ export async function removeImageAction(imageId: string): Promise<ImageState> {
 
   const { data: image } = await supabase
     .from('book_images')
-    .select('storage_key')
+    .select('storage_key, thumb_key')
     .eq('id', imageId)
     .maybeSingle()
 
@@ -102,7 +112,14 @@ export async function removeImageAction(imageId: string): Promise<ImageState> {
     .eq('id', imageId)
   if (error) return { ok: false, message: toUserMessage(error, 'removeImage') }
 
-  if (image) await bookImageStorage().delete(image.storage_key).catch(() => {})
+  if (image) {
+    const storage = bookImageStorage()
+    await Promise.all(
+      [image.storage_key, image.thumb_key]
+        .filter((k): k is string => Boolean(k))
+        .map((k) => storage.delete(k).catch(() => {}))
+    )
+  }
 
   revalidatePath('/my-books')
   revalidatePath('/')
