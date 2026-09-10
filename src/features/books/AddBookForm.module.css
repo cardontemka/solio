@@ -333,3 +333,53 @@
   font-size: 13px;
   color: var(--text-3);
 }
+
+/* ── Kind ─────────────────────────────────────────────────────────────────── */
+
+.kinds {
+  display: flex;
+  gap: 10px;
+}
+
+.kind {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+/* The radio carries the value into the form, so it stays focusable. */
+.kind input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.kind:hover {
+  border-color: var(--text-3);
+  color: var(--text);
+}
+
+.kind[data-on='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--text);
+}
+
+.kind:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

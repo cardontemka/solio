@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
@@ -55,6 +56,17 @@ export default async function RequestPage({ params }: PageProps<'/requests/[id]'
             {request.status === 'cancelled' && <Badge>Цуцалсан</Badge>}
             {request.status === 'open' && <Badge tone="warn">Хайж байна</Badge>}
           </div>
+
+          {request.imageUrl && (
+            <Image
+              className={styles.photo}
+              src={request.imageUrl}
+              alt={request.title}
+              width={220}
+              height={300}
+              unoptimized
+            />
+          )}
 
           {request.author && <p className={styles.author}>{request.author}</p>}
           {request.isbn && <p className={styles.isbn}>ISBN {request.isbn}</p>}

@@ -107,3 +107,15 @@
 .date {
   margin-left: auto;
 }
+
+/* The photo on a request's own page — big enough to recognise a cover by, not
+   so big that it pushes the answers below the fold. */
+.photo {
+  display: block;
+  width: 160px;
+  height: auto;
+  margin: 14px 0 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  object-fit: cover;
+}

@@ -539,7 +539,10 @@
   min-width: 0;
 }
 
-.bottomLink span {
+/* The label only. This used to be `.bottomLink span`, which also caught the
+   icon's wrapper — and an `overflow: hidden` wrapper clips the unread badge
+   that hangs outside it. */
+.bottomLabel {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -567,21 +570,41 @@
 .bottomIcon {
   position: relative;
   display: inline-flex;
+  /* The badge sits outside this box on purpose; nothing here may clip it. */
+  overflow: visible;
 }
 
 .bottomBadge {
   position: absolute;
-  top: -5px;
-  left: 11px;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
+  top: -6px;
+  /* Anchored to the icon's right edge and allowed to grow leftwards, so a
+     two-digit count widens away from the icon instead of off the side of it. */
+  left: 100%;
+  transform: translateX(-9px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   display: grid;
   place-items: center;
   border-radius: 999px;
   background: var(--danger);
   color: #fff;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
+}
+
+/* The same ring as the header bell. It was only ever attached to the header
+   one, which is hidden on a phone — so on the device where notifications
+   actually live, the bell had stopped ringing entirely. */
+.bottomLink[data-unread='true'] .bottomIcon svg {
+  transform-origin: 50% 15%;
+  animation: bellRing 1.6s ease-in-out 0.4s 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottomLink[data-unread='true'] .bottomIcon svg {
+    animation: none;
+  }
 }

@@ -16,6 +16,7 @@ const schema = z
     listingId: z.guid().optional(),
     requestId: z.guid().optional(),
     parentId: z.guid().optional(),
+    replyToId: z.guid().optional(),
     offeredCopyId: z.guid().optional(),
     body: z.string().trim().min(1, 'Сэтгэгдэл бичнэ үү.').max(4000, 'Сэтгэгдэл хэт урт байна.'),
   })
@@ -37,6 +38,7 @@ export async function addCommentAction(
     listingId: formData.get('listingId') || undefined,
     requestId: formData.get('requestId') || undefined,
     parentId: formData.get('parentId') || undefined,
+    replyToId: formData.get('replyToId') || undefined,
     offeredCopyId: formData.get('offeredCopyId') || undefined,
     body: formData.get('body') ?? '',
   })
@@ -44,13 +46,17 @@ export async function addCommentAction(
     return { ok: false, errors: parsed.error.flatten().fieldErrors as Record<string, string[]> }
   }
 
-  const { listingId, requestId, parentId, offeredCopyId, body } = parsed.data
+  const { listingId, requestId, parentId, replyToId, offeredCopyId, body } = parsed.data
   const { data: inserted, error } = await supabase
     .from('comments')
     .insert({
       book_copy_id: listingId ?? null,
       request_id: requestId ?? null,
       parent_id: parentId ?? null,
+      // Which comment inside the thread is being answered. parent_id still
+      // names the thread — replies stay one level deep — so this is what lets a
+      // reply say who it is for when there are more than two people in it.
+      reply_to_id: replyToId ?? null,
       offered_copy_id: offeredCopyId ?? null,
       user_id: user.id,
       body,

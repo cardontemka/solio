@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
 
 /**
  * A request is a post: somebody says which book they are looking for, and other
@@ -22,6 +23,8 @@ export type RequestView = {
   isMine: boolean
   authorName: string
   authorUsername: string
+  /** The one photo a request may carry — the cover, usually. */
+  imageUrl: string | null
 }
 
 type Row = {
@@ -35,12 +38,14 @@ type Row = {
   created_at: string
   poster: { username: string; display_name: string } | { username: string; display_name: string }[] | null
   comments: { count: number }[]
+  book_images: { storage_key: string; thumb_key: string | null; status: string }[]
 }
 
 const SELECT = `
   id, user_id, title, author, isbn, note, status, created_at,
   poster:profiles!book_requests_user_id_fkey ( username, display_name ),
-  comments ( count )
+  comments ( count ),
+  book_images ( storage_key, thumb_key, status )
 `
 
 function toView(r: Row, viewerId: string | null): RequestView {
@@ -57,6 +62,11 @@ function toView(r: Row, viewerId: string | null): RequestView {
     isMine: r.user_id === viewerId,
     authorName: p?.display_name ?? 'Тодорхойгүй',
     authorUsername: p?.username ?? '',
+    imageUrl: (() => {
+      const ready = (r.book_images ?? []).find((i) => i.status === 'ready')
+      // The card shows it small, so the grid-sized copy is what it wants.
+      return ready ? bookImageStorage().publicUrl(ready.thumb_key ?? ready.storage_key) : null
+    })(),
   }
 }
 

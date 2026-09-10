@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CatalogueMatch } from './queries'
+import type { ItemKind } from '@/types/domain'
 import formStyles from '@/components/forms.module.css'
 import styles from './CatalogueField.module.css'
 
@@ -25,12 +26,16 @@ export function CatalogueField({
   onAdopt,
   disabled = false,
   invalid = false,
+  kind = 'book',
+  placeholder = 'Монголын нууц товчоо',
 }: {
   value: string
   onChange: (title: string) => void
   onAdopt: (match: CatalogueMatch) => void
   disabled?: boolean
   invalid?: boolean
+  kind?: ItemKind
+  placeholder?: string
 }) {
   const listId = useId()
   /**
@@ -60,9 +65,10 @@ export function CatalogueField({
     const controller = new AbortController()
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/books/catalogue?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        })
+        const res = await fetch(
+          `/api/books/catalogue?q=${encodeURIComponent(query)}&kind=${kind}`,
+          { signal: controller.signal }
+        )
         const body = (await res.json()) as { items: CatalogueMatch[] }
         setResult({ q: query, items: body.items ?? [] })
         setActive(-1)
@@ -75,7 +81,7 @@ export function CatalogueField({
       clearTimeout(timer)
       controller.abort()
     }
-  }, [query, muted])
+  }, [query, muted, kind])
 
   // Clicking away closes the list without choosing anything.
   useEffect(() => {
@@ -126,7 +132,7 @@ export function CatalogueField({
         required
         maxLength={300}
         autoComplete="off"
-        placeholder="Монголын нууц товчоо"
+        placeholder={placeholder}
         value={value}
         disabled={disabled}
         aria-invalid={invalid}
@@ -143,7 +149,9 @@ export function CatalogueField({
 
       {open && (
         <div className={styles.panel} id={listId}>
-          <p className={styles.panelHead}>Энэ ном биш биз?</p>
+          <p className={styles.panelHead}>
+            {kind === 'vinyl' ? 'Энэ пянз биш биз?' : 'Энэ ном биш биз?'}
+          </p>
           <ul className={styles.list} role="listbox">
             {items.map((m, i) => (
               <li key={m.bookId} role="option" aria-selected={i === active}>

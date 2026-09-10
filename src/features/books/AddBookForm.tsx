@@ -9,7 +9,14 @@ import {
   prepareImage,
   uploadImageToCopy,
 } from '@/features/images/upload'
-import { BOOK_CONDITION, CONDITION_LABEL } from '@/types/domain'
+import {
+  ATTRIBUTES_FOR,
+  BOOK_CONDITION,
+  CONDITION_LABEL,
+  ITEM_KIND,
+  KIND_COPY,
+  type ItemKind,
+} from '@/types/domain'
 import { CatalogueField } from './CatalogueField'
 import { CategoryPicker } from './CategoryPicker'
 import type { CatalogueMatch } from './queries'
@@ -42,7 +49,6 @@ type BookFields = {
   language: string
   publishedYear: string
   isbn: string
-  pageCount: string
   weightG: string
   sizeNote: string
   description: string
@@ -50,7 +56,7 @@ type BookFields = {
 
 const BLANK: BookFields = {
   title: '', author: '', publisher: '', language: 'mn', publishedYear: '',
-  isbn: '', pageCount: '', weightG: '', sizeNote: '', description: '',
+  isbn: '', weightG: '', sizeNote: '', description: '',
 }
 
 export function AddBookForm() {
@@ -63,7 +69,14 @@ export function AddBookForm() {
   const [uploadIndex, setUploadIndex] = useState(0)
   const [imageError, setImageError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
+  const [kind, setKind] = useState<ItemKind>('book')
   const [fields, setFields] = useState<BookFields>(BLANK)
+  /**
+   * The kind's own fields, keyed as the database keys them. Kept apart from
+   * `fields` because the set of them changes with the kind, and merging the two
+   * would leave a record's rpm sitting in state after a switch back to books.
+   */
+  const [attrs, setAttrs] = useState<Record<string, string>>({})
   const [categories, setCategories] = useState<string[]>([])
   /**
    * The catalogue row whose description is on screen. Kept even while the reader
@@ -78,6 +91,23 @@ export function AddBookForm() {
   const set = <K extends keyof BookFields>(key: K, v: BookFields[K]) =>
     setFields((f) => ({ ...f, [key]: v }))
 
+  const words = KIND_COPY[kind]
+
+  /**
+   * Changing kind starts the description over. Half a book's fields under a
+   * record's headings would be worse than an empty form, and the two share only
+   * the title box — which is kept, because it is usually already typed.
+   */
+  function switchKind(next: ItemKind) {
+    if (next === kind) return
+    setKind(next)
+    setAdopted(null)
+    setCategories([])
+    setFields({ ...BLANK, title: fields.title })
+    setAttrs({})
+    setPickerKey((k) => k + 1)
+  }
+
   function adopt(match: CatalogueMatch) {
     setFields({
       title: match.title,
@@ -86,11 +116,15 @@ export function AddBookForm() {
       language: match.language ?? 'other',
       publishedYear: match.publishedYear ? String(match.publishedYear) : '',
       isbn: match.isbn ?? '',
-      pageCount: match.pageCount ? String(match.pageCount) : '',
       weightG: match.weightG ? String(match.weightG) : '',
       sizeNote: match.sizeNote ?? '',
       description: match.description ?? '',
     })
+    setAttrs(
+      Object.fromEntries(
+        Object.entries(match.attributes ?? {}).map(([k, v]) => [k, String(v)])
+      )
+    )
     setCategories(match.categories)
     setAdopted(match)
     setPickerKey((k) => k + 1)
@@ -100,6 +134,7 @@ export function AddBookForm() {
     setAdopted(null)
     setCategories([])
     setFields({ ...BLANK, title: fields.title })
+    setAttrs({})
     setPickerKey((k) => k + 1)
   }
 
@@ -200,14 +235,36 @@ export function AddBookForm() {
       {!state.ok && <FormMessage message={state.message} />}
 
       <fieldset className={styles.group} disabled={busy}>
-        <legend className={styles.legend}>1 · Номын мэдээлэл</legend>
+        <legend className={styles.legend}>1 · Юу нэмэх вэ?</legend>
+
+        {/* Radios, not a select: two options, and the choice changes the rest of
+            the form — it should be visible, not folded away. */}
+        <input type="hidden" name="kind" value={kind} />
+        <div className={styles.kinds} role="radiogroup" aria-label="Төрөл">
+          {ITEM_KIND.map((k) => (
+            <label key={k} className={styles.kind} data-on={kind === k}>
+              <input
+                type="radio"
+                name="kindChoice"
+                value={k}
+                checked={kind === k}
+                disabled={busy}
+                onChange={() => switchKind(k)}
+              />
+              <span>{KIND_COPY[k].one}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className={styles.group} disabled={busy}>
+        <legend className={styles.legend}>2 · {words.of} мэдээлэл</legend>
 
         <div className={styles.dropzone} data-active={picked.length > 0}>
           <span className={styles.dropIcon} aria-hidden="true" />
-          <span className={styles.dropTitle}>Өөрийн номныхоо зургийг нэмээрэй</span>
+          <span className={styles.dropTitle}>Өөрийн {words.own} зургийг нэмээрэй</span>
           <span className={styles.dropHint}>
-            Заавал · утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT} · автоматаар
-            жижигрүүлнэ
+            Заавал · утас, компьютерээс · хамгийн ихдээ {IMAGE_MAX_COUNT}
           </span>
           {/* A label, not a button calling input.click(): several mobile
               browsers refuse to open the picker for an input hidden with
@@ -282,7 +339,7 @@ export function AddBookForm() {
 
         <div className={formStyles.field}>
           <label className={formStyles.label} htmlFor="title">
-            Номын нэр
+            {words.title}
           </label>
           <CatalogueField
             value={fields.title}
@@ -290,9 +347,11 @@ export function AddBookForm() {
             onAdopt={adopt}
             disabled={busy}
             invalid={Boolean(errors?.title)}
+            kind={kind}
+            placeholder={kind === 'vinyl' ? 'Kind of Blue' : 'Монголын нууц товчоо'}
           />
           <span className={formStyles.hint}>
-            Бичиж байхад манай санд байгаа ижил номыг санал болгоно — сонговол доорх
+            Бичиж байхад манай санд байгаа ижил зүйлийг санал болгоно — сонговол доорх
             мэдээлэл автоматаар дүүрнэ.
           </span>
           <FieldError errors={errors?.title} />
@@ -314,7 +373,7 @@ export function AddBookForm() {
         <div className={formStyles.row}>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="author">
-              Зохиогч
+              {words.author}
             </label>
             <input
               className={formStyles.input}
@@ -329,7 +388,7 @@ export function AddBookForm() {
           </div>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="publisher">
-              Хэвлэлийн газар
+              {words.publisher}
               <span className={formStyles.optional}>заавал биш</span>
             </label>
             <input
@@ -382,6 +441,7 @@ export function AddBookForm() {
           </div>
         </div>
 
+        {kind === 'book' && (
         <div className={formStyles.field}>
           <label className={formStyles.label} htmlFor="isbn">
             ISBN
@@ -400,6 +460,7 @@ export function AddBookForm() {
           <span className={formStyles.hint}>Хайлтад тусалдаг нэмэлт мэдээлэл.</span>
           <FieldError errors={errors?.isbn} />
         </div>
+        )}
 
 
         <div className={formStyles.field}>
@@ -407,30 +468,63 @@ export function AddBookForm() {
             Ангилал
             <span className={formStyles.optional}>заавал биш</span>
           </span>
-          <CategoryPicker key={pickerKey} initial={categories as never} disabled={busy} />
+          <CategoryPicker
+            key={pickerKey}
+            kind={kind}
+            initial={categories as never}
+            disabled={busy}
+          />
           <FieldError errors={errors?.categories} />
         </div>
 
-        <div className={formStyles.row}>
-          <div className={formStyles.field}>
-            <label className={formStyles.label} htmlFor="pageCount">
-              Нүүрний тоо
-              <span className={formStyles.optional}>заавал биш</span>
-            </label>
-            <input
-              className={formStyles.input}
-              id="pageCount"
-              name="pageCount"
-              type="number"
-              min={1}
-              max={20000}
-              inputMode="numeric"
-              placeholder="320"
-              value={fields.pageCount}
-              onChange={(e) => set('pageCount', e.target.value)}
-            />
-            <FieldError errors={errors?.pageCount} />
+        {/* The kind's own fields, rendered from ATTRIBUTES_FOR — the same list
+            the detail page reads and the database validates against. A new kind
+            brings its fields here without touching this file. */}
+        {ATTRIBUTES_FOR[kind].length > 0 && (
+          <div className={formStyles.row}>
+            {ATTRIBUTES_FOR[kind].map((field) => (
+              <div key={field.key} className={formStyles.field}>
+                <label className={formStyles.label} htmlFor={field.key}>
+                  {field.label}
+                  <span className={formStyles.optional}>заавал биш</span>
+                </label>
+                {field.type === 'enum' ? (
+                  <select
+                    className={formStyles.select}
+                    id={field.key}
+                    name={field.key}
+                    value={attrs[field.key] ?? ''}
+                    onChange={(e) => setAttrs((a) => ({ ...a, [field.key]: e.target.value }))}
+                  >
+                    <option value="">— сонгоогүй —</option>
+                    {field.options?.map((o) => (
+                      <option key={o} value={String(o)}>
+                        {o}
+                        {field.suffix ?? ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className={formStyles.input}
+                    id={field.key}
+                    name={field.key}
+                    type={field.type === 'int' ? 'number' : 'text'}
+                    min={field.min}
+                    max={field.max}
+                    inputMode={field.type === 'int' ? 'numeric' : undefined}
+                    placeholder={field.placeholder}
+                    value={attrs[field.key] ?? ''}
+                    onChange={(e) => setAttrs((a) => ({ ...a, [field.key]: e.target.value }))}
+                  />
+                )}
+                <FieldError errors={errors?.[field.key]} />
+              </div>
+            ))}
           </div>
+        )}
+
+        <div className={formStyles.row}>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="weightG">
               Жин (грамм)
@@ -463,7 +557,7 @@ export function AddBookForm() {
             name="sizeNote"
             type="text"
             maxLength={40}
-            placeholder="14×20 см"
+            placeholder={kind === 'vinyl' ? 'Хавтас сайн, ховхорсонгүй' : '14×20 см'}
             value={fields.sizeNote}
             onChange={(e) => set('sizeNote', e.target.value)}
           />
@@ -480,7 +574,7 @@ export function AddBookForm() {
             id="description"
             name="description"
             maxLength={8000}
-            placeholder="Номын товч агуулга…"
+            placeholder={kind === 'vinyl' ? 'Цомгийн тухай…' : 'Номын товч агуулга…'}
             value={fields.description}
             onChange={(e) => set('description', e.target.value)}
           />
@@ -489,7 +583,7 @@ export function AddBookForm() {
       </fieldset>
 
       <fieldset className={styles.group} disabled={busy}>
-        <legend className={styles.legend}>2 · Таны хувийн нөхцөл</legend>
+        <legend className={styles.legend}>3 · Таны хувийн нөхцөл</legend>
 
         <div className={styles.conditions}>
           {BOOK_CONDITION.map((c, i) => (

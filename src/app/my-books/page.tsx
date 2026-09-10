@@ -26,11 +26,11 @@ export default async function MyBooksPage({ searchParams }: PageProps<'/my-books
       <PageHeader
         title="Миний номнууд"
         subtitle="Номоо нэмэх, түр нуух боломжтой."
-        action={<ButtonLink href="/books/new">Ном нэмэх</ButtonLink>}
+        action={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
       <MyBooksPanel
         copies={copies}
-        emptyAction={<ButtonLink href="/books/new">Ном нэмэх</ButtonLink>}
+        emptyAction={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
       <Pager page={info.page} hasMore={hasMore} params={params} basePath="/my-books" />
     </div>

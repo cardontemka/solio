@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     books: (
       <MyBooksPanel
         copies={copies}
-        emptyAction={<ButtonLink href="/books/new">Ном нэмэх</ButtonLink>}
+        emptyAction={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
     ),
     wishlist: <MyRequestsPanel requests={requests} />,

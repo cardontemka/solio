@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui'
 import styles from './page.module.css'
 
 export const metadata = {
-  title: 'Ном нэмэх',
+  title: 'Ном, пянз нэмэх',
   robots: { index: false, follow: false },
 }
 
@@ -18,7 +18,7 @@ export default async function AddBookPage() {
       <div className={styles.shell}>
         <PageHeader
           title="Номоо нэмэх"
-          subtitle="Гартаа байгаа бодит номоо бүртгэнэ. Бүртгэл бүр таны нэг хувийг л тодорхойлно — өөр хүний ижил номтой нэгтгэхгүй."
+          subtitle="Гартаа байгаа бодит номоо эсвэл пянзаа бүртгэнэ."
         />
         <AddBookForm />
       </div>

@@ -39,6 +39,7 @@ function Items({ items }: { items: SwapItemView[] }) {
             color={item.coverColor}
             src={item.imageUrl}
             size="sm"
+            kind={item.kind}
           />
           <div>
             <p className={styles.bookTitle}>{item.title}</p>

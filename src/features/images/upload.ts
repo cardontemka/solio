@@ -279,3 +279,62 @@ export async function uploadImageToCopy(
     return { ok: false, message: 'Сүлжээний алдаа. Дахин оролдоно уу.' }
   }
 }
+
+/**
+ * The same three steps for a request's one photo: ask for a target, send the
+ * bytes, ask the server to verify and publish. Split from uploadImageToCopy
+ * rather than parameterised because the endpoints differ and the difference is
+ * one line — sharing it would only hide which parent is being written to.
+ */
+export async function uploadImageToRequest(
+  requestId: string,
+  original: File,
+  onProgress?: (percent: number) => void
+): Promise<UploadResult> {
+  const prepared = await prepareImage(original)
+  if (!prepared.ok) return prepared
+  const file = prepared.file
+  const thumb = prepared.thumb
+
+  try {
+    const res = await fetch('/api/uploads/request-image', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ requestId, mimeType: file.type, byteSize: file.size }),
+    })
+    const intent = await res.json()
+    if (!res.ok) return { ok: false, message: intent.error ?? 'Зураг нэмэх боломжгүй байна.' }
+
+    const status = await put(
+      intent.upload.url,
+      intent.upload.method,
+      intent.upload.headers,
+      file,
+      onProgress
+    )
+    if (status < 200 || status >= 300) {
+      const viaServer = await putViaServer(intent.storageKey, file)
+      if (!viaServer) return { ok: false, message: 'Зураг байршуулж чадсангүй.' }
+    }
+    onProgress?.(100)
+
+    let thumbUploaded = false
+    if (thumb && intent.thumbUpload) {
+      const thumbKey = thumbKeyFor(intent.storageKey)
+      const thumbStatus = await put(
+        intent.thumbUpload.url,
+        intent.thumbUpload.method,
+        intent.thumbUpload.headers,
+        thumb
+      )
+      thumbUploaded =
+        (thumbStatus >= 200 && thumbStatus < 300) || (await putViaServer(thumbKey, thumb))
+    }
+
+    const confirmed = await confirmImageAction(intent.imageId, thumbUploaded)
+    if (!confirmed.ok) return { ok: false, message: confirmed.message }
+    return { ok: true }
+  } catch {
+    return { ok: false, message: 'Сүлжээний алдаа. Дахин оролдоно уу.' }
+  }
+}

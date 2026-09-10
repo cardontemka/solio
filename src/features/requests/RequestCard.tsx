@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Badge } from '@/components/ui'
 import type { RequestView } from './queries'
@@ -12,6 +13,13 @@ export function RequestCard({ request: r }: { request: RequestView }) {
     // An <article>, not an <li>: MyRequestsPanel wraps this in its own <li> to
     // sit the poster's controls beside it, and nested list items are invalid.
     <article className={styles.item} data-muted={r.status !== 'open'}>
+      {r.imageUrl && (
+        <Link href={`/requests/${r.id}`} className={styles.itemThumb}>
+          {/* Straight from the bucket, like every other photo on the site —
+              already the right size, and no transformation to pay for. */}
+          <Image src={r.imageUrl} alt="" width={56} height={78} unoptimized />
+        </Link>
+      )}
       <div className={styles.itemBody}>
         <div className={styles.itemHead}>
           <Link href={`/requests/${r.id}`} className={styles.itemTitle}>

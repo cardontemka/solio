@@ -1,14 +1,23 @@
 import { z } from 'zod'
 import type { BookCategory } from '@/types/domain'
-import { BOOK_CATEGORY, BOOK_CATEGORY_MAX, BOOK_CONDITION } from '@/types/domain'
+import {
+  ATTRIBUTES_FOR,
+  BOOK_CATEGORY,
+  BOOK_CATEGORY_MAX,
+  BOOK_CONDITION,
+  ITEM_KIND,
+  VINYL_CATEGORY,
+} from '@/types/domain'
 
-const KNOWN_CATEGORY = new Set<string>(BOOK_CATEGORY)
+const KNOWN_CATEGORY = new Set<string>([...BOOK_CATEGORY, ...VINYL_CATEGORY])
 
 /**
  * Validation shared by the client form and the Server Action. The action
  * re-parses on the server: client validation is a convenience, never a check.
  */
 export const createBookSchema = z.object({
+  /** Book or record. Decides which fields below mean anything. */
+  kind: z.enum(ITEM_KIND).default('book'),
   title: z
     .string()
     .trim()
@@ -46,9 +55,6 @@ export const createBookSchema = z.object({
    * not match.
    */
   bookId: z.union([z.literal(''), z.guid()]).optional(),
-  pageCount: z
-    .union([z.literal(''), z.coerce.number().int().min(1).max(20000)])
-    .optional(),
   weightG: z
     .union([z.literal(''), z.coerce.number().int().min(1).max(20000)])
     .optional(),
@@ -58,3 +64,23 @@ export const createBookSchema = z.object({
 })
 
 export type CreateBookInput = z.infer<typeof createBookSchema>
+
+/**
+ * Pulls the kind's own fields out of the submitted form into the jsonb object
+ * the RPC takes. Blank boxes are left out rather than sent as empty strings —
+ * an absent key is how "not filled in" is spelt in the column.
+ *
+ * No validation here beyond dropping blanks: the database owns the spec, checks
+ * the ranges, coerces the types and throws away anything it does not recognise.
+ * Repeating those rules on this side would be two places to keep in step.
+ */
+export function attributesFrom(kind: string, formData: FormData): Record<string, string> {
+  const spec = ATTRIBUTES_FOR[kind as keyof typeof ATTRIBUTES_FOR] ?? []
+  const out: Record<string, string> = {}
+  for (const field of spec) {
+    const raw = formData.get(field.key)
+    const value = typeof raw === 'string' ? raw.trim() : ''
+    if (value) out[field.key] = value
+  }
+  return out
+}

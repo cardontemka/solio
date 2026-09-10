@@ -33,7 +33,15 @@ function OfferedCard({ offered }: { offered: NonNullable<CommentView['offered']>
   )
 }
 
-function TargetFields({ target, parentId }: { target: CommentTarget; parentId?: string }) {
+function TargetFields({
+  target,
+  parentId,
+  replyToId,
+}: {
+  target: CommentTarget
+  parentId?: string
+  replyToId?: string
+}) {
   return (
     <>
       {'listingId' in target ? (
@@ -42,6 +50,7 @@ function TargetFields({ target, parentId }: { target: CommentTarget; parentId?: 
         <input type="hidden" name="requestId" value={target.requestId} />
       )}
       {parentId && <input type="hidden" name="parentId" value={parentId} />}
+      {replyToId && <input type="hidden" name="replyToId" value={replyToId} />}
     </>
   )
 }
@@ -58,12 +67,20 @@ function Comment({
   path,
   canComment,
   depth = 0,
+  rootId,
 }: {
   comment: CommentView
   target: CommentTarget
   path: string
   canComment: boolean
   depth?: number
+  /**
+   * The comment at the top of this thread. A reply to a reply is filed under the
+   * root — the nesting stops at one level, because a thread that indents forever
+   * is unreadable on a phone — while `replyToId` records who is actually being
+   * answered, so the page can say so.
+   */
+  rootId?: string
 }) {
   const [replying, setReplying] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -94,11 +111,18 @@ function Comment({
           {comment.isHidden && <span className={styles.hiddenNote}>Модерацлагдсан</span>}
         </div>
 
+        {comment.replyToName && (
+          <p className={styles.replyTo}>
+            <span aria-hidden="true">↳ </span>
+            {comment.replyToName}-д хариулав
+          </p>
+        )}
+
         <p className={styles.body}>{comment.body}</p>
         {comment.offered && <OfferedCard offered={comment.offered} />}
 
         <div className={styles.actions}>
-          {canComment && depth === 0 && (
+          {canComment && (
             <button type="button" className={styles.link} onClick={() => setReplying((v) => !v)}>
               {replying ? 'Болих' : 'Хариу бичих'}
             </button>
@@ -123,7 +147,12 @@ function Comment({
 
         {replying && (
           <form action={formAction} className={styles.replyForm}>
-            <TargetFields target={target} parentId={comment.id} />
+            {/* Filed under the root; addressed to whoever is being answered. */}
+            <TargetFields
+              target={target}
+              parentId={rootId ?? comment.id}
+              replyToId={comment.id}
+            />
             <textarea
               className={styles.textarea}
               name="body"
@@ -156,6 +185,7 @@ function Comment({
               path={path}
               canComment={canComment}
               depth={depth + 1}
+              rootId={rootId ?? comment.id}
             />
           ))}
         </ul>

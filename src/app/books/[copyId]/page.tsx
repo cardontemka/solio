@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -13,7 +14,13 @@ import { getComments } from '@/features/comments/queries'
 import { OfferSwapForm } from '@/features/swaps/OfferSwapForm'
 import { getOfferableCopies } from '@/features/swaps/queries'
 import { getSessionUser } from '@/lib/auth/dal'
-import { CATEGORY_LABEL, CONDITION_LABEL, COPY_STATUS_LABEL } from '@/types/domain'
+import {
+  ATTRIBUTES_FOR,
+  CATEGORY_LABEL,
+  CONDITION_LABEL,
+  COPY_STATUS_LABEL,
+  KIND_COPY,
+} from '@/types/domain'
 import { CopyCarousel } from './CopyCarousel'
 import styles from './page.module.css'
 
@@ -81,7 +88,7 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
               <ImageUploader copyId={listing.copyId} images={listing.images} />
             </div>
           ) : (
-            <CopyCarousel images={listing.images} alt={listing.title} />
+            <CopyCarousel images={listing.images} alt={listing.title} kind={listing.kind} />
           )}
         </aside>
 
@@ -153,22 +160,31 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                 <dd>{CONDITION_LABEL[listing.condition]}</dd>
                 {listing.publisher && (
                   <>
-                    <dt>Хэвлэлийн газар</dt>
+                    <dt>{KIND_COPY[listing.kind].publisher}</dt>
                     <dd>{listing.publisher}</dd>
                   </>
                 )}
                 {listing.publishedAt && (
                   <>
-                    <dt>Хэвлэсэн он</dt>
+                    <dt>{listing.kind === 'vinyl' ? 'Гарсан он' : 'Хэвлэсэн он'}</dt>
                     <dd>{listing.publishedAt.slice(0, 4)}</dd>
                   </>
                 )}
-                {listing.pageCount && (
-                  <>
-                    <dt>Нүүрний тоо</dt>
-                    <dd>{listing.pageCount}</dd>
-                  </>
-                )}
+                {/* The kind's own fields, in the order ATTRIBUTES_FOR lists them.
+                    Adding a field to that list puts it here with no edit. */}
+                {ATTRIBUTES_FOR[listing.kind].map((field) => {
+                  const value = listing.attributes[field.key]
+                  if (value === undefined || value === '') return null
+                  return (
+                    <Fragment key={field.key}>
+                      <dt>{field.label}</dt>
+                      <dd>
+                        {value}
+                        {field.suffix ?? ''}
+                      </dd>
+                    </Fragment>
+                  )
+                })}
                 {listing.sizeNote && (
                   <>
                     <dt>Хэмжээ</dt>

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
 import { toUserMessage } from '@/lib/db/errors'
-import { createBookSchema } from './schema'
+import { attributesFrom, createBookSchema } from './schema'
 
 export type ActionState =
   | { ok: true; bookId?: string; copyId?: string }
@@ -33,6 +33,7 @@ export async function createBookAction(
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
 
   const parsed = createBookSchema.safeParse({
+    kind: formData.get('kind') ?? 'book',
     title: formData.get('title') ?? '',
     author: formData.get('author') ?? '',
     isbn: formData.get('isbn') ?? '',
@@ -41,7 +42,6 @@ export async function createBookAction(
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
     categories: formData.getAll('categories').map(String),
-    pageCount: formData.get('pageCount') ?? '',
     weightG: formData.get('weightG') ?? '',
     sizeNote: formData.get('sizeNote') ?? '',
     condition: formData.get('condition') ?? 'good',
@@ -66,9 +66,10 @@ export async function createBookAction(
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
     p_categories: v.categories,
-    p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
     p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
     p_size_note: v.sizeNote || null,
+    p_kind: v.kind,
+    p_attributes: attributesFrom(v.kind, formData),
     // Attaches this copy to a catalogue row that already exists — but only if
     // what was submitted still matches it. The check is in the database, so
     // this is a hint rather than a claim.
@@ -134,6 +135,7 @@ export async function updateListingAction(
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
 
   const parsed = createBookSchema.safeParse({
+    kind: formData.get('kind') ?? 'book',
     title: formData.get('title') ?? '',
     author: formData.get('author') ?? '',
     isbn: formData.get('isbn') ?? '',
@@ -142,7 +144,6 @@ export async function updateListingAction(
     description: formData.get('description') ?? '',
     publishedYear: formData.get('publishedYear') ?? '',
     categories: formData.getAll('categories').map(String),
-    pageCount: formData.get('pageCount') ?? '',
     weightG: formData.get('weightG') ?? '',
     sizeNote: formData.get('sizeNote') ?? '',
     condition: formData.get('condition') ?? 'good',
@@ -165,9 +166,10 @@ export async function updateListingAction(
     p_condition: v.condition,
     p_condition_note: v.conditionNote || null,
     p_categories: v.categories,
-    p_page_count: typeof v.pageCount === 'number' ? v.pageCount : null,
     p_weight_g: typeof v.weightG === 'number' ? v.weightG : null,
     p_size_note: v.sizeNote || null,
+    p_kind: v.kind,
+    p_attributes: attributesFrom(v.kind, formData),
   })
   if (error) return { ok: false, message: toUserMessage(error, 'updateListing') }
 

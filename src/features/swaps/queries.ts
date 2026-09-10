@@ -3,7 +3,7 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
 import { coverColorFor } from '@/features/books/queries'
-import type { SwapStatus } from '@/types/domain'
+import type { ItemKind, SwapStatus } from '@/types/domain'
 
 /**
  * Read side of the swap feature. RLS restricts `swaps` to participants, so
@@ -18,7 +18,10 @@ type ItemRow = {
     status: string
     moderation_status: string
     owner_id: string
-    books: { id: string; title: string; author: string | null } | { id: string; title: string; author: string | null }[] | null
+    books:
+      | { id: string; title: string; author: string | null; kind: ItemKind }
+      | { id: string; title: string; author: string | null; kind: ItemKind }[]
+      | null
     book_images: { storage_key: string; thumb_key: string | null; sort_order: number; status: string }[]
   } | null
 }
@@ -48,6 +51,7 @@ export type SwapItemView = {
   author: string | null
   coverColor: string
   imageUrl: string | null
+  kind: ItemKind
 }
 
 export type SwapView = {
@@ -110,7 +114,7 @@ export async function getMySwaps(
        requester:profiles!swaps_requester_id_fkey ( id, username, display_name ),
        responder:profiles!swaps_responder_id_fkey ( id, username, display_name ),
        swap_items ( side, book_copies ( id, condition, status, moderation_status, owner_id,
-                                        books ( id, title, author ),
+                                        books ( id, title, author, kind ),
                                         book_images ( storage_key, thumb_key, sort_order, status ) ) )`
     )
     .or(`requester_id.eq.${userId},responder_id.eq.${userId}`)
@@ -133,6 +137,7 @@ export async function getMySwaps(
             author: book.author,
             coverColor: coverColorFor(book.id),
             imageUrl: coverOf(r.book_copies!.book_images),
+            kind: book.kind ?? 'book',
           },
         ]
       })

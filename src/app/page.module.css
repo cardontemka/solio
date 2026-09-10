@@ -253,13 +253,13 @@ html[data-theme='dark'] .hero::before {
   animation: riseIn 0.6s ease-out 0.14s both;
 }
 
-/* The fan deals itself, once every seven seconds.
+/* The fan deals itself, once every three and three quarter seconds.
  *
  * Five covers, five resting places, and each cover steps to the next one — A to
  * B, B to C, and the one at the far right slipping back to the far left. In
- * between it holds perfectly still: 5.25s of stillness, 1.75s of movement, so
- * the eye reads a slow deal rather than a machine turning. Nothing on this page
- * is waiting on it, so it can afford to take its time.
+ * between it holds still: 2.7s of stillness, 1.05s of movement — brisk enough
+ * that a reader who glances at the page sees it happen, slow enough that it
+ * still reads as a deal rather than a shuffle.
  *
  * The curve eases in and out. A pure ease-out starts at full speed, which reads
  * as a flick at this duration; easing in as well means each cover gathers pace,
@@ -276,7 +276,7 @@ html[data-theme='dark'] .hero::before {
  * translateZ instead, and the whole thing moved back to the GPU.
  *
  * The second is the pair of keyframes around each departure — 14.9% and 15%,
- * and so on. The transform holds still across that 35ms and only the depth
+ * and so on. The transform holds still across that 19ms and only the depth
  * changes, so a cover takes on the depth of the slot it is heading for the
  * instant before it sets off, and keeps it for the whole journey. Depth never
  * slides through the values in between, which is what stops two covers from
@@ -347,7 +347,7 @@ html[data-theme='dark'] .hero::before {
 .cover {
   animation:
     fanEnter 0.5s ease-out both,
-    fanDeal 35s cubic-bezier(0.5, 0, 0.2, 1) infinite;
+    fanDeal 18.75s cubic-bezier(0.5, 0, 0.2, 1) infinite;
   /* Promotes each cover once, rather than letting the browser decide again at
      every deal. Five small layers; nothing else on the page asks for one. */
   will-change: transform;
@@ -360,11 +360,11 @@ html[data-theme='dark'] .hero::before {
    itself there. The common -4.25s offset is what brings the first move forward:
    a cover leaves its slot at 15% of 35s, which is 5.25s, so starting the clock
    4.25s in puts the first deal one second after load. */
-.coverA { animation-delay: 0.05s, -4.25s; }
-.coverB { animation-delay: 0.11s, -11.25s; }
-.coverC { animation-delay: 0.17s, -18.25s; }
-.coverD { animation-delay: 0.23s, -25.25s; }
-.coverE { animation-delay: 0.29s, -32.25s; }
+.coverA { animation-delay: 0.05s, -1.9s; }
+.coverB { animation-delay: 0.11s, -5.65s; }
+.coverC { animation-delay: 0.17s, -9.4s; }
+.coverD { animation-delay: 0.23s, -13.15s; }
+.coverE { animation-delay: 0.29s, -16.9s; }
 
 @media (prefers-reduced-motion: reduce) {
   .heroKicker,

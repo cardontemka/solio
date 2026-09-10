@@ -46,3 +46,16 @@
     font-size: 12.5px;
   }
 }
+
+/* Kind first, then the categories that belong to it. */
+.chip[data-kind='true'] {
+  font-weight: 650;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 4px;
+  background: var(--border);
+}

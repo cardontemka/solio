@@ -7,6 +7,81 @@
  * `supabase gen types` widens to `string`.
  */
 
+/**
+ * What a listing is. One catalogue table holds both, because the transaction —
+ * one person's copy, offered, handed over, its history following the copy — is
+ * identical; only the description differs.
+ */
+export const ITEM_KIND = ['book', 'vinyl'] as const
+export type ItemKind = (typeof ITEM_KIND)[number]
+
+/**
+ * The words each kind uses for the same slot in the form and on the card.
+ *
+ * `of` is spelt out rather than glued together from `one` — Mongolian genitive
+ * endings do not follow from the nominative reliably enough to build them in
+ * code, and "Номы" is what you get when you try.
+ */
+export const KIND_COPY: Record<
+  ItemKind,
+  { one: string; of: string; own: string; add: string; title: string; author: string; publisher: string }
+> = {
+  book: {
+    one: 'Ном',
+    of: 'Номын',
+    own: 'номныхоо',
+    add: 'Ном нэмэх',
+    title: 'Номын нэр',
+    author: 'Зохиогч',
+    publisher: 'Хэвлэлийн газар',
+  },
+  vinyl: {
+    one: 'Пянз',
+    of: 'Пянзны',
+    own: 'пянзныхаа',
+    add: 'Пянз нэмэх',
+    title: 'Цомгийн нэр',
+    author: 'Дуучин / хамтлаг',
+    publisher: 'Лейбл',
+  },
+}
+
+/**
+ * The fields that belong to one kind and are only ever displayed.
+ *
+ * They live in `books.attributes`, a jsonb column, rather than in columns of
+ * their own — see the migration for the measurements behind that. This list is
+ * the client half of the same spec the database enforces in
+ * private.item_attribute_spec: adding a kind means a branch here and a branch
+ * there, and no column, parameter or type anywhere.
+ *
+ * The form renders from it and the detail page reads from it, so a new field
+ * appears in both the moment it is added here.
+ */
+export type AttributeSpec = {
+  key: string
+  label: string
+  /** `enum` renders a <select>, `int` a number box, `text` a text box. */
+  type: 'int' | 'enum' | 'text'
+  options?: readonly (string | number)[]
+  min?: number
+  max?: number
+  placeholder?: string
+  /** How the value reads on the detail page — "33 rpm", "12″". */
+  suffix?: string
+}
+
+export const ATTRIBUTES_FOR: Record<ItemKind, readonly AttributeSpec[]> = {
+  book: [
+    { key: 'page_count', label: 'Нүүрний тоо', type: 'int', min: 1, max: 20000, placeholder: '320' },
+  ],
+  vinyl: [
+    { key: 'rpm', label: 'Эргэлт', type: 'enum', options: [33, 45, 78], suffix: ' rpm' },
+    { key: 'disc_size', label: 'Диаметр', type: 'enum', options: ['7', '10', '12'], suffix: '″' },
+    { key: 'track_count', label: 'Дууны тоо', type: 'int', min: 1, max: 200, placeholder: '12' },
+  ],
+}
+
 export const BOOK_CONDITION = ['new', 'like_new', 'good', 'fair', 'poor'] as const
 export type BookCondition = (typeof BOOK_CONDITION)[number]
 
@@ -25,7 +100,24 @@ export const BOOK_CATEGORY = [
   'selfhelp', 'psychology', 'parenting', 'cooking', 'travel', 'sport', 'art',
   'children', 'textbook', 'language', 'reference', 'other',
 ] as const
-export type BookCategory = (typeof BOOK_CATEGORY)[number]
+
+/**
+ * Music genres. The same database domain holds both lists — a category is a
+ * category — and the picker shows the one that belongs to the kind being added.
+ */
+export const VINYL_CATEGORY = [
+  'rock', 'pop', 'jazz', 'classical', 'folk', 'mongolian', 'hiphop', 'electronic',
+  'blues', 'metal', 'country', 'soundtrack', 'world', 'other',
+] as const
+
+export const CATEGORIES_FOR: Record<ItemKind, readonly string[]> = {
+  book: BOOK_CATEGORY,
+  vinyl: VINYL_CATEGORY,
+}
+
+export type BookCategory =
+  | (typeof BOOK_CATEGORY)[number]
+  | (typeof VINYL_CATEGORY)[number]
 
 /** How many headings one book may carry. Mirrors books_categories_len. */
 export const BOOK_CATEGORY_MAX = 5
@@ -86,6 +178,19 @@ export const CATEGORY_LABEL: Record<BookCategory, string> = {
   textbook: 'Сурах бичиг',
   language: 'Гадаад хэл',
   reference: 'Толь бичиг, лавлах',
+  rock: 'Рок',
+  pop: 'Поп',
+  jazz: 'Жааз',
+  classical: 'Сонгодог хөгжим',
+  folk: 'Ардын дуу',
+  mongolian: 'Монгол хөгжим',
+  hiphop: 'Хип хоп, рэп',
+  electronic: 'Электрон',
+  blues: 'Блюз',
+  metal: 'Метал',
+  country: 'Кантри',
+  soundtrack: 'Кино хөгжим',
+  world: 'Дэлхийн хөгжим',
   other: 'Бусад',
 }
 

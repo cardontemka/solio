@@ -1,5 +1,19 @@
+/* Comments used to start immediately under whatever they were about, with the
+   first one sitting against the last line of the page. The rule and the space
+   above it are the seam: what is being discussed ends here, the discussion
+   starts below. */
 .wrap {
+  margin-top: 44px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border);
   margin-bottom: 44px;
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    margin-top: 32px;
+    padding-top: 24px;
+  }
 }
 
 .title {
@@ -378,4 +392,13 @@
 .offeredTitle {
   font-size: 13.5px;
   font-weight: 550;
+}
+
+/* Who a reply answers, when it is not simply the comment at the top. Sits above
+   the words themselves, the way a quote line does. */
+.replyTo {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
 }

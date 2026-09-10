@@ -297,3 +297,81 @@ a.itemTitle:hover {
   font-size: 13px;
   font-weight: 550;
 }
+
+/* The photo a request may carry. Fixed width so a row with one lines up with a
+   row without: the body starts in the same place either way. */
+.itemThumb {
+  flex: none;
+  width: 56px;
+  height: 78px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.itemThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Photo picker on the post form ────────────────────────────────────────── */
+
+/* Kept in the layout and hidden visually: `display: none` stops some mobile
+   browsers from opening the picker at all. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.photoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.photoPreview {
+  width: 44px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.photoButton {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photoButton:hover {
+  border-color: var(--accent);
+}
+
+.photoButton[data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.photoRemove {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.photoRemove:hover:not(:disabled) {
+  color: var(--danger);
+}

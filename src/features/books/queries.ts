@@ -3,7 +3,7 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
 import { avatarUrl } from '@/features/users/avatar'
-import type { BookCategory, BookCondition, CopyStatus } from '@/types/domain'
+import type { BookCategory, BookCondition, CopyStatus, ItemKind } from '@/types/domain'
 
 /**
  * Read side of the books feature.
@@ -67,8 +67,14 @@ export type Listing = {
   language: string | null
   description: string | null
   publishedAt: string | null
+  kind: ItemKind
   categories: BookCategory[]
-  pageCount: number | null
+  /**
+   * The fields that belong to this kind alone — page count for a book, rpm and
+   * disc size for a record. Held in one jsonb column so a new kind adds no
+   * columns; ATTRIBUTES_FOR says how to label and order them.
+   */
+  attributes: Record<string, string | number>
   weightG: number | null
   sizeNote: string | null
   condition: BookCondition
@@ -86,7 +92,7 @@ export type Listing = {
 const LISTING_SELECT = `
   id, condition, condition_note, status, transfer_count, created_at,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at,
-                categories, page_count, weight_g, size_note ),
+                categories, weight_g, size_note, kind, attributes ),
   owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
   book_images ( id, storage_key, thumb_key, sort_order, status )
 `
@@ -109,9 +115,10 @@ type ListingRow = {
         description: string | null
         published_at: string | null
         categories: BookCategory[] | null
-        page_count: number | null
         weight_g: number | null
         size_note: string | null
+        kind: ItemKind
+        attributes: Record<string, string | number> | null
       }
     | {
         id: string
@@ -123,9 +130,10 @@ type ListingRow = {
         description: string | null
         published_at: string | null
         categories: BookCategory[] | null
-        page_count: number | null
         weight_g: number | null
         size_note: string | null
+        kind: ItemKind
+        attributes: Record<string, string | number> | null
       }[]
     | null
   owner:
@@ -156,8 +164,9 @@ function toListing(row: ListingRow): Listing | null {
     language: book.language,
     description: book.description,
     publishedAt: book.published_at,
+    kind: book.kind ?? 'book',
     categories: book.categories ?? [],
-    pageCount: book.page_count,
+    attributes: book.attributes ?? {},
     weightG: book.weight_g,
     sizeNote: book.size_note,
     condition: row.condition,
@@ -203,7 +212,8 @@ export async function getListings(
     limit = 12,
     offset = 0,
     category,
-  }: { limit?: number; offset?: number; category?: string } = {}
+    kind,
+  }: { limit?: number; offset?: number; category?: string; kind?: string } = {}
 ): Promise<Listing[]> {
   const supabase = await createClient()
   let query = supabase
@@ -217,6 +227,7 @@ export async function getListings(
   // table narrows the join, so a listing whose book does not match drops out
   // rather than coming back with books = null.
   if (category) query = query.contains('books.categories', [category])
+  if (kind) query = query.eq('books.kind', kind)
   const { data, error } = await query
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
@@ -230,7 +241,7 @@ export async function getListings(
 export async function searchListings(
   query: string,
   category?: string,
-  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+  { limit = 24, offset = 0, kind }: { limit?: number; offset?: number; kind?: string } = {}
 ): Promise<Listing[]> {
   const q = query.trim()
   if (!q) return []
@@ -240,6 +251,7 @@ export async function searchListings(
     .from('book_copies')
     .select(LISTING_SELECT)
   if (category) builder = builder.contains('books.categories', [category])
+  if (kind) builder = builder.eq('books.kind', kind)
   const { data, error } = await builder
     .or(
       `title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%,` +
@@ -545,6 +557,7 @@ export async function suggestListings(query: string, limit = 7): Promise<Suggest
  */
 export type CatalogueMatch = {
   bookId: string
+  kind: ItemKind
   title: string
   author: string | null
   isbn: string | null
@@ -553,21 +566,26 @@ export type CatalogueMatch = {
   description: string | null
   publishedYear: number | null
   categories: BookCategory[]
-  pageCount: number | null
   weightG: number | null
   sizeNote: string | null
+  attributes: Record<string, string | number>
   /** How many people already list this exact row. */
   copyCount: number
   coverUrl: string | null
 }
 
-export async function suggestCatalogue(query: string, limit = 6): Promise<CatalogueMatch[]> {
+export async function suggestCatalogue(
+  query: string,
+  kind: ItemKind = 'book',
+  limit = 6
+): Promise<CatalogueMatch[]> {
   const q = query.trim()
   if (q.length < 2) return []
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('suggest_catalogue', {
     p_query: q,
     p_limit: limit,
+    p_kind: kind,
   })
   if (error) throw error
 
@@ -581,15 +599,17 @@ export async function suggestCatalogue(query: string, limit = 6): Promise<Catalo
     description: string | null
     published_at: string | null
     categories: string[] | null
-    page_count: number | null
     weight_g: number | null
     size_note: string | null
+    kind: ItemKind
+    attributes: Record<string, string | number> | null
     copy_count: number | string
     cover_key: string | null
   }
   const storage = bookImageStorage()
   return ((data ?? []) as Row[]).map((r) => ({
     bookId: r.id,
+    kind: r.kind ?? 'book',
     title: r.title,
     author: r.author,
     isbn: r.isbn,
@@ -599,9 +619,9 @@ export async function suggestCatalogue(query: string, limit = 6): Promise<Catalo
     // The form asks for a year; the column stores the first of January.
     publishedYear: r.published_at ? Number(r.published_at.slice(0, 4)) : null,
     categories: (r.categories ?? []) as BookCategory[],
-    pageCount: r.page_count,
     weightG: r.weight_g,
     sizeNote: r.size_note,
+    attributes: r.attributes ?? {},
     copyCount: Number(r.copy_count ?? 0),
     coverUrl: r.cover_key ? storage.publicUrl(r.cover_key) : null,
   }))

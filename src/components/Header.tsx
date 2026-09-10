@@ -218,22 +218,26 @@ export function MobileNav({
 
   return (
     <nav className={styles.bottomNav} data-hidden={hidden} aria-label="Үндсэн цэс">
-      {items.map(({ href, label, Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={styles.bottomLink}
-          data-active={isActive(href)}
-        >
-          <span className={styles.bottomIcon}>
-            <Icon size={21} />
-            {href === '/notifications' && unreadCount > 0 && (
-              <span className={styles.bottomBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
-            )}
-          </span>
-          <span>{label}</span>
-        </Link>
-      ))}
+      {items.map(({ href, label, Icon }) => {
+        const unread = href === '/notifications' && unreadCount > 0
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={styles.bottomLink}
+            data-active={isActive(href)}
+            data-unread={unread}
+          >
+            <span className={styles.bottomIcon}>
+              <Icon size={21} />
+              {unread && (
+                <span className={styles.bottomBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </span>
+            <span className={styles.bottomLabel}>{label}</span>
+          </Link>
+        )
+      })}
     </nav>
   )
 }

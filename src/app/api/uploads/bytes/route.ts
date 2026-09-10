@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (!key.startsWith(`avatars/${user.id}/`)) {
       return NextResponse.json({ error: 'Буруу хүсэлт.' }, { status: 403 })
     }
-  } else if (key.startsWith('copies/')) {
+  } else if (key.startsWith('copies/') || key.startsWith('requests/')) {
     // RLS scopes this select, so a key belonging to somebody else's listing
     // simply does not come back.
     // Two keys are legitimate for one pending row: the photo's own, and the

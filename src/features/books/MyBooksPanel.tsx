@@ -59,8 +59,9 @@ export function MyBooksPanel({
                       title={l.title}
                       author={l.author}
                       color={l.coverColor}
-                      src={l.images[0]?.url}
+                      src={l.images[0]?.thumbUrl}
                       size="sm"
+                      kind={l.kind}
                     />
                   </Link>
 

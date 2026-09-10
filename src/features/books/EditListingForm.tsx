@@ -2,7 +2,15 @@
 
 import { useActionState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
-import { BOOK_CONDITION, CONDITION_LABEL, type BookCategory, type BookCondition } from '@/types/domain'
+import {
+  ATTRIBUTES_FOR,
+  BOOK_CONDITION,
+  CONDITION_LABEL,
+  KIND_COPY,
+  type BookCategory,
+  type BookCondition,
+  type ItemKind,
+} from '@/types/domain'
 import { CategoryPicker } from './CategoryPicker'
 import { updateListingAction, type ActionState } from './actions'
 import formStyles from '@/components/forms.module.css'
@@ -19,8 +27,9 @@ export type ListingDraft = {
   language: string | null
   publishedYear: number | null
   description: string | null
+  kind: ItemKind
   categories: BookCategory[]
-  pageCount: number | null
+  attributes: Record<string, string | number>
   weightG: number | null
   sizeNote: string | null
   condition: BookCondition
@@ -36,6 +45,11 @@ export type ListingDraft = {
  * success the action redirects, so there is no success branch to render.
  */
 export function EditListingForm({ listing }: { listing: ListingDraft }) {
+  // The kind is fixed once a listing exists: changing it would strand the fields
+  // of the kind it used to be, and re-listing is the honest way to say "this is
+  // a different thing".
+  const kind = listing.kind
+  const words = KIND_COPY[kind]
   const action = updateListingAction.bind(null, listing.copyId)
   const [state, formAction, pending] = useActionState(action, initial)
   const errors = !state.ok ? state.errors : undefined
@@ -48,8 +62,9 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
         <legend className={styles.legend}>Номын мэдээлэл</legend>
 
         <div className={formStyles.field}>
+          <input type="hidden" name="kind" value={kind} />
           <label className={formStyles.label} htmlFor="title">
-            Номын нэр
+            {words.title}
           </label>
           <input
             className={formStyles.input}
@@ -66,7 +81,7 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
         <div className={formStyles.row}>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="author">
-              Зохиогч
+              {words.author}
             </label>
             <input
               className={formStyles.input}
@@ -80,7 +95,7 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
           </div>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="publisher">
-              Хэвлэлийн газар
+              {words.publisher}
               <span className={formStyles.optional}>заавал биш</span>
             </label>
             <input
@@ -129,21 +144,23 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
           </div>
         </div>
 
-        <div className={formStyles.field}>
-          <label className={formStyles.label} htmlFor="isbn">
-            ISBN
-            <span className={formStyles.optional}>заавал биш</span>
-          </label>
-          <input
-            className={formStyles.input}
-            id="isbn"
-            name="isbn"
-            type="text"
-            inputMode="numeric"
-            defaultValue={listing.isbn ?? ''}
-          />
-          <FieldError errors={errors?.isbn} />
-        </div>
+        {kind === 'book' && (
+          <div className={formStyles.field}>
+            <label className={formStyles.label} htmlFor="isbn">
+              ISBN
+              <span className={formStyles.optional}>заавал биш</span>
+            </label>
+            <input
+              className={formStyles.input}
+              id="isbn"
+              name="isbn"
+              type="text"
+              inputMode="numeric"
+              defaultValue={listing.isbn ?? ''}
+            />
+            <FieldError errors={errors?.isbn} />
+          </div>
+        )}
 
 
         <div className={formStyles.field}>
@@ -151,29 +168,55 @@ export function EditListingForm({ listing }: { listing: ListingDraft }) {
             Ангилал
             <span className={formStyles.optional}>заавал биш</span>
           </span>
-          <CategoryPicker initial={listing.categories} />
+          <CategoryPicker kind={kind} initial={listing.categories} />
           <FieldError errors={errors?.categories} />
         </div>
 
-        <div className={formStyles.row}>
-          <div className={formStyles.field}>
-            <label className={formStyles.label} htmlFor="pageCount">
-              Нүүрний тоо
-              <span className={formStyles.optional}>заавал биш</span>
-            </label>
-            <input
-              className={formStyles.input}
-              id="pageCount"
-              name="pageCount"
-              type="number"
-              min={1}
-              max={20000}
-              inputMode="numeric"
-              placeholder="320"
-              defaultValue={listing.pageCount ?? ''}
-            />
-            <FieldError errors={errors?.pageCount} />
+        {/* Rendered from ATTRIBUTES_FOR, like the add form: one list, one place
+            to add a field when a new kind arrives. */}
+        {ATTRIBUTES_FOR[kind].length > 0 && (
+          <div className={formStyles.row}>
+            {ATTRIBUTES_FOR[kind].map((field) => (
+              <div key={field.key} className={formStyles.field}>
+                <label className={formStyles.label} htmlFor={field.key}>
+                  {field.label}
+                  <span className={formStyles.optional}>заавал биш</span>
+                </label>
+                {field.type === 'enum' ? (
+                  <select
+                    className={formStyles.select}
+                    id={field.key}
+                    name={field.key}
+                    defaultValue={String(listing.attributes[field.key] ?? '')}
+                  >
+                    <option value="">— сонгоогүй —</option>
+                    {field.options?.map((o) => (
+                      <option key={o} value={String(o)}>
+                        {o}
+                        {field.suffix ?? ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className={formStyles.input}
+                    id={field.key}
+                    name={field.key}
+                    type={field.type === 'int' ? 'number' : 'text'}
+                    min={field.min}
+                    max={field.max}
+                    inputMode={field.type === 'int' ? 'numeric' : undefined}
+                    placeholder={field.placeholder}
+                    defaultValue={String(listing.attributes[field.key] ?? '')}
+                  />
+                )}
+                <FieldError errors={errors?.[field.key]} />
+              </div>
+            ))}
           </div>
+        )}
+
+        <div className={formStyles.row}>
           <div className={formStyles.field}>
             <label className={formStyles.label} htmlFor="weightG">
               Жин (грамм)

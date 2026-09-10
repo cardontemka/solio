@@ -21,6 +21,8 @@ export type CommentView = {
   offered: { copyId: string; title: string; imageUrl: string | null } | null
   /** One level only — a reply to a reply attaches to the same parent. */
   replies: CommentView[]
+  /** Whom this reply answers, when it answers somebody other than the root. */
+  replyToName: string | null
 }
 
 export type CommentTarget = { listingId: string } | { requestId: string }
@@ -31,6 +33,7 @@ type Row = {
   created_at: string
   user_id: string
   parent_id: string | null
+  reply_to_id: string | null
   offered_copy_id: string | null
   moderation_status: 'active' | 'hidden' | 'removed'
   offered:
@@ -85,7 +88,7 @@ export async function getComments(
   const query = supabase
     .from('comments')
     .select(
-      `id, body, created_at, user_id, parent_id, offered_copy_id, moderation_status,
+      `id, body, created_at, user_id, parent_id, reply_to_id, offered_copy_id, moderation_status,
        author:profiles!comments_user_id_fkey ( username, display_name, avatar_key ),
        offered:book_copies!comments_offered_copy_id_fkey (
          id, books ( title ), book_images ( storage_key, thumb_key, sort_order, status ) )`
@@ -113,6 +116,7 @@ export async function getComments(
       isHidden: r.moderation_status !== 'active',
       offered: offeredOf(r),
       replies: [],
+      replyToName: null,
     }
   }
 
@@ -123,6 +127,11 @@ export async function getComments(
   for (const r of rows) byId.set(r.id, toView(r))
   for (const r of rows) {
     const view = byId.get(r.id)!
+    // Only worth naming when it is not simply answering the comment at the top
+    // of the thread — otherwise every reply would carry the same redundant line.
+    if (r.reply_to_id && r.reply_to_id !== r.parent_id) {
+      view.replyToName = byId.get(r.reply_to_id)?.authorName ?? null
+    }
     if (r.parent_id && byId.has(r.parent_id)) byId.get(r.parent_id)!.replies.push(view)
     else roots.push(view)
   }

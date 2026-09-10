@@ -111,3 +111,15 @@
     inset: 0;
   }
 }
+
+
+/* A record's photograph is of a square sleeve; 4/5 would letterbox it. */
+.slide[data-kind='vinyl'] {
+  aspect-ratio: 1 / 1;
+}
+
+@supports not (aspect-ratio: 1 / 1) {
+  .slide[data-kind='vinyl']::before {
+    padding-top: 100%;
+  }
+}

@@ -56,6 +56,93 @@
   max-width: 240px;
 }
 
+/* ── Records ──────────────────────────────────────────────────────────────
+   A sleeve is square, and the disc sits inside it with a little of its edge
+   showing. Both are true of the real object, and together they are enough to
+   tell a record from a book at a glance across a grid.
+
+   The wrapper stops clipping so the disc can show past the sleeve, and the
+   sleeve's own rounding and shadow move to ::before — the layer that is
+   actually the cardboard. */
+.cover[data-kind='vinyl'] {
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.cover[data-kind='vinyl'][data-size='lg'] {
+  aspect-ratio: 1 / 1;
+  max-width: 300px;
+}
+
+/* The sleeve: everything the cover used to be, one layer down and 88% wide so
+   the disc has somewhere to appear. */
+.cover[data-kind='vinyl']::before {
+  content: '';
+  position: absolute;
+  inset: 0 12% 0 0;
+  z-index: 2;
+  border-radius: 3px 2px 2px 3px;
+  background: var(--cover);
+  background: linear-gradient(
+    150deg,
+    var(--cover),
+    color-mix(in srgb, var(--cover) 62%, #000)
+  );
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.18s ease;
+}
+
+/* The photo fills the sleeve, not the square. */
+.cover[data-kind='vinyl'] .coverImage {
+  inset: 0 12% 0 0;
+  width: auto;
+  z-index: 3;
+  border-radius: 3px 2px 2px 3px;
+}
+
+.cover[data-kind='vinyl'] .coverText,
+.cover[data-kind='vinyl'] .coverSpine {
+  z-index: 3;
+}
+
+.cover[data-kind='vinyl'] .coverText {
+  right: 12%;
+}
+
+/* The disc. Centred vertically, pushed right so only its edge clears the
+   sleeve; the rings are two radial gradients, which costs no element and no
+   image. */
+.disc {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 1;
+  width: 86%;
+  aspect-ratio: 1 / 1;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #d8cfc4 0 8%, transparent 8.5%),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--cover) 70%, #000) 0 17%, transparent 17.5%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      #1a1614 0 2px,
+      #262020 2px 3px
+    );
+  box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
+}
+
+.card:hover .cover[data-kind='vinyl']::before {
+  box-shadow: var(--shadow-lifted);
+}
+
+.cover[data-size='sm'][data-kind='vinyl'] {
+  width: 52px;
+}
+
 .cover[data-size='sm'] {
   width: 46px;
   border-radius: 4px;
@@ -212,4 +299,19 @@
     position: absolute;
     inset: 0;
   }
+}
+
+/* A record says so; a book is the ordinary case and says nothing. Bottom-left,
+   opposite the status pill, so the two never collide. */
+.kindTag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 78%, transparent);
+  color: var(--surface);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }

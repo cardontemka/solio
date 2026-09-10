@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './BookCard.module.css'
 import type { Listing } from '@/features/books/queries'
-import { CONDITION_LABEL, COPY_STATUS_LABEL } from '@/types/domain'
+import { CONDITION_LABEL, COPY_STATUS_LABEL, KIND_COPY, type ItemKind } from '@/types/domain'
 
 /**
  * Shows the owner's photo when there is one, and a generated placeholder
@@ -23,12 +23,20 @@ export function BookCover({
   src,
   size = 'md',
   priority = false,
+  kind = 'book',
 }: {
   title: string
   author: string | null
   color: string
   src?: string | null
   size?: 'sm' | 'md' | 'lg'
+  /**
+   * A record sleeve is square and a book is not, so the frame follows the kind
+   * rather than one shape being stretched into the other. The disc edge that
+   * shows past the right-hand side is the rest of it: a square photo alone reads
+   * as a cropped book cover.
+   */
+  kind?: ItemKind
   /**
    * Load this one eagerly. Set on the handful of covers that are above the fold:
    * one of them is the page's Largest Contentful Paint, and lazy-loading the
@@ -41,9 +49,14 @@ export function BookCover({
     <div
       className={styles.cover}
       data-size={size}
+      data-kind={kind}
       data-has-image={Boolean(src)}
       style={{ '--cover': color } as React.CSSProperties}
     >
+      {/* Drawn behind the sleeve and clipped by nothing: the sliver on the right
+          is the record itself. Two rings and a label, which is all that reads at
+          this size. */}
+      {kind === 'vinyl' && <span className={styles.disc} aria-hidden="true" />}
       {src ? (
         <Image
           className={styles.coverImage}
@@ -89,12 +102,17 @@ export function BookCard({
           // The card is ~180px wide; the 480px copy covers it on a 2x screen.
           src={listing.images[0]?.thumbUrl}
           priority={priority}
+          kind={listing.kind}
         />
         {/* Only worth saying when it is not the ordinary case. */}
         {listing.status !== 'available' && (
           <span className={styles.status} data-status={listing.status}>
             {COPY_STATUS_LABEL[listing.status]}
           </span>
+        )}
+        {/* Books are the ordinary case here too, so only a record says so. */}
+        {listing.kind !== 'book' && (
+          <span className={styles.kindTag}>{KIND_COPY[listing.kind].one}</span>
         )}
       </div>
       <div className={styles.body}>

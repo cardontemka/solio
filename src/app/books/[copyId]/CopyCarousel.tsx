@@ -10,7 +10,16 @@ type Slide = { id: string; url: string }
  * Touch-swipeable image carousel. Uses CSS scroll-snap for native swipe/drag and
  * exposes arrows + dots that scroll a given slide into view.
  */
-export function CopyCarousel({ images, alt }: { images: Slide[]; alt: string }) {
+export function CopyCarousel({
+  images,
+  alt,
+  kind = 'book',
+}: {
+  images: Slide[]
+  alt: string
+  /** A record sleeve is square; a book jacket is not. */
+  kind?: 'book' | 'vinyl'
+}) {
   const trackRef = useRef<HTMLUListElement>(null)
   const [index, setIndex] = useState(0)
 
@@ -45,7 +54,7 @@ export function CopyCarousel({ images, alt }: { images: Slide[]; alt: string }) 
         aria-label="Зураг"
       >
         {images.map((img, i) => (
-          <li key={img.id} className={styles.slide} data-index={i}>
+          <li key={img.id} className={styles.slide} data-index={i} data-kind={kind}>
             <Image
               src={img.url}
               alt={`${alt} — зураг ${i + 1}`}
