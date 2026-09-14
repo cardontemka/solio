@@ -6,6 +6,7 @@ import { MyRequestsPanel } from '@/features/requests/MyRequestsPanel'
 import { getMyRequests } from '@/features/requests/queries'
 import { SwapsPanel } from '@/features/swaps/SwapsPanel'
 import { getMySwaps } from '@/features/swaps/queries'
+import { PendingClaims } from '@/features/claims/PendingClaims'
 import { requireUser } from '@/lib/auth/dal'
 
 /**
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="container">
+      <PendingClaims />
       <UserDashboard
         initialPanel="books"
         panels={panels}

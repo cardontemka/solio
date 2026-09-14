@@ -2,11 +2,12 @@ import { ButtonLink, PageHeader } from '@/components/ui'
 import { Pager } from '@/components/Pager'
 import { MyBooksPanel } from '@/features/books/MyBooksPanel'
 import { getMyCopies } from '@/features/books/queries'
+import { PendingClaims } from '@/features/claims/PendingClaims'
 import { requireUser } from '@/lib/auth/dal'
 import { pageFrom, splitPage } from '@/lib/paging'
 
 export const metadata = {
-  title: 'Миний номнууд',
+  title: 'Миний цуглуулга',
   robots: { index: false, follow: false },
 }
 
@@ -24,10 +25,11 @@ export default async function MyBooksPage({ searchParams }: PageProps<'/my-books
   return (
     <div className="container">
       <PageHeader
-        title="Миний номнууд"
-        subtitle="Номоо нэмэх, түр нуух боломжтой."
+        title="Миний цуглуулга"
+        subtitle="Ном, пянзаа нэмэх, түр нуух, шошго хэвлэх боломжтой."
         action={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
+      <PendingClaims />
       <MyBooksPanel
         copies={copies}
         emptyAction={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}

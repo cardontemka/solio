@@ -76,6 +76,13 @@ export function MyBooksPanel({
                         {COPY_STATUS_LABEL[l.status]}
                       </Badge>
                       {l.transferCount > 0 && <Badge>{l.transferCount} удаа солигдсон</Badge>}
+                      {/* Which of your own things are not in the house. The one
+                          question this list cannot answer without it. */}
+                      {l.storedAt && (
+                        <Link href={`/u/${l.storedAt.username}`} className={styles.stored}>
+                          📍 {l.storedAt.name}
+                        </Link>
+                      )}
                       <span className={styles.date}>{l.createdAt}-нд нэмсэн</span>
                     </div>
                     {l.conditionNote && <p className={styles.note}>{l.conditionNote}</p>}

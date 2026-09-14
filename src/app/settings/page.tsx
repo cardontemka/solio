@@ -1,7 +1,9 @@
 import { PageHeader } from '@/components/ui'
+import { getStoragePointFor } from '@/features/storage/queries'
 import { requireUser } from '@/lib/auth/dal'
 import { createClient } from '@/lib/supabase/server'
 import { SettingsForm } from './SettingsForm'
+import { StoragePointForm } from './StoragePointForm'
 import { PasswordForm } from './PasswordForm'
 import styles from './page.module.css'
 
@@ -23,6 +25,12 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser()
   const hasPassword = (user?.identities ?? []).some((i) => i.provider === 'email')
 
+  // Only a venue has premises to edit. Asked for by account type rather than by
+  // trying the query on everybody: an ordinary reader has no row here and never
+  // needs the round trip.
+  const point =
+    me.accountType === 'storage_point' ? await getStoragePointFor(me.id, me.username) : null
+
   return (
     <div className="container">
       <div className={styles.shell}>
@@ -37,6 +45,7 @@ export default async function SettingsPage() {
           city={me.city}
           avatarUrl={me.avatarUrl}
         />
+        {point && <StoragePointForm point={point} />}
         <PasswordForm hasPassword={hasPassword} />
       </div>
     </div>

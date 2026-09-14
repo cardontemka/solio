@@ -139,6 +139,45 @@ select b.id, o.owner, o.owner, o.cond, o.note, o.st, now() - (o.age || ' days'):
     ('Clean Code','33333333-3333-3333-3333-333333333333'::uuid,'good',null,'available',14)
   ) as o(title, owner, cond, note, st, age) on o.title = b.title;
 
+-- ── Demo records ──────────────────────────────────────────────────────────
+-- Vinyl exists in the catalogue the moment a second kind was added, and a seed
+-- with only books hides every place that assumes one. Three of them, with the
+-- per-kind attributes filled in, so the detail page and the square cover both
+-- have something real to render.
+with new_vinyl as (
+  insert into public.books (title, author, publisher, language, description,
+                            published_at, kind, categories, attributes,
+                            created_by, created_at)
+  values
+   ('Kind of Blue','Miles Davis','Columbia','en',
+    'Жаазны түүхэн дэх хамгийн их борлуулалттай цомог. 1959 оны бичлэг.',
+    '1959-08-17','vinyl', array['jazz']::public.book_category[],
+    '{"rpm": 33, "disc_size": "12", "track_count": 5}'::jsonb,
+    '11111111-1111-1111-1111-111111111111', now() - interval '3 days'),
+   ('Алтан загас','Хар сарнай','Ардын хэвлэл','mn',
+    'Монголын рок хөгжмийн сонгодог цомог, анхны хэвлэл.',
+    '1994-05-01','vinyl', array['rock','mongolian']::public.book_category[],
+    '{"rpm": 33, "disc_size": "12", "track_count": 10}'::jsonb,
+    '22222222-2222-2222-2222-222222222222', now() - interval '4 days'),
+   ('Abbey Road','The Beatles','Apple Records','en',
+    '1969 оны цомог. Хавтас нь бага зэрэг элэгдэлтэй, пянз нь цэвэрхэн.',
+    '1969-09-26','vinyl', array['rock','pop']::public.book_category[],
+    '{"rpm": 33, "disc_size": "12", "track_count": 17}'::jsonb,
+    '33333333-3333-3333-3333-333333333333', now() - interval '6 days')
+  returning id, title
+)
+insert into public.book_copies (book_id, owner_id, custodian_id, condition,
+                                condition_note, status, created_at)
+select v.id, o.owner, o.owner, o.cond, o.note, 'available', now() - (o.age || ' days')::interval
+  from new_vinyl v
+  join (values
+    ('Kind of Blue','11111111-1111-1111-1111-111111111111'::uuid,'good',
+     'Хавтас нь бага зэрэг цайсан, пянз дээр зураас алга.',3),
+    ('Алтан загас','22222222-2222-2222-2222-222222222222'::uuid,'fair',
+     'Хоёр дуун дээр бага зэрэг шаржигнана.',4),
+    ('Abbey Road','33333333-3333-3333-3333-333333333333'::uuid,'like_new',null,6)
+  ) as o(title, owner, cond, note, age) on o.title = v.title;
+
 -- Every copy needs the opening entry of its ownership chain.
 insert into public.ownership_events (book_copy_id, from_owner_id, to_owner_id,
                                      event_type, actor_id, occurred_at)
@@ -239,3 +278,70 @@ select c.id, v.user_id, v.body
  where c.owner_id is distinct from v.user_id
    and c.id = (select c2.id from public.book_copies c2
                 where c2.book_id = b.id order by c2.created_at limit 1);
+
+-- ── Demo storage points ───────────────────────────────────────────────────
+-- Two venues, because one of everything hides the questions a list has to
+-- answer: they sort by city, and a listing has to say which of them holds it.
+-- Created through the same signup metadata a real café goes through, so the
+-- trigger that builds the premises row is exercised by every reset.
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                        email_confirmed_at, created_at, updated_at,
+                        raw_app_meta_data, raw_user_meta_data,
+                        confirmation_token, recovery_token,
+                        email_change_token_new, email_change,
+                        email_change_token_current, phone_change,
+                        phone_change_token, reauthentication_token)
+values
+ ('77777777-7777-7777-7777-777777777777','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','nomyn_kafe@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"nomyn_kafe","account_type":"storage_point",
+    "sp_name":"Номын Кафе","sp_kind":"cafe",
+    "sp_city":"Улаанбаатар","sp_district":"Сүхбаатар дүүрэг",
+    "sp_address":"1-р хороо, Сеулын гудамж 12, Оргил төв, 1 давхар",
+    "sp_landmark":"Улсын номын сангийн урд талд",
+    "sp_phone":"9911 2233","sp_hours":"Даваа–Баасан 09:00–21:00, Бямба 10:00–18:00",
+    "sp_capacity":"150","sp_website":"https://example.invalid/nomynkafe",
+    "sp_description":"[DEMO] Кафены хоёрдугаар давхарт номын тавиур бий. Ирж уншиж болно."}',
+  '', '', '', '', '', '', '', ''),
+ ('88888888-8888-8888-8888-888888888888','00000000-0000-0000-0000-000000000000',
+  'authenticated','authenticated','erdenet_nomin@example.invalid',
+  extensions.crypt('demo1234', extensions.gen_salt('bf')), now(), now(), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"username":"erdenet_nomin","account_type":"storage_point",
+    "sp_name":"Эрдэнэт Номын Сан","sp_kind":"library",
+    "sp_city":"Эрдэнэт","sp_district":"Баянөндөр сум",
+    "sp_address":"4-р баг, Соёлын ордны баруун жигүүр",
+    "sp_phone":"7035 4400","sp_hours":"Даваа–Бямба 10:00–19:00",
+    "sp_capacity":"400",
+    "sp_description":"[DEMO] Номын сангийн бүртгэлээр хадгална."}',
+  '', '', '', '', '', '', '', '');
+
+insert into auth.identities (id, user_id, provider_id, provider, identity_data,
+                             created_at, updated_at, last_sign_in_at)
+select u.id, u.id, u.id::text, 'email',
+       jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+       now(), now(), now()
+  from auth.users u
+ where u.id in ('77777777-7777-7777-7777-777777777777',
+                '88888888-8888-8888-8888-888888888888');
+
+-- Three books are already sitting on somebody else's shelf. Each is left with a
+-- venue in the owner's own city, because that is the only arrangement that
+-- makes sense in practice and demo data that reads as implausible gets trusted
+-- less than none. Written directly rather than through set_stored_at(), which
+-- reads auth.uid() and has no session here.
+update public.book_copies c set
+  stored_at = (select id from public.storage_points where name = v.venue),
+  stored_since = now() - v.ago
+ from (values
+   ('22222222-2222-2222-2222-222222222222'::uuid, 'Монголын нууц товчоо',
+    'Номын Кафе', interval '9 days'),
+   ('11111111-1111-1111-1111-111111111111'::uuid, 'The Hobbit',
+    'Номын Кафе', interval '3 days'),
+   ('44444444-4444-4444-4444-444444444444'::uuid, 'Зөгийн балны амт',
+    'Эрдэнэт Номын Сан', interval '21 days')
+ ) as v(owner_id, title, venue, ago)
+ join public.books b on b.title = v.title
+ where c.owner_id = v.owner_id and c.book_id = b.id;

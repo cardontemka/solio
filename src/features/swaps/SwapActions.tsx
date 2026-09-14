@@ -31,31 +31,31 @@ function buttonsFor(
   iConfirmed: boolean,
   blocked: boolean
 ): { kind: Kind; label: string; primary?: boolean }[] {
+  // Nothing here cancels. An offer is a promise, and the only way out of one is
+  // the responder declining it before they accept — or the swap becoming
+  // impossible, which is the `blocked` branch below and the sole case where the
+  // database still allows it.
   switch (status) {
     case 'REQUESTED':
-      return direction === 'incoming'
-        ? [
-            { kind: 'accept', label: 'Хүлээн авах', primary: true },
-            { kind: 'reject', label: 'Татгалзах' },
-          ]
-        : [{ kind: 'cancel', label: 'Цуцлах' }]
+      if (direction === 'incoming') {
+        return [
+          { kind: 'accept', label: 'Хүлээн авах', primary: true },
+          { kind: 'reject', label: 'Татгалзах' },
+        ]
+      }
+      return blocked ? [{ kind: 'cancel', label: 'Хаах', primary: true }] : []
     case 'ACCEPTED':
       return [
         { kind: 'confirm', label: 'Биечлэн авсныг баталгаажуулах', primary: true },
-        { kind: 'cancel', label: 'Цуцлах' },
+        ...(blocked ? ([{ kind: 'cancel', label: 'Хаах' }] as const) : []),
       ]
     case 'CONFIRMED':
-      // Confirming is an assertion about the physical world, and the person who
-      // made it used to be left with no buttons at all — if the other side never
-      // answered, or a book in the swap disappeared, the swap could not be
-      // finished or abandoned by anyone. Withdrawing your own confirmation is
-      // not backing out of somebody else's, so it is offered here.
-      if (iConfirmed) {
-        return [{ kind: 'cancel', label: 'Баталгаажуулалтаа буцаах' }]
-      }
-      return blocked
-        ? // Nothing left to hand over, so the only useful move is to close it.
-          [{ kind: 'cancel', label: 'Цуцлах', primary: true }]
+      // Nothing left to hand over, so the only useful move is to close it.
+      if (blocked) return [{ kind: 'cancel', label: 'Хаах', primary: true }]
+      // The one who confirmed is waiting on the other; there is nothing for
+      // them to press, and no longer anything to withdraw.
+      return iConfirmed
+        ? []
         : [{ kind: 'confirm', label: 'Хүлээн авсныг баталгаажуулах', primary: true }]
     default:
       return []
@@ -85,8 +85,8 @@ export function SwapActions({
     <div className={styles.actions}>
       {blocked && status !== 'COMPLETED' && status !== 'CANCELLED' && status !== 'REJECTED' && (
         <p className={styles.actionNote}>
-          Энэ солилцоон дахь ном өөрчлөгдсөн байна — өмчлөгч нь солигдсон, өөр солилцоонд
-          орсон, эсвэл устсан. Дуусгах боломжгүй тул цуцлана уу.
+          Энэ солилцоон дахь зүйл өөрчлөгдсөн байна — өмчлөгч нь солигдсон, өөр солилцоонд
+          орсон, эсвэл устсан. Дуусгах боломжгүй тул хаана уу.
         </p>
       )}
       {buttons.map((b) => (

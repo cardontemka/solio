@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { storagePointFrom, storagePointMetadata } from '@/features/storage/schema'
+import { ACCOUNT_TYPE } from '@/types/domain'
 import { publicEnv } from '@/lib/validation/env'
 import { bookImageStorage } from '@/lib/storage'
 import { sniffMime } from '@/lib/storage/verify'
@@ -55,11 +57,17 @@ const PASSWORD_RULE = z
   .max(72, 'Нууц үг 72 тэмдэгтээс их байж болохгүй.')
 
 const registerSchema = z.object({
+  /**
+   * A person, or a place that holds books for people. The second one asks for
+   * a page of premises further down the form and takes its display name from
+   * the venue's name, so this decides what "Нэр" even means here.
+   */
+  accountType: z.enum(ACCOUNT_TYPE).default('person'),
   displayName: z
     .string()
     .trim()
-    .min(1, 'Харагдах нэрээ бичнэ үү.')
-    .max(60, 'Харагдах нэр 60 тэмдэгтээс их байж болохгүй.'),
+    .max(60, 'Харагдах нэр 60 тэмдэгтээс их байж болохгүй.')
+    .optional(),
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
   password: PASSWORD_RULE,
   passwordConfirm: z.string().min(1, 'Нууц үгээ дахин бичнэ үү.'),
@@ -70,6 +78,12 @@ const registerSchema = z.object({
     path: ['passwordConfirm'],
     message: 'Хоёр нууц үг таарахгүй байна.',
   })
+  // A venue is named by the box that says "Байгууллагын нэр", so this one is
+  // only asked of a person.
+  .refine((v) => v.accountType === 'storage_point' || (v.displayName ?? '').length > 0, {
+    path: ['displayName'],
+    message: 'Харагдах нэрээ бичнэ үү.',
+  })
 
 const loginSchema = z.object({
   email: z.string().trim().min(1, 'Email хаягаа бичнэ үү.').email(EMAIL_MESSAGE),
@@ -78,6 +92,7 @@ const loginSchema = z.object({
 
 export async function registerAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = registerSchema.safeParse({
+    accountType: formData.get('accountType') ?? 'person',
     displayName: formData.get('displayName') ?? '',
     email: formData.get('email') ?? '',
     password: formData.get('password') ?? '',
@@ -94,6 +109,28 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     }
   }
 
+  // The premises, when this is a venue signing up. Checked before the account
+  // is created rather than after: a café whose address failed validation would
+  // otherwise end up with a login and no page, and no way back into this form.
+  const isPoint = parsed.data.accountType === 'storage_point'
+  const point = isPoint ? storagePointFrom(formData) : null
+  if (point && !point.success) {
+    const flat = point.error.flatten().fieldErrors as Record<string, string[]>
+    const errors: Record<string, string[]> = {}
+    for (const [key, value] of Object.entries(flat)) errors[`sp_${key}`] = value
+    return {
+      ok: false,
+      errors,
+      values: {
+        displayName: String(formData.get('displayName') ?? ''),
+        email: parsed.data.email,
+      },
+    }
+  }
+
+  const displayName =
+    point?.success ? point.data.name : (parsed.data.displayName ?? '')
+
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signUp({
@@ -104,13 +141,21 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
       // username: the trigger derives one from the address and settles any
       // collision with a numeric suffix, which is the same path a Google signup
       // takes. Nobody is asked to invent a handle to get through this form.
-      data: { display_name: parsed.data.displayName },
+      //
+      // The premises travel the same way, because with confirmations on there
+      // is no session to write them with until the address is confirmed — the
+      // trigger writes both rows in one transaction instead.
+      data: {
+        display_name: displayName,
+        account_type: parsed.data.accountType,
+        ...(point?.success ? storagePointMetadata(point.data) : {}),
+      },
       emailRedirectTo: `${publicEnv.siteUrl.replace(/\/+$/, '')}/api/auth/callback`,
     },
   })
 
   const keep = {
-    displayName: parsed.data.displayName,
+    displayName: displayName,
     email: parsed.data.email,
   }
 

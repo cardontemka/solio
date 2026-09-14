@@ -25,7 +25,7 @@ function PeopleResults({ people }: { people: ProfileResult[] }) {
                 <span className={styles.personName}>{p.displayName}</span>
                 <span className={styles.personMeta}>
                   @{p.username}
-                  {p.city ? ` · ${p.city}` : ''} · {p.listingCount} ном
+                  {p.city ? ` · ${p.city}` : ''} · {p.listingCount} нээлттэй
                 </span>
               </span>
             </Link>
@@ -117,8 +117,8 @@ async function ExploreSections({
   if (listings.length === 0) {
     return (
       <EmptyState
-        title="Одоогоор ном байхгүй байна"
-        description="Эхний номыг нэмсэн хүн та байж болно."
+        title="Одоогоор юу ч байхгүй байна"
+        description="Эхнийхийг нь нэмсэн хүн та байж болно."
       />
     )
   }

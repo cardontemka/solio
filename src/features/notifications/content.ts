@@ -6,6 +6,7 @@ export type NotificationType =
   | 'swap_requested' | 'swap_accepted' | 'swap_rejected' | 'swap_cancelled'
   | 'swap_confirmed' | 'swap_completed'
   | 'comment_received' | 'report_filed' | 'report_resolved' | 'moderation_action'
+  | 'claim_requested' | 'claim_approved' | 'claim_rejected'
 
 export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?: string }> = {
   swap_requested: {
@@ -36,6 +37,15 @@ export const NOTIFICATION_COPY: Record<NotificationType, { title: string; body?:
   },
   report_resolved: { title: 'Таны гомдол шийдвэрлэгдлээ' },
   moderation_action: { title: 'Модерацийн шийдвэр' },
+  claim_requested: {
+    title: 'Хэн нэгэн таны зүйлийг авлаа гэж байна',
+    body: 'Зөвшөөрөх эсэхийг шийднэ үү — зөвшөөрснөөр байршил эсвэл эзэмшил шилжинэ.',
+  },
+  claim_approved: {
+    title: 'Хүсэлтийг тань зөвшөөрлөө',
+    body: 'Тухайн зүйл одоо таны бүртгэлд байна.',
+  },
+  claim_rejected: { title: 'Хүсэлтээс тань татгалзлаа' },
 }
 
 /**

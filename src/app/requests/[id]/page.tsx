@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<'/requests/[id]'>) 
   const request = await load(id, null)
   if (!request) return { title: 'Хүсэлт олдсонгүй' }
   return {
-    title: `${request.title} — ном хүсэлт`,
+    title: `${request.title} — ном сураглал`,
     description: request.note ?? undefined,
   }
 }
@@ -45,7 +45,7 @@ export default async function RequestPage({ params }: PageProps<'/requests/[id]'
       <div className={styles.shell}>
         <nav className={styles.crumbs}>
           <Link href="/">Нүүр</Link> <span>/</span>
-          <Link href="/requests">Ном хүсэх</Link> <span>/</span>
+          <Link href="/requests">Сураглах</Link> <span>/</span>
           <span className={styles.crumbCurrent}>{request.title}</span>
         </nav>
 
@@ -87,6 +87,8 @@ export default async function RequestPage({ params }: PageProps<'/requests/[id]'
         </article>
 
         <CommentSection
+          subject="сураглал"
+          subjectOf="сураглалын"
           target={{ requestId: request.id }}
           path={`/requests/${request.id}`}
           comments={comments}

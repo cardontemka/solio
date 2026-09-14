@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { rememberNext } from './oauthNext'
 import styles from '@/components/forms.module.css'
 
 /**
@@ -23,11 +24,16 @@ export function GoogleButton({ next = '/my-books' }: { next?: string }) {
         onClick={async () => {
           setPending(true)
           setError(null)
+          // The destination travels in a cookie, not on the URL: a redirect
+          // with a query string fails an exact allow-list entry, and the
+          // provider then quietly sends the code to the project's Site URL
+          // instead of back here. See oauthNext.ts.
+          rememberNext(next)
           const supabase = createClient()
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-              redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
+              redirectTo: `${window.location.origin}/api/auth/callback`,
               // Without this Google silently reuses whichever account is
               // already signed in, so anyone with more than one — or sharing a
               // browser — gets logged into the wrong one with no way to say so.

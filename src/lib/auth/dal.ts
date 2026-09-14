@@ -13,6 +13,10 @@ export type SessionUser = {
   city: string | null
   avatarUrl: string | null
   accountStatus: string
+  /** A person, or a venue that holds other people's books. */
+  accountType: 'person' | 'storage_point'
+  /** Credits: one earned per book given to a storage point, one spent per book taken. */
+  credits: number
   /** Moderator or admin. Carried here because the shell needs it every page. */
   isStaff: boolean
   unreadCount: number
@@ -47,8 +51,10 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
         city: string | null
         avatar_key: string | null
         account_status: string
+        account_type: string
         is_staff: boolean
         unread_count: number
+        credits: number
       }
     | undefined
   if (!row) return null
@@ -61,6 +67,8 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     city: row.city,
     avatarUrl: avatarUrl(row.avatar_key),
     accountStatus: row.account_status,
+    accountType: row.account_type === 'storage_point' ? 'storage_point' : 'person',
+    credits: row.credits ?? 0,
     isStaff: row.is_staff,
     unreadCount: row.unread_count,
   }

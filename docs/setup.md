@@ -100,14 +100,31 @@ feature/*   ← ажлын branch, жишээ: feature/swap-completion
    - **Enable Email provider** — асаалттай эсэхийг шалга
    - **Confirm email** — ✅ **АСАА** (brief §20 email verification шаардсан)
 2. **Authentication → URL Configuration**:
-   - **Site URL:** `http://localhost:3000` (production-д `https://solio.mn` болгож солино)
-   - **Redirect URLs** — дараах хоёрыг нэм:
+   - **Site URL:** production-ын хаяг (жишээ `https://solio-alpha.vercel.app`, домэйн
+     амьдарсны дараа `https://solio.mn`). Энэ нь зөвшөөрөгдөөгүй redirect бүрийн
+     **нөөц хаяг** болдог тул буруу байвал хүн огт өөр сайт дээр очно.
+   - **Redirect URLs** — хаяг бүрийг **`/**` төгсгөлтэй** нэм:
      ```
-     http://localhost:3000/api/auth/callback
-     https://solio.mn/api/auth/callback
+     http://localhost:3000/**
+     https://solio.mn/**
+     https://www.solio.mn/**
+     https://solio-alpha.vercel.app/**
      ```
-   ⚠️ Энэ жагсаалт дутуу бол email баталгаажуулалт "requested path is invalid" алдаа өгнө.
-3. **Authentication → Policies → Password**: хамгийн багадаа 8 тэмдэгт.
+   ⚠️ **Яг таарах бичлэг (`…/api/auth/callback`) битгий ашигла.** GoTrue энэ
+   жагсаалтыг query string-тэй нь хамт тааруулдаг: `?next=/my-books` гэсэн нэг
+   параметр нэмэгдэхэд таарахаа болиод, кодыг Site URL руу явуулна. Тэгэхээр
+   PKCE verifier cookie нэг хаяг дээр, код нөгөө хаяг дээр очиж
+   "Баталгаажуулах холбоосын хугацаа дууссан" гэсэн алдаа **байнга** гарна.
+   Апп өөрөө одоо redirect дээрээ query дамжуулдаггүй ([oauthNext.ts](../src/features/users/oauthNext.ts)),
+   гэхдээ preview deployment болон өөр порт дээр ажиллахын тулд `/**` хэвээр
+   хэрэгтэй.
+3. **Authentication → Providers → Google** (сонголт):
+   - Google Cloud Console → **APIs & Services → Credentials → OAuth client ID**
+     (Web application) үүсгэ.
+   - **Authorized redirect URI** нь Supabase-ынх: `https://<ref>.supabase.co/auth/v1/callback`
+     (манай сайтын хаяг БИШ).
+   - Client ID + Secret-ийг Supabase-ийн Google provider дээр тавиад **Enable**.
+4. **Authentication → Policies → Password**: хамгийн багадаа 8 тэмдэгт.
 
 ---
 
@@ -333,7 +350,9 @@ Bucket → **Settings** → **CORS Policy** → **Add CORS policy**:
    түүнийг Cloudflare DNS дээр нэм (proxy status **Proxied** буюу улбар шар үүл).
 7. Deploy хийсний дараа **Supabase → Authentication → URL Configuration** руу буцаж:
    - Site URL → `https://solio.mn`
-   - Redirect URLs → `https://solio.mn/api/auth/callback` нэмэгдсэн эсэхийг шалга.
+   - Redirect URLs → `https://solio.mn/**`, `https://www.solio.mn/**` нэмэгдсэн эсэхийг
+     шалга (§2.4 — `/**`-гүй яг таарах бичлэг нэвтрэлтийг эвддэг).
+8. **NEXT_PUBLIC_SITE_URL** environment variable нь Site URL-тэй яг ижил байх ёстой.
 
 ---
 

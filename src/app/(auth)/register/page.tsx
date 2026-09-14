@@ -18,7 +18,7 @@ export default async function RegisterPage({ searchParams }: PageProps<'/registe
         <div className={styles.authCard}>
           <h1 className={styles.authTitle}>Бүртгүүлэх</h1>
           <p className={styles.authSubtitle}>
-            Номоо бүртгэж, солилцоо эхлүүлэхийн тулд хаяг үүсгэнэ үү.
+            Ном, пянзаа бүртгэж солилцоо эхлүүлэх — эсвэл ном хадгалах цэгээ бүртгүүлэх.
           </p>
 
           <RegisterForm next={nextPath} />

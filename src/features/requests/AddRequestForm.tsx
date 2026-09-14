@@ -77,7 +77,7 @@ export function AddRequestForm() {
       setPhase('uploading')
       const up = await uploadImageToRequest(result.id, picked.file)
       if (!up.ok) {
-        setImageError(`Хүсэлт нийтлэгдлээ. Зураг орсонгүй — ${up.message}`)
+        setImageError(`Сураглал нийтлэгдлээ. Зураг орсонгүй — ${up.message}`)
         setPhase('idle')
         form.reset()
         setPicked(null)
@@ -98,11 +98,11 @@ export function AddRequestForm() {
   return (
     <form ref={formRef} onSubmit={onSubmit} className={styles.addForm}>
       {!state.ok && <FormMessage message={state.message} />}
-      {state.ok && <p className={styles.posted}>✓ Хүсэлт нийтлэгдлээ.</p>}
+      {state.ok && <p className={styles.posted}>✓ Сураглал нийтлэгдлээ.</p>}
 
       <div className={formStyles.field}>
         <label className={formStyles.label} htmlFor="req-title">
-          Ямар ном хайж байна?
+          Юу сураглаж байна?
         </label>
         <input
           className={formStyles.input}
@@ -219,7 +219,7 @@ export function AddRequestForm() {
             ? 'Нийтэлж байна…'
             : phase === 'uploading'
               ? 'Зураг байршуулж байна…'
-              : 'Хүсэлт нийтлэх'}
+              : 'Сураглал нийтлэх'}
         </button>
       </div>
     </form>

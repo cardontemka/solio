@@ -104,7 +104,7 @@ export function SettingsForm({
           name="bio"
           maxLength={500}
           defaultValue={bio ?? ''}
-          placeholder="Ямар номд дуртай, юу хайж байгаа…"
+          placeholder="Юунд дуртай, юу хайж байгаа…"
         />
         <FieldError errors={errors?.bio} />
       </div>

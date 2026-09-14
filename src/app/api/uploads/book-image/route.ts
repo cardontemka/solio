@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
         ? 409
         : 400
     const message = status === 403
-      ? 'Зөвхөн өөрийн номдоо зураг нэмнэ.'
+      ? 'Зөвхөн өөрийн бүртгэлдээ зураг нэмнэ.'
       : status === 409
-        ? 'Нэг номд хамгийн ихдээ 8 зураг нэмэх боломжтой.'
+        ? 'Нэг бүртгэлд хамгийн ихдээ 8 зураг нэмэх боломжтой.'
         : 'Зураг нэмэх боломжгүй байна.'
     return NextResponse.json({ error: message }, { status })
   }

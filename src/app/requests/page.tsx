@@ -8,8 +8,8 @@ import { pageFrom, splitPage } from '@/lib/paging'
 import styles from './page.module.css'
 
 export const metadata = {
-  title: 'Ном хүсэх',
-  description: 'Хэрэглэгчид хайж байгаа номнууд. Тухайн ном байвал доор нь хариу бичээрэй.',
+  title: 'Сураглах',
+  description: 'Хэрэглэгчид сураглаж байгаа ном, пянз. Танд байвал доор нь хариу бичээрэй.',
 }
 
 const PER_PAGE = 20
@@ -26,16 +26,16 @@ export default async function RequestsPage({ searchParams }: PageProps<'/request
   return (
     <div className="container">
       <PageHeader
-        title="Ном хүсэх"
-        subtitle="Хэн ямар ном хайж байна. Тэр ном танд байвал доор нь хариу бичээрэй."
+        title="Сураглах"
+        subtitle="Хэн юу сураглаж байна. Танд байвал доор нь хариу бичээрэй."
       />
 
       <div className={styles.layout}>
         <div className={styles.main}>
           {requests.length === 0 ? (
             <EmptyState
-              title="Одоогоор хүсэлт байхгүй"
-              description="Хайж буй номоо хамгийн эхэлж нийтлэх хүн та байж болно."
+              title="Одоогоор сураглал байхгүй"
+              description="Хамгийн эхэлж сураглал нийтлэх хүн та байж болно."
             />
           ) : (
             <RequestList requests={requests} />
@@ -46,17 +46,17 @@ export default async function RequestsPage({ searchParams }: PageProps<'/request
         <aside className={styles.aside}>
           {me ? (
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Ном хүсэх</h2>
+              <h2 className={styles.cardTitle}>Сураглах</h2>
               <p className={styles.cardDesc}>
-                Хайж буй номоо нийтэлнэ. Бусад хэрэглэгч доор нь хариу бичнэ.
+                Сураглаж буй ном, пянзаа нийтэлнэ. Бусад хэрэглэгч доор нь хариу бичнэ.
               </p>
               <AddRequestForm />
             </div>
           ) : (
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Ном хүсэх</h2>
+              <h2 className={styles.cardTitle}>Сураглах</h2>
               <p className={styles.cardDesc}>
-                Хүсэлт нийтлэхийн тулд нэвтэрнэ үү.
+                Сураглал нийтлэхийн тулд нэвтэрнэ үү.
               </p>
             </div>
           )}

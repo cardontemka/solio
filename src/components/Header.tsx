@@ -16,6 +16,7 @@ import {
   ChevronDownIcon,
   LogOutIcon,
   PanelIcon,
+  PinIcon,
   SettingsIcon,
   SwapIcon,
   UserIcon,
@@ -30,7 +31,7 @@ import styles from './Header.module.css'
  */
 const NAV = [
   { href: '/', label: 'Нүүр', Icon: HomeIcon },
-  { href: '/requests', label: 'Ном хүсэх', Icon: HeartIcon },
+  { href: '/requests', label: 'Сураглах', Icon: HeartIcon },
 ] as const
 
 export type HeaderUser = { displayName: string; username: string; avatarUrl: string | null } | null
@@ -266,11 +267,15 @@ function Menu({
       </Link>
       <Link href="/my-books" className={styles.menuItem} onClick={onNavigate}>
         <BookIcon size={17} />
-        Миний номнууд
+        Миний цуглуулга
       </Link>
       <Link href="/swaps" className={styles.menuItem} onClick={onNavigate}>
         <SwapIcon size={17} />
         Солилцоо
+      </Link>
+      <Link href="/storage-points" className={styles.menuItem} onClick={onNavigate}>
+        <PinIcon size={17} />
+        Хадгалах цэгүүд
       </Link>
 
       <div className={styles.menuDivider} role="separator">

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthHashNotice } from '@/features/users/AuthHashNotice'
 import { GoogleButton } from '@/features/users/GoogleButton'
 import { LoginForm } from '@/features/users/LoginForm'
 import styles from '@/components/forms.module.css'
@@ -8,12 +9,22 @@ export const metadata = {
   robots: { index: false, follow: false },
 }
 
-/** Messages for the codes /api/auth/callback can redirect back with. */
+/**
+ * Messages for the codes /api/auth/callback can redirect back with.
+ *
+ * `missing_code` is deliberately quiet: the usual reason for arriving without
+ * one is a link whose real complaint is in the URL fragment, which
+ * AuthHashNotice reads and states precisely. Repeating a guess underneath it
+ * would be two contradictory explanations of one failure.
+ */
 const CALLBACK_ERROR: Record<string, string> = {
   provider: 'Нэвтрэх үйлчилгээ татгалзлаа. Дахин оролдоно уу.',
-  missing_code: 'Баталгаажуулах холбоос бүрэн бус байна. Шинэ холбоос хүсэх шаардлагатай.',
   exchange:
     'Баталгаажуулах холбоосын хугацаа дууссан эсвэл аль хэдийн ашиглагдсан байна. Дахин илгээнэ үү.',
+  other_origin:
+    'Нэвтрэлт өөр хаягаас эхэлсэн тул энд дуусгаж чадсангүй. Эхлүүлсэн хаягаараа дахин ' +
+    'оролдоно уу — асуудал давтагдвал Supabase → Authentication → URL Configuration дээр ' +
+    'энэ хаягийг Redirect URLs-д нэмэх шаардлагатай.',
 }
 
 export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
@@ -26,6 +37,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       <div className={styles.authShell}>
         <div className={styles.authCard}>
           <h1 className={styles.authTitle}>Нэвтрэх</h1>
+          <AuthHashNotice />
           <p className={styles.authSubtitle}>Solio хаягаараа нэвтэрнэ үү.</p>
 
           {errorMessage && (

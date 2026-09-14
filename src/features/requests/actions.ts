@@ -11,7 +11,7 @@ export type RequestState =
   | { ok: false; message?: string; errors?: Record<string, string[]> }
 
 const schema = z.object({
-  title: z.string().trim().min(1, 'Номын нэрийг бичнэ үү.').max(300, 'Хэт урт байна.'),
+  title: z.string().trim().min(1, 'Нэрийг нь бичнэ үү.').max(300, 'Хэт урт байна.'),
   author: z.string().trim().max(200, 'Хэт урт байна.').optional(),
   isbn: z.string().trim().max(32, 'Хэт урт байна.').optional(),
   note: z.string().trim().max(500, 'Тайлбар 500 тэмдэгтээс их байж болохгүй.').optional(),

@@ -5,8 +5,11 @@ import { Avatar } from '@/components/Avatar'
 import { BookGrid } from '@/components/BookCard'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { Pager } from '@/components/Pager'
-import { getPublicProfile, getSwapHistory } from '@/features/books/queries'
+import { getListingsStoredAt, getPublicProfile, getSwapHistory } from '@/features/books/queries'
+import { countStoredAt, getStoragePointFor } from '@/features/storage/queries'
+import { StoragePointCard } from '@/features/storage/StoragePointCard'
 import { getSessionUser } from '@/lib/auth/dal'
+import { ITEMS_LABEL } from '@/types/domain'
 import { pageFrom, splitPage } from '@/lib/paging'
 import styles from './page.module.css'
 
@@ -33,7 +36,7 @@ export async function generateMetadata({ params }: Props) {
   if (!profile) return { title: 'Хэрэглэгч олдсонгүй' }
   return {
     title: `${profile.displayName} (@${profile.username})`,
-    description: profile.bio ?? `${profile.displayName}-ийн солилцоонд нээлттэй номнууд.`,
+    description: profile.bio ?? `${profile.displayName}-ийн солилцоонд нээлттэй ном, пянз.`,
   }
 }
 
@@ -50,6 +53,16 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   if (!profile) notFound()
 
   const isMe = me?.id === profile.id
+  // A venue's page is mostly its premises and its shelf; an ordinary profile
+  // pays for neither query.
+  const point =
+    profile.accountType === 'storage_point'
+      ? await getStoragePointFor(profile.id, profile.username)
+      : null
+  // The grid shows a page; the card says how many there are altogether.
+  const [shelf, storedCount] = point
+    ? await Promise.all([getListingsStoredAt(point.id, { limit: 24 }), countStoredAt(point.id)])
+    : [[], 0]
   const { items: listings, hasMore } = splitPage(profile.listings, info)
   const { items: history, hasMore: moreHistory } = splitPage(
     await getSwapHistory(profile.id, { limit: historyInfo.fetch, offset: historyInfo.offset }),
@@ -67,21 +80,48 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       <div className={styles.identity}>
         <Avatar name={profile.displayName} src={profile.avatarUrl} size={56} />
         {profile.city && <Badge>📍 {profile.city}</Badge>}
-        <Badge tone="accent">{profile.availableCount} ном нээлттэй</Badge>
+        <Badge tone="accent">{profile.availableCount} нээлттэй</Badge>
       </div>
 
       {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
 
+      {point && <StoragePointCard point={point} storedCount={storedCount} />}
+
+      {point && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Энд хадгалагдаж буй</h2>
+          <p className={styles.sectionNote}>
+            Эзэд нь энд түр хадгалуулсан ном, пянз. Эзэмшил нь тэдэнийх хэвээр.
+          </p>
+          {shelf.length === 0 ? (
+            <EmptyState
+              title="Одоогоор юу ч хадгалагдаагүй"
+              description={
+                isMe
+                  ? 'Хэн нэгэн ном, пянзаа тань дээр хадгалуулбал энд харагдана.'
+                  : `${point.name} дээр одоогоор ном, пянз хадгалагдаагүй байна.`
+              }
+            />
+          ) : (
+            <BookGrid listings={shelf} priorityCount={4} />
+          )}
+        </section>
+      )}
+
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Номнууд</h2>
+        <h2 className={styles.sectionTitle}>
+          {point ? 'Оноогоор авч болох' : ITEMS_LABEL}
+        </h2>
 
         {listings.length === 0 ? (
           <EmptyState
-            title="Нээлттэй ном байхгүй"
+            title="Нээлттэй зүйл байхгүй"
             description={
-              isMe
-                ? 'Номоо нэмэх эсвэл түр нуухаа болиход энд харагдана.'
-                : 'Энэ хэрэглэгч одоогоор ном зарлаагүй байна.'
+              point
+                ? 'Хандивлагдсан ном, пянз энд харагдана. Нэгийг нь авахад 1 оноо хэрэгтэй.'
+                : isMe
+                  ? 'Ном, пянзаа нэмэх эсвэл түр нуухаа болиход энд харагдана.'
+                  : 'Энэ хэрэглэгч одоогоор юу ч зарлаагүй байна.'
             }
           />
         ) : (

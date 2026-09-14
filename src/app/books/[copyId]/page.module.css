@@ -263,3 +263,181 @@
   background: var(--accent);
   color: #fff;
 }
+
+/* ── Offers standing against this listing ─────────────────────────────────── */
+
+.offers {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.offersTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.offersMine {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.offerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.offerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.offerThumb {
+  flex: none;
+  display: block;
+}
+
+.offerBody {
+  min-width: 0;
+}
+
+.offerTitle {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.offerTitle:hover {
+  color: var(--accent);
+}
+
+.offerMeta {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.offerWho {
+  color: var(--text-2);
+  text-decoration: none;
+}
+
+.offerWho:hover {
+  text-decoration: underline;
+}
+
+/* Where the thing is being kept. The venue's name is the link; the rest is the
+   address, which is what somebody planning to collect it actually reads. */
+.storedLink {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.storedLink:hover {
+  text-decoration: underline;
+}
+
+.storedWhere,
+.storedSince {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.storedWhere {
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+/* The code, and the way to get it onto paper. */
+.labelBox {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.labelCode {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+}
+
+.labelHint {
+  margin: 6px 0 0;
+  max-width: 44ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.labelLink {
+  flex: none;
+  padding: 9px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.labelLink:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.claimLead {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+/* A grid item defaults to min-width: auto, so the widest unbreakable thing in
+   this column pushed it past the viewport and gave every listing page a
+   horizontal scrollbar on a phone. */
+.content {
+  min-width: 0;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.placeholderNote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}

@@ -55,7 +55,7 @@ export function MyRequestsPanel({ requests }: { requests: RequestView[] }) {
 
       <aside className={styles.aside}>
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Ном хүсэх</h3>
+          <h3 className={styles.cardTitle}>Сураглах</h3>
           <p className={styles.cardDesc}>
             Хайж буй номоо нийтэлнэ. Тухайн ном байгаа хүмүүс доор нь хариу бичих боломжтой.
           </p>

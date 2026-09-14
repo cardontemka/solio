@@ -26,7 +26,7 @@ function OfferedCard({ offered }: { offered: NonNullable<CommentView['offered']>
         )}
       </span>
       <span className={styles.offeredText}>
-        <span className={styles.offeredLabel}>Энэ ном мөн үү?</span>
+        <span className={styles.offeredLabel}>Энэ мөн үү?</span>
         <span className={styles.offeredTitle}>{offered.title}</span>
       </span>
     </Link>
@@ -206,6 +206,8 @@ export function CommentSection({
   viewerId,
   path,
   offerable = [],
+  subject = 'зүйл',
+  subjectOf = 'зүйлийн',
 }: {
   target: CommentTarget
   comments: CommentView[]
@@ -214,7 +216,20 @@ export function CommentSection({
   path: string
   /** The viewer's own listings, offered on a request thread only. */
   offerable?: OfferableListing[]
+  /**
+   * What the thread is about, in the words of the page it is on — "ном",
+   * "пянз", "хүсэлт". Every prompt here used to say "ном", which was wrong on
+   * a record's page and wrong again on a request's.
+   *
+   * Both cases are passed rather than one being built from the other: Mongolian
+   * genitive endings do not follow from the nominative reliably enough to glue
+   * on in code — "ном" takes -ын and "пянз" takes -ны.
+   */
+  subject?: string
+  subjectOf?: string
 }) {
+  const it = subject.toLowerCase()
+  const itsOf = subjectOf.toLowerCase()
   const [state, formAction, pending] = useActionState(addCommentAction, initial)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -242,8 +257,8 @@ export function CommentSection({
             required
             placeholder={
               offerable.length > 0
-                ? 'Энэ ном танд байна уу? Хариу бичих…'
-                : 'Энэ номын талаар бичих…'
+                ? `Энэ ${it} танд байна уу? Хариу бичих…`
+                : `Энэ ${itsOf} талаар бичих…`
             }
           />
 
@@ -251,7 +266,7 @@ export function CommentSection({
               picker sits in the reply box rather than somewhere separate. */}
           {offerable.length > 0 && (
             <label className={styles.offerPick}>
-              <span className={styles.offerPickLabel}>Өөрийн номоо хавсаргах</span>
+              <span className={styles.offerPickLabel}>Өөрийнхөө нэгийг хавсаргах</span>
               <select className={styles.offerSelect} name="offeredCopyId" defaultValue="">
                 <option value="">— сонгохгүй —</option>
                 {offerable.map((o) => (

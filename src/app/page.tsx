@@ -5,6 +5,7 @@ import { getListings } from '@/features/books/queries'
 import { RequestList } from '@/features/requests/RequestCard'
 import { getRequestFeed } from '@/features/requests/queries'
 import { getSessionUser } from '@/lib/auth/dal'
+import { ITEMS_LABEL_LOWER } from '@/types/domain'
 import styles from './page.module.css'
 
 async function RecentlyAdded() {
@@ -12,8 +13,8 @@ async function RecentlyAdded() {
   if (listings.length === 0) {
     return (
       <EmptyState
-        title="Одоогоор ном байхгүй байна"
-        description="Эхний номыг нэмсэн хүн та байж болно."
+        title="Одоогоор юу ч байхгүй байна"
+        description="Эхнийхийг нь нэмсэн хүн та байж болно."
       />
     )
   }
@@ -35,8 +36,8 @@ async function MoreListings() {
   if (listings.length === 0) return null
   return (
     <Section
-      title="Бусад номнууд"
-      description="Хэрэглэгчид солилцохоор нээлттэй болгосон номнууд"
+      title={`Бусад ${ITEMS_LABEL_LOWER}`}
+      description="Хэрэглэгчид солилцохоор нээлттэй болгосон зүйлс"
       href="/search"
     >
       <BookGrid listings={listings} />
@@ -54,8 +55,8 @@ async function RequestRail() {
   if (requests.length === 0) {
     return (
       <EmptyState
-        title="Одоогоор хүсэлт байхгүй"
-        description="Хайж буй номоо нийтэлбэл тэр ном байгаа хүн доор нь хариу бичнэ."
+        title="Одоогоор сураглал байхгүй"
+        description="Сураглаж буйгаа нийтэлбэл тэр нь байгаа хүн доор нь хариу бичнэ."
       />
     )
   }
@@ -101,7 +102,7 @@ export default async function HomePage() {
       <div className="container">
         <Section
           title="Шинээр нэмэгдсэн"
-          description="Хамгийн сүүлд нэмэгдсэн, солилцох боломжтой номнууд"
+          description="Хамгийн сүүлд нэмэгдсэн, солилцох боломжтой зүйлс"
           href="/search"
         >
           <Suspense fallback={<RailSkeleton />}>
@@ -111,7 +112,7 @@ export default async function HomePage() {
 
         <Section
           title="Ном хүсэж байна"
-          description="Хэн ямар ном хайж байна — танд байвал доор нь хариу бичээрэй"
+          description="Хэн юу сураглаж байна — танд байвал доор нь хариу бичээрэй"
           href="/requests"
         >
           <Suspense fallback={<RailSkeleton />}>

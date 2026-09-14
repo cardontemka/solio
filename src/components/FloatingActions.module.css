@@ -49,3 +49,59 @@
     bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
   }
 }
+
+/* The pair, bottom-right. The stack owns the fixed position so the two buttons
+   keep their spacing whatever their widths are. */
+.stack {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.stack .fab {
+  position: static;
+  right: auto;
+  bottom: auto;
+}
+
+.fabGhost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px 0 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--shadow-lifted);
+  transition: border-color 0.15s, transform 0.15s, color 0.15s;
+}
+
+.fabGhost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+  .fabGhost {
+    height: 48px;
+    width: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 860px) {
+  .stack {
+    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  }
+}

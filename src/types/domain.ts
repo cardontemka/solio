@@ -16,6 +16,15 @@ export const ITEM_KIND = ['book', 'vinyl'] as const
 export type ItemKind = (typeof ITEM_KIND)[number]
 
 /**
+ * What to call a listing when the kind is not known — a mixed feed, an empty
+ * state, the name of a page that holds both. Naming the kinds is clearer than
+ * an abstract noun while there are only two of them; when a third arrives this
+ * is the one line that changes.
+ */
+export const ITEMS_LABEL = 'Ном, пянз'
+export const ITEMS_LABEL_LOWER = 'ном, пянз'
+
+/**
  * The words each kind uses for the same slot in the form and on the card.
  *
  * `of` is spelt out rather than glued together from `one` — Mongolian genitive
@@ -266,6 +275,66 @@ export type BookRequest = {
   createdAt: string
 }
 
+/**
+ * An account is either a person or a place that holds things for people.
+ *
+ * A storage point is not a separate table: it signs in, gets reported,
+ * moderated and linked to exactly like anybody else, and what it adds is a row
+ * of premises — an address, opening hours, a telephone. Everything about the
+ * distinction that the UI needs is here.
+ */
+export const ACCOUNT_TYPE = ['person', 'storage_point'] as const
+export type AccountType = (typeof ACCOUNT_TYPE)[number]
+
+export const STORAGE_POINT_KIND = [
+  'cafe',
+  'library',
+  'bookstore',
+  'coworking',
+  'school',
+  'other',
+] as const
+export type StoragePointKind = (typeof STORAGE_POINT_KIND)[number]
+
+export const STORAGE_POINT_KIND_LABEL: Record<StoragePointKind, string> = {
+  cafe: 'Кафе',
+  library: 'Номын сан',
+  bookstore: 'Номын дэлгүүр',
+  coworking: 'Хамтран ажиллах орчин',
+  school: 'Сургууль',
+  other: 'Бусад',
+}
+
+/** The premises, as every page that shows one needs them. */
+export type StoragePoint = {
+  id: string
+  /** The profile it belongs to — its page lives at /u/<username>. */
+  username: string
+  name: string
+  kind: StoragePointKind
+  city: string
+  district: string
+  address: string
+  landmark: string | null
+  phone: string
+  hours: string
+  capacity: number | null
+  website: string | null
+  description: string | null
+}
+
+/** What a listing says about where it physically is, when it is not at home. */
+export type StoredAt = {
+  id: string
+  username: string
+  name: string
+  kind: StoragePointKind
+  city: string
+  district: string
+  address: string
+  since: string
+}
+
 export type SwapItem = {
   copyId: string
   side: 'offered' | 'requested'
@@ -287,7 +356,7 @@ export type OwnershipEvent = {
   copyId: string
   fromOwnerId: string | null
   toOwnerId: string
-  eventType: 'initial_registration' | 'swap_transfer' | 'admin_correction'
+  eventType: 'initial_registration' | 'swap_transfer' | 'claim_transfer' | 'admin_correction'
   occurredAt: string
 }
 

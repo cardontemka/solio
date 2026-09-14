@@ -214,3 +214,57 @@ export async function getUnreadNotificationCount(): Promise<number> {
     .is('read_at', null)
   return count ?? 0
 }
+
+export type OpenOffer = {
+  swapId: string
+  offeredCopyId: string
+  title: string
+  author: string | null
+  kind: ItemKind
+  imageUrl: string | null
+  requesterId: string
+  requesterUsername: string
+  requesterName: string
+  createdAt: string
+}
+
+/**
+ * The pending offers standing against one listing, readable by anybody.
+ *
+ * `swaps` itself stays participant-only — the negotiation is private. What this
+ * publishes is the part that was already public and was simply invisible: which
+ * listing somebody put on the table, and who they are. Without it a reader could
+ * not tell a listing nobody wants from one three people are waiting on, and the
+ * person who offered came back to the page to find no sign of it.
+ */
+export async function getOpenOffers(copyId: string): Promise<OpenOffer[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('list_open_offers', { p_copy_id: copyId })
+  if (error) throw error
+
+  type Row = {
+    swap_id: string
+    offered_copy_id: string
+    offered_title: string
+    offered_author: string | null
+    offered_kind: ItemKind
+    offered_cover_key: string | null
+    requester_id: string
+    requester_username: string
+    requester_name: string
+    created_at: string
+  }
+  const storage = bookImageStorage()
+  return ((data ?? []) as Row[]).map((r) => ({
+    swapId: r.swap_id,
+    offeredCopyId: r.offered_copy_id,
+    title: r.offered_title,
+    author: r.offered_author,
+    kind: r.offered_kind ?? 'book',
+    imageUrl: r.offered_cover_key ? storage.publicUrl(r.offered_cover_key) : null,
+    requesterId: r.requester_id,
+    requesterUsername: r.requester_username,
+    requesterName: r.requester_name,
+    createdAt: r.created_at.slice(0, 10),
+  }))
+}

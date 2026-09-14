@@ -105,3 +105,11 @@
   color: var(--accent);
   text-decoration: underline;
 }
+
+/* One line under a heading, when the heading alone would leave a question. */
+.sectionNote {
+  margin: -6px 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-3);
+}

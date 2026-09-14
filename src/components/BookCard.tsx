@@ -32,9 +32,8 @@ export function BookCover({
   size?: 'sm' | 'md' | 'lg'
   /**
    * A record sleeve is square and a book is not, so the frame follows the kind
-   * rather than one shape being stretched into the other. The disc edge that
-   * shows past the right-hand side is the rest of it: a square photo alone reads
-   * as a cropped book cover.
+   * rather than one shape being stretched into the other. What tells the two
+   * apart at a glance is the relief of the disc pressing out through the card.
    */
   kind?: ItemKind
   /**
@@ -53,9 +52,9 @@ export function BookCover({
       data-has-image={Boolean(src)}
       style={{ '--cover': color } as React.CSSProperties}
     >
-      {/* Drawn behind the sleeve and clipped by nothing: the sliver on the right
-          is the record itself. Two rings and a label, which is all that reads at
-          this size. */}
+      {/* The record inside. Drawn over the artwork as light rather than as an
+          object — a dome, a crease at the rim and the spindle hole — because
+          that is all a sleeve actually shows of what is in it. */}
       {kind === 'vinyl' && <span className={styles.disc} aria-hidden="true" />}
       {src ? (
         <Image
@@ -126,6 +125,12 @@ export function BookCard({
             </span>
           )}
         </div>
+        {/* Where it physically is, when that is not with its owner. Worth a line
+            of its own on the card: for anybody browsing, "already at a café I
+            walk past" is a different proposition from "somewhere across town". */}
+        {listing.storedAt && (
+          <span className={styles.stored}>📍 {listing.storedAt.name}</span>
+        )}
       </div>
     </Link>
   )

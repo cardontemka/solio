@@ -26,7 +26,7 @@ export type UserInfo = {
 
 const PANELS: { key: PanelKey; label: string; Icon: typeof BookIcon }[] = [
   { key: 'books', label: 'Миний номнууд', Icon: BookIcon },
-  { key: 'wishlist', label: 'Ном хүсэх', Icon: HeartIcon },
+  { key: 'wishlist', label: 'Сураглах', Icon: HeartIcon },
   { key: 'swaps', label: 'Солилцоо', Icon: SwapIcon },
 ]
 

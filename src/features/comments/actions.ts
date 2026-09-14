@@ -66,7 +66,7 @@ export async function addCommentAction(
 
   if (error) {
     if (error.message.includes('NOT_YOUR_LISTING')) {
-      return { ok: false, message: 'Зөвхөн өөрийн номоо санал болгоно.' }
+      return { ok: false, message: 'Зөвхөн өөрийнхөө бүртгэсэн зүйлийг санал болгоно.' }
     }
     if (error.code === '42501') {
       return { ok: false, message: 'Сэтгэгдлийн хязгаарт хүрсэн эсвэл хаяг тань идэвхгүй байна.' }

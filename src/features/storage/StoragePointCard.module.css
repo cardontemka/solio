@@ -1,0 +1,107 @@
+.card {
+  margin: 18px 0 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kind,
+.badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kind {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.badge {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.count {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+/* Label above value rather than beside it: an Ulaanbaatar address is long
+   enough that a two-column grid gives it a column of about six characters. */
+.facts {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 9px 14px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.facts dt {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.facts dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.line,
+.landmark,
+.map {
+  display: block;
+}
+
+.landmark {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.map,
+.phone {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.map {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.map:hover,
+.phone:hover {
+  text-decoration: underline;
+}
+
+.desc {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+@media (max-width: 560px) {
+  .facts {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+
+  .facts dt {
+    margin-top: 8px;
+  }
+}

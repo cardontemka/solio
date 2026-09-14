@@ -24,7 +24,7 @@ export default async function EditListingPage({ params }: PageProps<'/books/[cop
       <div className={styles.shell}>
         <PageHeader
           title="Ном засварлах"
-          subtitle="Зургийг номынхоо хуудаснаас нэмж, хасна."
+          subtitle="Зургийг өөрийнх нь хуудаснаас нэмж, хасна."
         />
         <EditListingForm
           listing={{

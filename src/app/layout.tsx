@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: '%s · Solio',
   },
   description:
-    'Уншсан номоо бусадтай солилцож, хүссэн номоо ол. Монголын анхны community-driven ном солилцооны платформ.',
+    'Уншсан номоо, сонссон пянзаа бусадтай солилцож, хайж байгаагаа ол. Монголын анхны community-driven солилцооны платформ.',
 }
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
@@ -61,6 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
             <nav className={styles.footerNav}>
               <Link href="/">Нүүр</Link>
               <Link href="/search">Хайх</Link>
+              <Link href="/storage-points">Хадгалах цэг</Link>
             </nav>
           </div>
         </footer>

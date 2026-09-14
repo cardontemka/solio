@@ -1,0 +1,158 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* A decision still to make is the only one worth colouring. */
+.row[data-status='pending'] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.row[data-status='expired'],
+.row[data-status='cancelled'],
+.row[data-status='rejected'] {
+  opacity: 0.72;
+}
+
+.thumb {
+  flex: none;
+  width: 52px;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.title:hover {
+  color: var(--accent);
+}
+
+.what {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.who {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.note {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.meta {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.approve,
+.reject {
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.approve {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+}
+
+.reject {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+.approve:disabled,
+.reject:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+@media (prefers-color-scheme: dark) {
+  .approve {
+    color: #17150f;
+  }
+}
+
+@media (max-width: 520px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .approve,
+  .reject {
+    flex: 1 1 0;
+  }
+}
+
+/* The one thing that separates a donation from a loan: what it is worth. */
+.credit {
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}

@@ -3,7 +3,13 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import { bookImageStorage } from '@/lib/storage'
 import { avatarUrl } from '@/features/users/avatar'
-import type { BookCategory, BookCondition, CopyStatus, ItemKind } from '@/types/domain'
+import type {
+  BookCategory,
+  BookCondition,
+  CopyStatus,
+  ItemKind,
+  StoredAt,
+} from '@/types/domain'
 
 /**
  * Read side of the books feature.
@@ -18,24 +24,11 @@ import type { BookCategory, BookCondition, CopyStatus, ItemKind } from '@/types/
  * keeps hidden rows hidden.
  */
 
-/**
- * Deterministic cover colour so a listing looks the same everywhere.
- *
- * FNV-1a rather than the usual `hash*31 + c`: UUIDs share a fixed layout and
- * alphabet, and the weak hash clustered several books onto the same swatch.
- */
-export function coverColorFor(id: string): string {
-  const palette = [
-    '#e76f51', '#f4a261', '#e9c46a', '#b8860b', '#a44a3f',
-    '#5d4a3b', '#8a5a3b', '#4a6b5a', '#b56a54', '#c9a35f',
-  ]
-  let hash = 0x811c9dc5
-  for (let i = 0; i < id.length; i++) {
-    hash ^= id.charCodeAt(i)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return palette[hash % palette.length]
-}
+// Re-exported so the many call sites that import it from here keep working;
+// the implementation is client-safe and lives on its own (coverColor.ts).
+import { coverColorFor } from './coverColor'
+
+export { coverColorFor }
 
 /**
  * PostgREST returns a to-one embed as a single object, but the inferred types
@@ -58,6 +51,11 @@ export type ListingOwner = {
 export type Listing = {
   /** The listing's own id, and what every URL uses. */
   copyId: string
+  /**
+   * The code printed on the object itself — eight characters, permanent, and
+   * the only way to recognise a physical book that is not in your hands.
+   */
+  publicCode: string
   /** The catalogue row behind it — kept for search indexing and history. */
   bookId: string
   title: string
@@ -85,20 +83,29 @@ export type Listing = {
   coverColor: string
   images: { id: string; url: string; thumbUrl: string; sortOrder: number }[]
   owner: ListingOwner | null
+  /**
+   * Where the thing physically is, when that is not with its owner. Ownership
+   * does not move — the venue is holding it, not keeping it — so this is a
+   * pointer and a date and nothing else.
+   */
+  storedAt: StoredAt | null
 }
 
 // book_copies has two foreign keys to profiles (owner, custodian), so the embed
 // has to name the constraint or PostgREST refuses it as ambiguous.
 const LISTING_SELECT = `
-  id, condition, condition_note, status, transfer_count, created_at,
+  id, public_code, condition, condition_note, status, transfer_count, created_at, stored_since,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at,
                 categories, weight_g, size_note, kind, attributes ),
   owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
-  book_images ( id, storage_key, thumb_key, sort_order, status )
+  book_images ( id, storage_key, thumb_key, sort_order, status ),
+  stored:storage_points ( id, name, kind, city, district, address,
+                          keeper:profiles!storage_points_profile_id_fkey ( username ) )
 `
 
 type ListingRow = {
   id: string
+  public_code: string
   condition: BookCondition
   condition_note: string | null
   status: CopyStatus
@@ -147,15 +154,30 @@ type ListingRow = {
     sort_order: number
     status: string
   }[]
+  stored_since: string | null
+  stored: StoredRow | StoredRow[] | null
+}
+
+type StoredRow = {
+  id: string
+  name: string
+  kind: string
+  city: string
+  district: string
+  address: string
+  keeper: { username: string } | { username: string }[] | null
 }
 
 function toListing(row: ListingRow): Listing | null {
   const book = one(row.books)
   if (!book) return null
   const owner = one(row.owner)
+  const stored = one(row.stored)
+  const keeper = one(stored?.keeper)
   const storage = bookImageStorage()
   return {
     copyId: row.id,
+    publicCode: row.public_code,
     bookId: book.id,
     title: book.title,
     author: book.author,
@@ -195,6 +217,22 @@ function toListing(row: ListingRow): Listing | null {
           avatarUrl: avatarUrl(owner.avatar_key),
         }
       : null,
+    // A suspended venue drops out of the embed under its own RLS policy, which
+    // leaves stored_since set and stored null. Showing "kept somewhere, since
+    // March" helps nobody, so both halves have to be present.
+    storedAt:
+      stored && keeper && row.stored_since
+        ? {
+            id: stored.id,
+            username: keeper.username,
+            name: stored.name,
+            kind: stored.kind as StoredAt['kind'],
+            city: stored.city,
+            district: stored.district,
+            address: stored.address,
+            since: row.stored_since.slice(0, 10),
+          }
+        : null,
   }
 }
 
@@ -357,6 +395,28 @@ export async function getMyCopies(
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
 }
 
+/**
+ * What a storage point is currently holding.
+ *
+ * Ordered by when it arrived rather than when it was listed: for the venue this
+ * is a shelf, and the useful question about a shelf is what came in last.
+ */
+export async function getListingsStoredAt(
+  pointId: string,
+  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
+): Promise<Listing[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('book_copies')
+    .select(LISTING_SELECT)
+    .eq('stored_at', pointId)
+    .order('stored_since', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
+  if (error) throw error
+  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+}
+
 export type PublicProfile = {
   id: string
   username: string
@@ -365,6 +425,8 @@ export type PublicProfile = {
   city: string | null
   avatarUrl: string | null
   joinedAt: string
+  /** A person, or a venue that holds other people's books. */
+  accountType: 'person' | 'storage_point'
   /** One page of listings. */
   listings: Listing[]
   /**
@@ -390,7 +452,9 @@ export async function getPublicProfile(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, bio, city, avatar_key, created_at, account_status')
+    .select(
+      'id, username, display_name, bio, city, avatar_key, created_at, account_status, account_type'
+    )
     .ilike('username', username)
     .maybeSingle()
   if (error) throw error
@@ -404,6 +468,7 @@ export async function getPublicProfile(
     avatar_key: string | null
     created_at: string
     account_status: string
+    account_type: string
   }
   if (profile.account_status !== 'active') return null
 
@@ -432,6 +497,7 @@ export async function getPublicProfile(
     city: profile.city,
     avatarUrl: avatarUrl(profile.avatar_key),
     joinedAt: profile.created_at.slice(0, 10),
+    accountType: profile.account_type === 'storage_point' ? 'storage_point' : 'person',
     listings: ((rows ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []),
     availableCount: availableCount ?? 0,
   }

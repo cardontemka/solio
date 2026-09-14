@@ -664,6 +664,155 @@ create table public.audit_logs (
 
 ---
 
+### 5.11 `storage_points` — хадгалах цэг
+
+```sql
+-- supabase/migrations/20260902000520_storage_points.sql
+create table public.storage_points (
+  id          uuid primary key default gen_random_uuid(),
+  profile_id  uuid not null unique references public.profiles(id) on delete cascade,
+  name        text not null check (length(btrim(name)) between 2 and 120),
+  kind        public.storage_point_kind not null default 'cafe',
+
+  -- Заавал: очих хүнд хэрэгтэй бүх зүйл.
+  city        text not null, district text not null, address text not null,
+  phone       text not null check (phone ~ '^[0-9+()\-\s]{6,20}$'),
+  hours       text not null,
+
+  -- Заавал биш: байхгүй ч хаалга нь олдоно.
+  landmark    text, capacity int, website text, description text,
+
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+```
+
+Хадгалах цэг нь тусдаа хэрэглэгчийн хүснэгт БИШ — `profiles`-д `account_type`
+багана нэмэгдэж, нэг данс нэг цэг (`profile_id` unique). Ингэснээр модерац,
+report, `/u/<username>` хуудас, түдгэлзүүлэлт бүгд хэвээр ажиллана
+([ADR-033](decisions.md#adr-033--хадгалах-цэг-нь-данс-хүснэгт-биш)).
+
+`book_copies` дээр хоёр багана нэмэгдэнэ:
+
+```sql
+alter table public.book_copies
+  add column stored_at uuid references public.storage_points(id) on delete set null,
+  add column stored_since timestamptz,
+  add constraint book_copies_stored_stamp
+    check ((stored_at is null) = (stored_since is null));
+```
+
+`custodian_id` хөндөгдөхгүй: энэ нь "хаана байна" гэсэн заалт болохоос
+эзэмшил/хариуцлагын шилжилт биш. `book_copies_custody_follows_ownership`
+constraint хэвээр (§5.4), жинхэнэ custody шилжүүлэг нь дараагийн ажил
+(§future-expansion).
+
+**Бичих зам.** `stored_at`-ыг шууд UPDATE хийх боломжгүй — `book_copies_guard`
+`STORAGE_IS_SET_BY_FUNCTION` гэж татгалзана. **Эзэмшигч ч үүнийг сонгож
+чадахгүй**: байршил нь зөвхөн баталгаажсан claim-ийн үр дүн
+(`respond_to_claim`, §5.12). Буцааж өгснийг зөвхөн тухайн цэг өөрөө
+`public.release_stored(p_copy_id)`-ээр бүртгэнэ — ном хаана байгааг гартаа
+барьж байгаа тал нь мэднэ, эзэмшигч биш. `set_stored_at()` нь
+20260902000540-д устгагдсан.
+
+**RLS.** `storage_points` нь `profiles`-тэй ижил нөхцөлөөр нийтэд уншигдана
+(данс `active` эсвэл staff). UPDATE зөвхөн эзэн өөрөө. DELETE-ийн grant огт
+байхгүй — данс түдгэлзүүлэх нь устгах биш.
+
+### 5.12 `book_copies.public_code` ба `copy_claims` — шошго, шилжүүлэг
+
+```sql
+-- supabase/migrations/20260902000530_item_codes_and_claims.sql
+alter table public.book_copies add column public_code text;   -- 8 тэмдэгт, байнгын
+create unique index book_copies_public_code_key on public.book_copies (public_code);
+
+create table public.copy_claims (
+  id          uuid primary key default gen_random_uuid(),
+  copy_id     uuid not null references public.book_copies(id) on delete cascade,
+  claimant_id uuid not null references public.profiles(id),
+  owner_id    uuid not null references public.profiles(id),   -- хүсэлт үүсэх үеийн эзэн
+  kind        public.claim_kind   not null,    -- 'storage' | 'ownership'
+  status      public.claim_status not null default 'pending',
+  note        text,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null default now() + interval '3 days',
+  resolved_at timestamptz,
+  resolved_by uuid references public.profiles(id)
+);
+create unique index copy_claims_one_open on public.copy_claims (copy_id)
+  where status = 'pending';   -- нэг эд зүйл дээр нэг л нээлттэй хүсэлт
+```
+
+**Код.** Crockford base32 (I, L, O, U үсэггүй) 8 тэмдэгт, `gen_random_bytes`-аас.
+`normalize_item_code()` нь зураас, хоосон зай, жижиг үсэг, бүр бүтэн URL-ыг ч нэг
+кодод хөрвүүлнэ. QR нь `https://<site>/t/<code>` гэсэн URL агуулдаг тул утасны
+өөрийнх нь камер аппаар нээгддэг — сайт дотор сканнер хэрэггүй
+([ADR-034](decisions.md#adr-034--эд-зүйлийн-код-байнгын-шилжүүлэг-нь-зөвшөөрөлтэй)).
+
+**Функцууд.**
+
+| Функц | Хэн дуудаж болох | Юу хийдэг |
+|---|---|---|
+| `find_copy_by_code(code)` | anon, authenticated | Код юуг заасныг буцаана (нийтийн мэдээлэл) |
+| `claim_by_code(code, kind, note)` | authenticated | `pending` хүсэлт үүсгэж эзэнд мэдэгдэнэ |
+| `respond_to_claim(id, action)` | authenticated | Эзэн `approve`/`reject`, хүсэгч `cancel` |
+| `list_my_claims()` | authenticated | Өөрт хамаарах бүх хүсэлт, нэр/гарчигтай нь |
+
+**Зөвшөөрснөөр юу болох.** `storage` бол `stored_at`/`stored_since` л шинэчлэгдэнэ
+— эзэмшил хөдлөхгүй. `ownership` бол `owner_id`, `custodian_id` шилжиж,
+`transfer_count` нэмэгдэж, `stored_at` цэвэрлэгдэж, `ownership_events`-д
+`claim_transfer` бичигдэнэ (шинэ төрөл: solilcooны `swap_transfer` нь `swap_id`
+шаарддаг, гар дамжсан шилжүүлэгт тийм мөр байхгүй).
+
+**Татгалздаг тохиолдлууд.** Өөрийн зүйл (`ALREADY_YOURS`), идэвхтэй солилцоонд
+байгаа (`ITEM_IN_ACTIVE_SWAP`), өөр хүний нээлттэй хүсэлт (`ITEM_ALREADY_CLAIMED`),
+хаяггүй данс хадгалахыг оролдох (`NOT_A_STORAGE_POINT`), өдөрт 60-аас олон хүсэлт
+(`RATE_LIMIT_CLAIM`), хугацаа дууссан (`CLAIM_EXPIRED`), хүсэлт үүсэхээс хойш эзэн
+солигдсон (`OWNERSHIP_CHANGED_SINCE_CLAIM`).
+
+**RLS.** `copy_claims` дээр зөвхөн SELECT grant, түүнийг ч эзэн болон хүсэгч хоёр
+(эсвэл staff) л харна. INSERT/UPDATE/DELETE grant огт байхгүй — бүх шилжилт
+дээрх функцуудаар дамжина.
+
+### 5.13 `credit_events` — хандивын оноо
+
+```sql
+-- supabase/migrations/20260902000540_credits_and_custody.sql
+create table public.credit_events (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  delta      int  not null check (delta <> 0 and delta between -10 and 10),
+  reason     text not null check (reason in ('donation','redemption','adjustment')),
+  copy_id    uuid references public.book_copies(id) on delete set null,
+  claim_id   uuid references public.copy_claims(id) on delete set null,
+  note       text,
+  created_at timestamptz not null default now()
+);
+```
+
+Үлдэгдэл нь тоолуур биш, `sum(delta)`. Тиймээс зөрөх боломжгүй ба "миний оноо
+хаашаа явсан бэ" гэдэгт хариулна. Хүснэгт нь **append-only**: `authenticated`
+дээр SELECT-ээс өөр grant байхгүй, түүнчлэн trigger нь UPDATE/DELETE-ийг
+операторын гарцаас бусад тохиолдолд татгалзана.
+
+**Хэзээ бичигдэх.** Зөвхөн `respond_to_claim()` дотроос, `ownership` төрлийн
+claim баталгаажихад:
+
+| Нөхцөл | Хэн | Delta | Reason |
+|---|---|---|---|
+| Хүсэгч нь хадгалах цэг (хандив) | эзэмшигч байсан хүн | +1 | `donation` |
+| Эзэмшигч нь хадгалах цэг (оноогоор авах) | хүсэгч | −1 | `redemption` |
+| Хоёул энгийн хэрэглэгч | — | — | бичигдэхгүй |
+| `storage` төрлийн claim | — | — | бичигдэхгүй |
+
+Үлдэгдэл нь claim **баталгаажих мөчид** шалгагдана (`NOT_ENOUGH_CREDITS`),
+хүсэлт үүсэх үед биш: хооронд нь хоног өнгөрч, оноо зарцуулагдсан байж болно.
+
+`public.my_credit_balance()` нь өөрийн үлдэгдлийг, `public.claim_options(code)`
+нь тухайн кодон дээр ямар товч гарах ба хэдэн оноо орох/гарахыг буцаана.
+`session_context()` мөн үлдэгдлийг авч явдаг тул толгой хэсэг нэмэлт query
+хийхгүй.
+
 ## 6. Өөрчлөгдөшгүй байдлыг албадах
 
 `ownership_events` болон `audit_logs` нь **зөвхөн нэмэгддэг** (append-only). Гурван давхарга:
