@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { BookCover } from '@/components/BookCard'
+import { PinIcon } from '@/components/Icons'
 import { Badge, EmptyState } from '@/components/ui'
 import { CONDITION_LABEL, COPY_STATUS_LABEL, type CopyStatus } from '@/types/domain'
 import { ListingMenu } from './ListingMenu'
@@ -80,7 +81,8 @@ export function MyBooksPanel({
                           question this list cannot answer without it. */}
                       {l.storedAt && (
                         <Link href={`/u/${l.storedAt.username}`} className={styles.stored}>
-                          📍 {l.storedAt.name}
+                          <PinIcon size={13} />
+                          {l.storedAt.name}
                         </Link>
                       )}
                       <span className={styles.date}>{l.createdAt}-нд нэмсэн</span>

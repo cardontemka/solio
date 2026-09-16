@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { PinIcon } from './Icons'
 import styles from './BookCard.module.css'
 import type { Listing } from '@/features/books/queries'
 import { CONDITION_LABEL, COPY_STATUS_LABEL, KIND_COPY, type ItemKind } from '@/types/domain'
@@ -129,7 +130,10 @@ export function BookCard({
             of its own on the card: for anybody browsing, "already at a café I
             walk past" is a different proposition from "somewhere across town". */}
         {listing.storedAt && (
-          <span className={styles.stored}>📍 {listing.storedAt.name}</span>
+          <span className={styles.stored}>
+            <PinIcon size={12} />
+            <span>{listing.storedAt.name}</span>
+          </span>
         )}
       </div>
     </Link>

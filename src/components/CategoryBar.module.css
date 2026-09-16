@@ -19,14 +19,20 @@
   flex: none;
   padding: 6px 13px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  /* Unchosen: one corner clipped, so an inactive filter reads as a tab waiting
+     to be picked rather than as a button already pressed. */
+  border-radius: var(--radius-cut);
   background: var(--surface);
   color: var(--text-2);
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
-  transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+  transition:
+    border-color 0.14s ease,
+    color 0.14s ease,
+    background 0.14s ease,
+    border-radius 0.18s ease;
 }
 
 .chip:hover {
@@ -34,10 +40,20 @@
   color: var(--text);
 }
 
+/* Chosen: the corner rounds out and it becomes an ordinary button. The
+   transition is what carries the meaning — the shape resolving is the feedback
+   that the filter took. */
 .chip[data-active='true'] {
+  border-radius: 999px;
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+  }
 }
 
 @media (max-width: 640px) {

@@ -42,6 +42,16 @@
   --radius: 10px;
   --radius-sm: 6px;
   --radius-lg: 16px;
+  /* One clipped corner, top right — a speech bubble turned on its head.
+     Tried across the whole header and it was too much: every control shouting
+     the same shape reads as a glitch rather than a decision. It earns its place
+     on one thing, the category chips, where it marks a filter as *not yet
+     chosen*; picking one rounds it off. Softened twice: a true right angle read
+     as a clipping error, 4px still read as a spike, and 9px still caught the
+     eye. At 11px — against the ~16px the other three corners resolve to on a
+     chip this tall — the difference is felt rather than seen, which is the
+     whole intent. */
+  --radius-cut: 999px 11px 999px 999px;
   --shadow: 0 1px 2px rgb(33 28 22 / 6%), 0 4px 12px rgb(33 28 22 / 4%);
   --shadow-lifted: 0 2px 4px rgb(33 28 22 / 8%), 0 12px 28px rgb(33 28 22 / 8%);
 

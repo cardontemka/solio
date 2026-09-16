@@ -7,15 +7,20 @@ import styles from './CodeEntry.module.css'
 /**
  * Pointing a camera at a label, or typing what is printed under it.
  *
- * Two decoders, because one is not enough. `BarcodeDetector` is the browser's
- * own and costs nothing, but it exists on Android and ChromeOS and nowhere on
- * iOS — which is most of the phones anybody would be holding in a café. So when
- * it is missing the frames go through jsQR instead, loaded only at the moment
- * somebody actually presses the button. The camera is offered whenever there is
- * a camera at all, rather than whenever the browser has the fast path.
+ * Three ways in, because a live camera in a web page is the least reliable of
+ * them:
  *
- * The phone's own camera app still works and needs none of this: the QR encodes
- * a URL, so it opens /t/<code> directly.
+ *   • the phone's own camera app, which needs none of this — the QR encodes a
+ *     URL, so scanning it outside the site opens /t/<code> directly;
+ *   • a photo. `<input capture>` hands the shot to the page, and jsQR reads it.
+ *     This is the path that always works on an iPhone, where a live stream is
+ *     at the mercy of the browser, the lock screen and whichever in-app webview
+ *     the link was opened from;
+ *   • a live stream, decoded either by the browser's own BarcodeDetector
+ *     (Android, ChromeOS) or by jsQR on canvas frames.
+ *
+ * When none of them is available the page falls back to the box, which is why
+ * the code is eight characters of an alphabet with no I, L, O or U in it.
  */
 function normalise(raw: string) {
   // A pasted link is a code too: "https://solio.mn/t/WPM8RCEF" is what a phone
@@ -41,9 +46,11 @@ export function CodeEntry() {
   const router = useRouter()
   const [value, setValue] = useState('')
   const [scanning, setScanning] = useState(false)
+  const [reading, setReading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const photoRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const runningRef = useRef(false)
 
@@ -62,6 +69,23 @@ export function CodeEntry() {
     () => false
   )
 
+  /** Decodes whatever is drawn on the shared canvas. */
+  const decodeCanvas = useCallback(
+    async (draw: (canvas: HTMLCanvasElement) => void, attemptBoth = false) => {
+      const jsQR = (await import('jsqr')).default
+      const canvas = (canvasRef.current ??= document.createElement('canvas'))
+      draw(canvas)
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return null
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const hit = jsQR(frame.data, frame.width, frame.height, {
+        inversionAttempts: attemptBoth ? 'attemptBoth' : 'dontInvert',
+      })
+      return hit?.data ?? null
+    },
+    []
+  )
+
   /** One way out of scanning, used by the button, by errors and by unmount. */
   const stop = useCallback(() => {
     runningRef.current = false
@@ -78,6 +102,47 @@ export function CodeEntry() {
   // Whatever happens — navigation, a thrown frame, closing the tab — the camera
   // light goes out.
   useEffect(() => stop, [stop])
+
+  /**
+   * A still photograph of the label.
+   *
+   * `capture="environment"` opens the phone's camera app rather than a file
+   * browser, so this is one tap on iOS and Android alike — and it survives
+   * every reason a live stream fails. The image is drawn down to 1000px before
+   * decoding: a 12-megapixel photo is thirty times the pixels jsQR needs and
+   * about thirty times the time.
+   */
+  async function readPhoto(file: File | undefined) {
+    if (!file) return
+    setError(null)
+    setReading(true)
+    try {
+      const bitmap = await createImageBitmap(file)
+      const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height))
+      const raw = await decodeCanvas((canvas) => {
+        canvas.width = Math.round(bitmap.width * scale)
+        canvas.height = Math.round(bitmap.height * scale)
+        canvas
+          .getContext('2d', { willReadFrequently: true })
+          ?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      }, true)
+      bitmap.close?.()
+      const hit = raw ? normalise(raw) : ''
+      if (hit.length === 8) {
+        router.push(`/t/${hit}`)
+        return
+      }
+      setError(
+        'Зурган дээрээс QR уншигдсангүй. Шошго бүтнээрээ, тод харагдахаар дахин ' +
+          'авах — эсвэл доорх кодыг гараар бичнэ үү.'
+      )
+    } catch {
+      setError('Зургийг уншиж чадсангүй. Кодыг гараар бичнэ үү.')
+    } finally {
+      setReading(false)
+      if (photoRef.current) photoRef.current.value = ''
+    }
+  }
 
   async function startScan() {
     setError(null)
@@ -128,9 +193,6 @@ export function CodeEntry() {
 
     const Native = nativeDetector()
     const detector = Native ? new Native({ formats: ['qr_code'] }) : null
-    // Only pulled in when it is needed, and only where the browser has no
-    // decoder of its own: it is 40KB that most Android users never download.
-    const jsQR = detector ? null : (await import('jsqr')).default
 
     const found = (raw: string | null | undefined) => {
       const hit = raw ? normalise(raw) : ''
@@ -146,22 +208,18 @@ export function CodeEntry() {
         if (detector) {
           const codes = await detector.detect(video)
           for (const c of codes) if (found(c.rawValue)) return
-        } else if (jsQR && video.videoWidth > 0) {
+        } else if (video.videoWidth > 0) {
           // Downscaled: a 1080p frame is four million pixels to search and the
           // symbol is legible at a fraction of that.
-          const canvas = (canvasRef.current ??= document.createElement('canvas'))
-          const scale = Math.min(1, 640 / video.videoWidth)
-          canvas.width = Math.round(video.videoWidth * scale)
-          canvas.height = Math.round(video.videoHeight * scale)
-          const ctx = canvas.getContext('2d', { willReadFrequently: true })
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-            const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
-            const hit = jsQR(frame.data, frame.width, frame.height, {
-              inversionAttempts: 'dontInvert',
-            })
-            if (found(hit?.data)) return
-          }
+          const raw = await decodeCanvas((canvas) => {
+            const scale = Math.min(1, 640 / video.videoWidth)
+            canvas.width = Math.round(video.videoWidth * scale)
+            canvas.height = Math.round(video.videoHeight * scale)
+            canvas
+              .getContext('2d', { willReadFrequently: true })
+              ?.drawImage(video, 0, 0, canvas.width, canvas.height)
+          })
+          if (found(raw)) return
         }
       } catch {
         // A frame that cannot be decoded is the normal case, not a failure.
@@ -181,14 +239,35 @@ export function CodeEntry() {
           </button>
           <p className={styles.aim}>Шошгон дээрх QR-ыг хүрээнд багтаана уу</p>
         </div>
-      ) : canScan ? (
+      ) : (
         <div className={styles.scanBox}>
-          <button type="button" className={styles.scanButton} onClick={startScan}>
-            <span className={styles.scanIcon} aria-hidden="true">⌗</span>
-            Камераар уншуулах
+          {canScan && (
+            <button type="button" className={styles.scanButton} onClick={startScan}>
+              <span className={styles.scanIcon} aria-hidden="true">⌗</span>
+              Камераар уншуулах
+            </button>
+          )}
+          {/* The path that works on every phone, including the ones where a
+              live stream does not. */}
+          <button
+            type="button"
+            className={canScan ? styles.photoButton : styles.scanButton}
+            disabled={reading}
+            onClick={() => photoRef.current?.click()}
+          >
+            {!canScan && <span className={styles.scanIcon} aria-hidden="true">⌗</span>}
+            {reading ? 'Уншиж байна…' : 'Шошгоны зураг авах'}
           </button>
+          <input
+            ref={photoRef}
+            className={styles.file}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => readPhoto(e.target.files?.[0])}
+          />
         </div>
-      ) : null}
+      )}
 
       <form
         className={styles.form}
@@ -209,7 +288,7 @@ export function CodeEntry() {
               setValue(e.target.value)
               setError(null)
             }}
-            placeholder="WPM8-RCEF"
+            placeholder="WPM8RCEF"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}

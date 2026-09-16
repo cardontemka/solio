@@ -1,36 +1,24 @@
-import { STORAGE_POINT_KIND_LABEL, type StoragePoint } from '@/types/domain'
-import styles from './StoragePointCard.module.css'
+import type { StoragePoint } from '@/types/domain'
+import styles from './StoragePointDetails.module.css'
 
 /**
- * A venue's premises, as the public sees them.
+ * A venue's premises, in full.
  *
- * Everything here answers one question — can I get there, and when? — so the
- * address, the hours and the telephone lead, and the prose comes last. The map
- * link is a plain search on the address rather than a pin: nobody has drawn
- * coordinates yet, and a search for a written Ulaanbaatar address lands close
- * enough to be worth the tap.
+ * The page above this shows the two things somebody needs before they decide to
+ * go — the district and the opening hours — and everything else lives here,
+ * behind a disclosure they open when they are actually planning the trip.
+ *
+ * The map link is a plain search on the written address rather than a pin:
+ * nobody has drawn coordinates yet, and a search for an Ulaanbaatar address
+ * lands close enough to be worth the tap.
  */
-export function StoragePointCard({
-  point,
-  storedCount,
-}: {
-  point: StoragePoint
-  storedCount: number
-}) {
+export function StoragePointDetails({ point }: { point: StoragePoint }) {
   const mapQuery = encodeURIComponent(
     `${point.name}, ${point.address}, ${point.district}, ${point.city}`
   )
 
   return (
-    <section className={styles.card}>
-      <div className={styles.head}>
-        <span className={styles.kind}>{STORAGE_POINT_KIND_LABEL[point.kind]}</span>
-        <span className={styles.badge}>Хадгалах цэг</span>
-        <span className={styles.count}>
-          {storedCount > 0 ? `${storedCount} зүйл хадгалж байна` : 'Одоогоор хоосон'}
-        </span>
-      </div>
-
+    <div className={styles.card}>
       <dl className={styles.facts}>
         <dt>Хаяг</dt>
         <dd>
@@ -81,7 +69,6 @@ export function StoragePointCard({
         )}
       </dl>
 
-      {point.description && <p className={styles.desc}>{point.description}</p>}
-    </section>
+    </div>
   )
 }

@@ -13,6 +13,15 @@ export async function SiteMobileNav() {
       isStaff={user?.isStaff ?? false}
       signedIn={Boolean(user)}
       unreadCount={user?.unreadCount ?? 0}
+      user={
+        user
+          ? {
+              displayName: user.displayName,
+              username: user.username,
+              avatarUrl: user.avatarUrl,
+            }
+          : null
+      }
     />
   )
 }

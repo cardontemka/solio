@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
+import { getListingsByIds, type Listing } from '@/features/books/queries'
 import type { StoragePoint, StoragePointKind } from '@/types/domain'
 
 /**
@@ -28,6 +30,7 @@ type Row = {
   capacity?: number | null
   website?: string | null
   description?: string | null
+  cover_key?: string | null
   username?: string
   profiles?: { username: string } | { username: string }[] | null
 }
@@ -47,6 +50,7 @@ function toPoint(row: Row, username: string): StoragePoint {
     capacity: row.capacity ?? null,
     website: row.website ?? null,
     description: row.description ?? null,
+    coverUrl: row.cover_key ? bookImageStorage().publicUrl(row.cover_key) : null,
   }
 }
 
@@ -61,6 +65,7 @@ export type StoragePointOption = {
   landmark: string | null
   phone: string
   hours: string
+  coverUrl: string | null
 }
 
 /**
@@ -84,13 +89,14 @@ export async function listStoragePoints(): Promise<StoragePointOption[]> {
     landmark: r.landmark ?? null,
     phone: r.phone,
     hours: r.hours,
+    coverUrl: r.cover_key ? bookImageStorage().publicUrl(r.cover_key) : null,
   }))
 }
 
 // One literal, unsplit: supabase-js parses the select list at the type level,
 // and a string built with + arrives as an opaque string it cannot read.
 const FULL_SELECT =
-  'id, profile_id, name, kind, city, district, address, landmark, phone, hours, capacity, website, description'
+  'id, profile_id, name, kind, city, district, address, landmark, phone, hours, capacity, website, description, cover_key'
 
 /** The premises belonging to one profile, or null when it is an ordinary person. */
 export async function getStoragePointFor(
@@ -107,21 +113,41 @@ export async function getStoragePointFor(
   return data ? toPoint(data as unknown as Row, username) : null
 }
 
-/** How many things a point is holding right now. */
-export async function countStoredAt(pointId: string): Promise<number> {
+/**
+ * The venue's own shelf — what it is holding for other people.
+ *
+ * Only the venue itself can call this and get anything back; the database keeps
+ * the list, not this function. What the public sees on a venue's page is what
+ * the venue *owns*, which is a different and deliberately public thing.
+ */
+export async function getMyStoredListings(): Promise<Listing[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('my_stored_copies')
+  if (error || !data) return []
+  const ids = (data as { copy_id: string }[]).map((r) => r.copy_id)
+  return getListingsByIds(ids)
+}
+
+/** How many things a point owns and is offering — the donated pool. */
+export async function countOwnedBy(profileId: string): Promise<number> {
   const supabase = await createClient()
   const { count } = await supabase
     .from('book_copies')
     .select('id', { count: 'exact', head: true })
-    .eq('stored_at', pointId)
+    .eq('owner_id', profileId)
+    .eq('status', 'available')
   return count ?? 0
 }
 
-export type StoragePointCard = StoragePointOption & { storedCount: number }
+export type StoragePointCard = StoragePointOption & { offerCount: number }
 
 /**
- * The directory. Two queries rather than one per point: the counts come back in
- * a single grouped read and are matched up here.
+ * The directory, with what each point has to give.
+ *
+ * It used to count what each venue was *holding* for other people, which is
+ * nobody else's business — and was also the wrong number for somebody deciding
+ * where to walk: what matters is how many books they could come away with. Two
+ * queries rather than one per point.
  */
 export async function listStoragePointCards(): Promise<StoragePointCard[]> {
   const points = await listStoragePoints()
@@ -129,13 +155,17 @@ export async function listStoragePointCards(): Promise<StoragePointCard[]> {
 
   const supabase = await createClient()
   const { data } = await supabase
-    .from('book_copies')
-    .select('stored_at')
-    .in('stored_at', points.map((p) => p.id))
+    .from('profiles')
+    .select('id, username, book_copies!book_copies_owner_id_fkey ( id, status )')
+    .in('username', points.map((p) => p.username))
 
+  type Row = { username: string; book_copies: { id: string; status: string }[] }
   const counts = new Map<string, number>()
-  for (const row of (data ?? []) as { stored_at: string | null }[]) {
-    if (row.stored_at) counts.set(row.stored_at, (counts.get(row.stored_at) ?? 0) + 1)
+  for (const row of (data ?? []) as unknown as Row[]) {
+    counts.set(
+      row.username,
+      (row.book_copies ?? []).filter((c) => c.status === 'available').length
+    )
   }
-  return points.map((p) => ({ ...p, storedCount: counts.get(p.id) ?? 0 }))
+  return points.map((p) => ({ ...p, offerCount: counts.get(p.username) ?? 0 }))
 }

@@ -273,12 +273,18 @@
     position: static;
   }
 
-  .identity,
+  /* The identity stays: on a phone this page is the account, and a profile
+     page that does not show whose profile it is answers nothing. What goes is
+     the collapsible block of details, which is a desktop affordance. */
   .subMenu,
   .subMenuBody,
   .divider,
   .sidebarHead {
     display: none;
+  }
+
+  .identity {
+    margin-bottom: 4px;
   }
 
   .nav {
@@ -359,4 +365,9 @@
 .accountItem:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+/* Links share the row shape of the buttons beside them. */
+.account a.accountItem {
+  text-decoration: none;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
+import { publicEnv } from '@/lib/validation/env'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
 import { CategoryBar } from '@/components/CategoryBar'
@@ -15,12 +16,22 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin', 'cyr
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  // Every relative URL in a page's metadata — canonicals, Open Graph images —
+  // resolves against this. Without it Next warns and emits relative og:url,
+  // which crawlers and chat previews both mishandle.
+  metadataBase: new URL(publicEnv.siteUrl),
   title: {
     default: 'Solio — Ном солилцох платформ',
     template: '%s · Solio',
   },
   description:
     'Уншсан номоо, сонссон пянзаа бусадтай солилцож, хайж байгаагаа ол. Монголын анхны community-driven солилцооны платформ.',
+  openGraph: {
+    type: 'website',
+    siteName: 'Solio',
+    locale: 'mn_MN',
+    url: publicEnv.siteUrl,
+  },
 }
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {

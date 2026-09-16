@@ -22,33 +22,31 @@
   color: var(--text-3);
 }
 
-/* Sticker-shaped rather than page-wide: a label is going on the inside of a
-   cover, and a 600px-wide one printed at full width wastes most of the sheet.
-   Two across where there is room, so a sheet of them is worth printing. */
+/* One label, and a big one. The symbol is the part that has to survive a phone
+   camera in a badly lit café, so it gets the width. */
 .sheet {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 300px));
-  gap: 12px;
+  display: block;
+  max-width: 420px;
 }
 
 .label {
   display: flex;
-  gap: 14px;
+  gap: 18px;
   align-items: center;
-  padding: 14px;
+  padding: 18px;
   border: 1px solid #111;
   border-radius: 6px;
   background: #fff;
   color: #111;
 }
 
-/* The encoder emits a viewBox-only SVG, so the box decides the size. 92px is
-   about 24mm printed — comfortably above the ~15mm where phone cameras start
-   needing a steady hand. */
+/* The encoder emits a viewBox-only SVG, so the box decides the size. 150px is
+   about 40mm printed: far past the ~15mm where a phone camera starts needing a
+   steady hand, and readable at arm's length. */
 .qr {
   flex: none;
-  width: 92px;
-  height: 92px;
+  width: 150px;
+  height: 150px;
 }
 
 .qr :global(svg) {
@@ -70,12 +68,14 @@
   color: #666;
 }
 
+/* No dash in the code any more, so the spacing does the grouping. */
 .code {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
+  word-break: break-all;
 }
 
 .title {

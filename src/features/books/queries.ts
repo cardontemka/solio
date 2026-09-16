@@ -84,9 +84,10 @@ export type Listing = {
   images: { id: string; url: string; thumbUrl: string; sortOrder: number }[]
   owner: ListingOwner | null
   /**
-   * Where the thing physically is, when that is not with its owner. Ownership
-   * does not move — the venue is holding it, not keeping it — so this is a
-   * pointer and a date and nothing else.
+   * Where the thing physically is, when that is not with its owner — and only
+   * for a reader entitled to know: its owner, the venue holding it, or the
+   * counterparty of the swap it is waiting for. Null everywhere else, including
+   * for everybody browsing the feed.
    */
   storedAt: StoredAt | null
 }
@@ -94,13 +95,11 @@ export type Listing = {
 // book_copies has two foreign keys to profiles (owner, custodian), so the embed
 // has to name the constraint or PostgREST refuses it as ambiguous.
 const LISTING_SELECT = `
-  id, public_code, condition, condition_note, status, transfer_count, created_at, stored_since,
+  id, public_code, condition, condition_note, status, transfer_count, created_at,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at,
                 categories, weight_g, size_note, kind, attributes ),
   owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
-  book_images ( id, storage_key, thumb_key, sort_order, status ),
-  stored:storage_points ( id, name, kind, city, district, address,
-                          keeper:profiles!storage_points_profile_id_fkey ( username ) )
+  book_images ( id, storage_key, thumb_key, sort_order, status )
 `
 
 type ListingRow = {
@@ -154,26 +153,12 @@ type ListingRow = {
     sort_order: number
     status: string
   }[]
-  stored_since: string | null
-  stored: StoredRow | StoredRow[] | null
-}
-
-type StoredRow = {
-  id: string
-  name: string
-  kind: string
-  city: string
-  district: string
-  address: string
-  keeper: { username: string } | { username: string }[] | null
 }
 
 function toListing(row: ListingRow): Listing | null {
   const book = one(row.books)
   if (!book) return null
   const owner = one(row.owner)
-  const stored = one(row.stored)
-  const keeper = one(stored?.keeper)
   const storage = bookImageStorage()
   return {
     copyId: row.id,
@@ -217,22 +202,9 @@ function toListing(row: ListingRow): Listing | null {
           avatarUrl: avatarUrl(owner.avatar_key),
         }
       : null,
-    // A suspended venue drops out of the embed under its own RLS policy, which
-    // leaves stored_since set and stored null. Showing "kept somewhere, since
-    // March" helps nobody, so both halves have to be present.
-    storedAt:
-      stored && keeper && row.stored_since
-        ? {
-            id: stored.id,
-            username: keeper.username,
-            name: stored.name,
-            kind: stored.kind as StoredAt['kind'],
-            city: stored.city,
-            district: stored.district,
-            address: stored.address,
-            since: row.stored_since.slice(0, 10),
-          }
-        : null,
+    // Filled in by withStorage() for the few readers entitled to know; the
+    // columns behind it are not selectable at all any more.
+    storedAt: null,
   }
 }
 
@@ -251,7 +223,15 @@ export async function getListings(
     offset = 0,
     category,
     kind,
-  }: { limit?: number; offset?: number; category?: string; kind?: string } = {}
+    statusIn,
+  }: {
+    limit?: number
+    offset?: number
+    category?: string
+    kind?: string
+    /** Which copy states to include. Omitted means all of them. */
+    statusIn?: CopyStatus[]
+  } = {}
 ): Promise<Listing[]> {
   const supabase = await createClient()
   let query = supabase
@@ -266,6 +246,7 @@ export async function getListings(
   // rather than coming back with books = null.
   if (category) query = query.contains('books.categories', [category])
   if (kind) query = query.eq('books.kind', kind)
+  if (statusIn?.length) query = query.in('status', statusIn)
   const { data, error } = await query
   if (error) throw error
   return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
@@ -353,7 +334,9 @@ export async function getListing(copyId: string): Promise<Listing | null> {
     .maybeSingle()
   if (error) throw error
   if (!data) return null
-  return toListing(data as unknown as ListingRow)
+  const listing = toListing(data as unknown as ListingRow)
+  if (!listing) return null
+  return (await withStorage([listing]))[0] ?? listing
 }
 
 /**
@@ -392,29 +375,62 @@ export async function getMyCopies(
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
   if (error) throw error
-  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+  // The owner is always entitled to know where their own things are.
+  return withStorage(((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? []))
 }
 
 /**
- * What a storage point is currently holding.
+ * Fills in `storedAt` on listings the caller may see it for.
  *
- * Ordered by when it arrived rather than when it was listed: for the venue this
- * is a shelf, and the useful question about a shelf is what came in last.
+ * One round trip for a whole page of rows, and the database decides who is
+ * entitled — the app never has to remember the rule.
  */
-export async function getListingsStoredAt(
-  pointId: string,
-  { limit = 24, offset = 0 }: { limit?: number; offset?: number } = {}
-): Promise<Listing[]> {
+export async function withStorage(listings: Listing[]): Promise<Listing[]> {
+  if (listings.length === 0) return listings
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('book_copies')
-    .select(LISTING_SELECT)
-    .eq('stored_at', pointId)
-    .order('stored_since', { ascending: false })
-    .order('id', { ascending: false })
-    .range(offset, offset + limit - 1)
+  const { data, error } = await supabase.rpc('storage_for_copies', {
+    p_copy_ids: listings.map((l) => l.copyId),
+  })
+  // A signed-out reader is entitled to none of it; that is not worth an error.
+  if (error || !data) return listings
+
+  type Row = {
+    copy_id: string
+    point_id: string
+    username: string
+    name: string
+    kind: string
+    city: string
+    district: string
+    address: string
+    stored_since: string
+  }
+  const byCopy = new Map<string, StoredAt>()
+  for (const r of data as Row[]) {
+    byCopy.set(r.copy_id, {
+      id: r.point_id,
+      username: r.username,
+      name: r.name,
+      kind: r.kind as StoredAt['kind'],
+      city: r.city,
+      district: r.district,
+      address: r.address,
+      since: r.stored_since.slice(0, 10),
+    })
+  }
+  if (byCopy.size === 0) return listings
+  return listings.map((l) => ({ ...l, storedAt: byCopy.get(l.copyId) ?? null }))
+}
+
+/** Listings by id, in the order given. Used where a function knows the ids. */
+export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
+  if (ids.length === 0) return []
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('book_copies').select(LISTING_SELECT).in('id', ids)
   if (error) throw error
-  return ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+  const rows = ((data ?? []) as unknown as ListingRow[]).flatMap((r) => toListing(r) ?? [])
+  const order = new Map(ids.map((id, i) => [id, i]))
+  return rows.sort((a, b) => (order.get(a.copyId) ?? 0) - (order.get(b.copyId) ?? 0))
 }
 
 export type PublicProfile = {
@@ -691,4 +707,51 @@ export async function suggestCatalogue(
     copyCount: Number(r.copy_count ?? 0),
     coverUrl: r.cover_key ? storage.publicUrl(r.cover_key) : null,
   }))
+}
+
+export type SitemapRow = { path: string; updatedAt?: string }
+
+/**
+ * Everything a crawler should know about, as paths.
+ *
+ * Runs as the anonymous reader, so RLS decides what is in it: a hidden listing
+ * or a suspended profile simply does not come back, and the sitemap cannot leak
+ * something the site would not serve anyway. Capped rather than paged — at
+ * 50,000 URLs a sitemap has to be split, and this site is a long way from that;
+ * when it gets there, generateSitemaps is the answer.
+ */
+export async function getSitemapRows(): Promise<SitemapRow[]> {
+  const supabase = await createClient()
+
+  const [listings, profiles, requests] = await Promise.all([
+    supabase
+      .from('book_copies')
+      .select('id, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(20000),
+    supabase
+      .from('profiles')
+      .select('username, updated_at')
+      .eq('account_status', 'active')
+      .order('updated_at', { ascending: false })
+      .limit(5000),
+    supabase
+      .from('book_requests')
+      .select('id, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(5000),
+  ])
+
+  const rows: SitemapRow[] = []
+  for (const r of (listings.data ?? []) as { id: string; updated_at: string }[]) {
+    rows.push({ path: `/books/${r.id}`, updatedAt: r.updated_at })
+  }
+  for (const r of (profiles.data ?? []) as { username: string; updated_at: string }[]) {
+    rows.push({ path: `/u/${r.username}`, updatedAt: r.updated_at })
+  }
+  for (const r of (requests.data ?? []) as { id: string; created_at: string }[]) {
+    rows.push({ path: `/requests/${r.id}`, updatedAt: r.created_at })
+  }
+  return rows
 }

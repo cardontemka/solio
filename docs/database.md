@@ -692,15 +692,27 @@ create table public.storage_points (
 report, `/u/<username>` хуудас, түдгэлзүүлэлт бүгд хэвээр ажиллана
 ([ADR-033](decisions.md#adr-033--хадгалах-цэг-нь-данс-хүснэгт-биш)).
 
-`book_copies` дээр хоёр багана нэмэгдэнэ:
+Ном хаана хадгалагдаж байгаа нь **тусдаа хүснэгт** дээр (20260902000560):
 
 ```sql
-alter table public.book_copies
-  add column stored_at uuid references public.storage_points(id) on delete set null,
-  add column stored_since timestamptz,
-  add constraint book_copies_stored_stamp
-    check ((stored_at is null) = (stored_since is null));
+create table public.copy_storage (
+  copy_id  uuid primary key references public.book_copies(id)    on delete cascade,
+  point_id uuid not null    references public.storage_points(id) on delete cascade,
+  since    timestamptz not null default now()
+);
 ```
+
+Урьд нь `book_copies.stored_at` багана байсан бөгөөд энэ нь listing-ийн query
+болгонд дагалдан явж, feed дэх карт бүр дээр «📍 Номын Кафе» гэж хэнд ч
+харагддаг байв. Багана дээр column-level `revoke` хийх нь **ажиллахгүй** —
+Postgres table-level grant-ыг тусад нь хадгалдаг тул үлдсэн багана бүрийг нэрээр
+нь дахин grant хийх шаардлагатай болдог ба шинэ багана нэмэгдэх бүрт чимээгүй
+эвдэрнэ. Тусдаа хүснэгт нь өөрийн RLS-тэй, тоочих шаардлагагүй.
+
+**Хэн харах вэ** (`copy_storage_select_involved`): эзэмшигч, тухайн цэг,
+идэвхтэй (`ACCEPTED`/`CONFIRMED`) солилцооны нөгөө тал, staff. `anon` дээр
+grant огт байхгүй. Бичих grant ч байхгүй — зөвхөн `respond_to_claim()` ба
+`release_stored()` дотроос өөрчлөгдөнө ([ADR-037](decisions.md#adr-037--ном-хаана-байгаа-нь-нийтийн-мэдээлэл-биш)).
 
 `custodian_id` хөндөгдөхгүй: энэ нь "хаана байна" гэсэн заалт болохоос
 эзэмшил/хариуцлагын шилжилт биш. `book_copies_custody_follows_ownership`

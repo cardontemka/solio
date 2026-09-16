@@ -8,6 +8,8 @@
 }
 
 .card {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -15,6 +17,35 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  overflow: hidden;
+}
+
+/* The photo covers the whole card; the veil over it is opaque on the left,
+   where every word on this card sits, and gone by the right edge. So the
+   picture reads as the card's own background rather than as an illustration
+   stuck beside the text. */
+.cardImage {
+  z-index: -2;
+  object-fit: cover;
+}
+
+.cardVeil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    var(--surface) 0%,
+    var(--surface) 38%,
+    color-mix(in srgb, var(--surface) 82%, transparent) 66%,
+    color-mix(in srgb, var(--surface) 20%, transparent) 100%
+  );
+}
+
+/* With a photo behind it the address keeps clear of the part that has
+   dissolved — but only just: pinching it further left it wrapping raggedly. */
+.card[data-cover='true'] .address {
+  max-width: 78%;
 }
 
 .cardHead {

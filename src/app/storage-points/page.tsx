@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { EmptyState, PageHeader } from '@/components/ui'
 import { listStoragePointCards } from '@/features/storage/queries'
@@ -61,7 +62,23 @@ export default async function StoragePointsPage() {
         <>
           <ul className={styles.grid}>
             {points.map((p) => (
-              <li key={p.id} className={styles.card}>
+              <li key={p.id} className={styles.card} data-cover={Boolean(p.coverUrl)}>
+                {/* The photograph fills the card and dissolves towards the left,
+                    where the words are. A picture of the room tells somebody
+                    more about whether to walk there than any field beside it. */}
+                {p.coverUrl && (
+                  <>
+                    <Image
+                      className={styles.cardImage}
+                      src={p.coverUrl}
+                      alt=""
+                      fill
+                      sizes="(max-width: 700px) 100vw, 360px"
+                      unoptimized
+                    />
+                    <span className={styles.cardVeil} aria-hidden="true" />
+                  </>
+                )}
                 <div className={styles.cardHead}>
                   <Link href={`/u/${p.username}`} className={styles.name}>
                     {p.name}
@@ -85,9 +102,9 @@ export default async function StoragePointsPage() {
                 </dl>
 
                 <Link href={`/u/${p.username}`} className={styles.holding}>
-                  {p.storedCount > 0
-                    ? `${p.storedCount} зүйл хадгалж байна →`
-                    : 'Одоогоор хоосон →'}
+                  {p.offerCount > 0
+                    ? `${p.offerCount} зүйл авах боломжтой →`
+                    : 'Одоогоор авах зүйл алга →'}
                 </Link>
               </li>
             ))}

@@ -143,6 +143,9 @@
 /* The venue holding this one, among the badges. A link, because the next thing
    the owner wants is its opening hours. */
 .stored {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 550;
   color: var(--accent);

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { blockImplicitSubmit } from '@/lib/forms'
 import { useRouter } from 'next/navigation'
 import { FieldError, FormMessage } from '@/components/FormError'
 import { IMAGE_ACCEPT, prepareImage, uploadImageToRequest } from '@/features/images/upload'
@@ -96,7 +97,7 @@ export function AddRequestForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className={styles.addForm}>
+    <form onKeyDown={blockImplicitSubmit} ref={formRef} onSubmit={onSubmit} className={styles.addForm}>
       {!state.ok && <FormMessage message={state.message} />}
       {state.ok && <p className={styles.posted}>✓ Сураглал нийтлэгдлээ.</p>}
 

@@ -7,9 +7,9 @@ import { useState } from 'react'
 import {
   BookIcon,
   ChevronDownIcon,
-  HeartIcon,
   LogOutIcon,
   PanelIcon,
+  SettingsIcon,
   SwapIcon,
   UserIcon,
 } from './Icons'
@@ -17,7 +17,7 @@ import { ThemeMenuItem } from './ThemeToggle'
 import { logoutAction } from '@/features/users/actions'
 import styles from './UserDashboard.module.css'
 
-export type PanelKey = 'books' | 'wishlist' | 'swaps'
+export type PanelKey = 'books' | 'swaps'
 
 export type UserInfo = {
   name: string
@@ -29,7 +29,6 @@ export type UserInfo = {
 
 const PANELS: { key: PanelKey; label: string; Icon: typeof BookIcon }[] = [
   { key: 'books', label: 'Миний номнууд', Icon: BookIcon },
-  { key: 'wishlist', label: 'Сураглах', Icon: HeartIcon },
   { key: 'swaps', label: 'Солилцоо', Icon: SwapIcon },
 ]
 
@@ -131,10 +130,19 @@ export function UserDashboard({
           ))}
         </nav>
 
-        {/* The theme and the way out. They used to live in a dropdown in the
-            header, which a phone no longer has: the account is a destination
-            now, and these are the two things people went looking for in it. */}
+        {/* Settings, the theme and the way out. On a phone this page *is* the
+            account — the header has no dropdown there any more — and everything
+            that used to hang off that chevron was landing on a page with the
+            identity block hidden and no link to the settings at all. */}
         <div className={styles.account}>
+          <Link href="/settings" className={styles.accountItem}>
+            <SettingsIcon size={18} />
+            <span className={styles.navLabel}>Тохиргоо</span>
+          </Link>
+          <Link href={`/u/${userInfo.username}`} className={styles.accountItem}>
+            <UserIcon size={18} />
+            <span className={styles.navLabel}>Нийтэд харагдах хуудас</span>
+          </Link>
           <ThemeMenuItem className={styles.accountItem} />
           <form action={logoutAction}>
             <button type="submit" className={styles.accountItem}>

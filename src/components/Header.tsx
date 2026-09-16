@@ -7,7 +7,7 @@ import { SearchBar } from './SearchBar'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { logoutAction } from '@/features/users/actions'
-import { ThemeMenuItem, ThemeToggle } from './ThemeToggle'
+import { ThemeMenuItem } from './ThemeToggle'
 import {
   HomeIcon,
   HeartIcon,
@@ -126,10 +126,6 @@ export function Header({
         </div>
 
         <div className={styles.actions}>
-          {/* Desktop only. On a phone it moves into the menu — see the
-              stylesheet — so the bar can give the width to the search field. */}
-          <ThemeToggle className={styles.themeButton} />
-
           {/* The balance, where a balance belongs: beside the account it
               belongs to. It is the one number on this site that decides what
               somebody can do next — take a book off a storage point's shelf —
@@ -142,8 +138,10 @@ export function Header({
               title={`Танд ${credits} оноо байна. Нэг оноогоор дурын хадгалах цэгээс дурын ном авна.`}
               aria-label={`${credits} оноо. Ном авах.`}
             >
-              <CoinIcon size={16} />
-              <span className={styles.creditsNum}>{credits}</span>
+              <span className={styles.creditsTop}>
+                <CoinIcon size={16} />
+                <span className={styles.creditsNum}>{credits}</span>
+              </span>
               <span className={styles.creditsWord}>оноо</span>
             </Link>
           )}
@@ -211,13 +209,14 @@ export function MobileNav({
   isStaff = false,
   signedIn = false,
   unreadCount = 0,
+  user = null,
 }: {
   isStaff?: boolean
   signedIn?: boolean
   unreadCount?: number
+  user?: HeaderUser
 }) {
   const pathname = usePathname()
-  const [hidden, setHidden] = useState(false)
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
@@ -239,26 +238,14 @@ export function MobileNav({
     ...(isStaff ? ([{ href: '/admin', label: 'Админ', Icon: PanelIcon }] as const) : []),
   ]
 
-  // Measured against the position of the last toggle, not the last event: the
-  // bar's own appearance nudges the scroll position, and comparing with the
-  // previous event reads that nudge as a scroll in the opposite direction.
-  useEffect(() => {
-    let anchorY = window.scrollY
-    const onScroll = () => {
-      const y = window.scrollY
-      const delta = y - anchorY
-      if (Math.abs(delta) < 56) return
-      setHidden(delta > 0 && y > 120)
-      anchorY = y
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   return (
-    <nav className={styles.bottomNav} data-hidden={hidden} aria-label="Үндсэн цэс">
+    <nav className={styles.bottomNav} aria-label="Үндсэн цэс">
       {items.map(({ href, label, Icon }) => {
         const unread = href === '/notifications' && unreadCount > 0
+        // The account's own row wears the account's own face. A generic
+        // silhouette next to three other line icons gave no clue that this one
+        // was *yours*.
+        const isAccount = href === '/dashboard' && user
         return (
           <Link
             key={href}
@@ -268,7 +255,11 @@ export function MobileNav({
             data-unread={unread}
           >
             <span className={styles.bottomIcon}>
-              <Icon size={21} />
+              {isAccount && user ? (
+                <Avatar name={user.displayName} src={user.avatarUrl} size={22} />
+              ) : (
+                <Icon size={21} />
+              )}
               {unread && (
                 <span className={styles.bottomBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
               )}

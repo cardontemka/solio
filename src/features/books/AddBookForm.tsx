@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { blockImplicitSubmit } from '@/lib/forms'
 import { useEffect, useRef, useState } from 'react'
 import { FieldError, FormMessage } from '@/components/FormError'
 import {
@@ -184,8 +185,9 @@ export function AddBookForm() {
     event.preventDefault()
     if (busy) return
 
-    // Guarded here as well as on the button: a form can still be submitted by
-    // pressing Enter in a text field.
+    // Guarded here as well as on the button. Enter no longer submits from a
+    // text field (see blockImplicitSubmit), but a submit can still arrive from
+    // a browser's own autofill flow.
     if (picked.length === 0) {
       setImageError('Номынхоо нэг зургийг нэмнэ үү — зураггүй ном солилцоонд хүлээн авахад хүндрэлтэй.')
       return
@@ -231,7 +233,7 @@ export function AddBookForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className={styles.form}>
+    <form onKeyDown={blockImplicitSubmit} onSubmit={onSubmit} className={styles.form}>
       {!state.ok && <FormMessage message={state.message} />}
 
       <fieldset className={styles.group} disabled={busy}>

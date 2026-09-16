@@ -1,9 +1,6 @@
+/* Inside a disclosure now, so it carries no frame of its own. */
 .card {
-  margin: 18px 0 6px;
-  padding: 16px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 0;
 }
 
 .head {

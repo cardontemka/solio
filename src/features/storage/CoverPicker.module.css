@@ -1,0 +1,88 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+/* The same shape it will be shown in later, so what you upload is what you get:
+   wide and short, because the name sits on top of it. */
+.frame {
+  position: relative;
+  aspect-ratio: 3 / 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.frame[data-empty='true'] {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.placeholder {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.button,
+.remove {
+  padding: 8px 15px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.remove {
+  border: 0;
+  background: none;
+  color: var(--text-3);
+}
+
+.remove:hover {
+  color: var(--danger);
+}
+
+.file {
+  display: none;
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.hint {
+  color: var(--text-3);
+}
+
+.error {
+  color: var(--danger);
+}

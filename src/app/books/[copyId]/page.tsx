@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cache } from 'react'
 import { Avatar } from '@/components/Avatar'
+import { PinIcon } from '@/components/Icons'
 import { Badge } from '@/components/ui'
 import { ListingMenu } from '@/features/books/ListingMenu'
 import { ReopenListingButton } from '@/features/books/ReopenListingButton'
@@ -147,7 +148,10 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                   <Badge>{LANGUAGE_LABEL[listing.language] ?? listing.language}</Badge>
                 )}
                 {listing.storedAt && (
-                  <Badge tone="accent">📍 {listing.storedAt.name}-д хадгалуулсан</Badge>
+                  <Badge tone="accent">
+                    <PinIcon size={13} />
+                    {listing.storedAt.name}-д хадгалуулсан
+                  </Badge>
                 )}
                 {listing.transferCount > 0 && (
                   <Badge>{listing.transferCount} удаа солигдсон</Badge>

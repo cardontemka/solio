@@ -318,10 +318,15 @@
 
 /* ── Mobile nav row ─────────────────────────────────────────────────────── */
 
-/* The theme switch has two homes: a button in the bar on a wide screen, a row
-   in the user menu on a phone. Only one is ever shown. */
+/* The theme switch lives in the user menu, at every width. It used to be a
+   third icon in the top bar on a desktop, which is a lot of permanence for a
+   control somebody touches twice a year — and it left the bar with four things
+   competing for the eye beside the search field. */
 .themeItem {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 @media (max-width: 860px) {
@@ -330,16 +335,6 @@
     margin-inline: 4px;
   }
 
-  .themeButton {
-    display: none;
-  }
-
-  .themeItem {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-  }
 }
 
 @media (max-width: 430px) {
@@ -521,9 +516,10 @@
   transition: transform 0.24s ease;
 }
 
-.bottomNav[data-hidden='true'] {
-  transform: translateY(110%);
-}
+/* The bar used to slide away while the reader scrolled down a list. It was
+   meant to give a phone its screen back and instead took the navigation away
+   at the moment somebody was furthest into a page and most likely to want it.
+   It stays. */
 
 .bottomLink {
   flex: 1 1 0;
@@ -649,9 +645,44 @@
 /* The word stays even on the narrowest phone. A coin and a number is a puzzle
    the first time somebody sees it, and making the balance legible is the whole
    reason it is up here — the search field can spare the 34px. */
+.creditsTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* On a phone the pill stacks: the coin and the number on one line, the word
+   under them. It reads as a unit at a glance instead of as a sentence, and it
+   fits the height the bar already has. */
+@media (max-width: 860px) {
+  .credits {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    height: 42px;
+    padding: 0 10px;
+    line-height: 1.05;
+  }
+
+  .creditsNum {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .creditsWord {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-3);
+  }
+
+  .credits:hover .creditsWord {
+    color: inherit;
+  }
+}
+
 @media (max-width: 360px) {
   .credits {
-    padding: 0 9px 0 8px;
-    font-size: 13px;
+    padding: 0 8px;
   }
 }

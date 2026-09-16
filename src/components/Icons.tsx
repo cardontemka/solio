@@ -173,6 +173,16 @@ export function EyeOffIcon(props: IconProps) {
   )
 }
 
+/** Opening hours — the other half of "can I get there?". */
+export function ClockIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.4" />
+      <path d="M12 7.4V12l3 1.8" />
+    </svg>
+  )
+}
+
 /** A token: what one donated book is worth, and what one taken book costs. */
 export function CoinIcon(props: IconProps) {
   return (

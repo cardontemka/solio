@@ -330,11 +330,10 @@ select u.id, u.id, u.id::text, 'email',
 -- Three books are already sitting on somebody else's shelf. Each is left with a
 -- venue in the owner's own city, because that is the only arrangement that
 -- makes sense in practice and demo data that reads as implausible gets trusted
--- less than none. Written directly rather than through set_stored_at(), which
--- reads auth.uid() and has no session here.
-update public.book_copies c set
-  stored_at = (select id from public.storage_points where name = v.venue),
-  stored_since = now() - v.ago
+-- less than none. Written straight into copy_storage rather than through the
+-- claim flow, which reads auth.uid() and has no session here.
+insert into public.copy_storage (copy_id, point_id, since)
+select c.id, (select id from public.storage_points where name = v.venue), now() - v.ago
  from (values
    ('22222222-2222-2222-2222-222222222222'::uuid, 'Монголын нууц товчоо',
     'Номын Кафе', interval '9 days'),
@@ -344,4 +343,4 @@ update public.book_copies c set
     'Эрдэнэт Номын Сан', interval '21 days')
  ) as v(owner_id, title, venue, ago)
  join public.books b on b.title = v.title
- where c.owner_id = v.owner_id and c.book_id = b.id;
+ join public.book_copies c on c.owner_id = v.owner_id and c.book_id = b.id;

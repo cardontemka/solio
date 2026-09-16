@@ -321,6 +321,8 @@ export type StoragePoint = {
   capacity: number | null
   website: string | null
   description: string | null
+  /** A photograph of the place, shown behind its name wherever it appears. */
+  coverUrl: string | null
 }
 
 /** What a listing says about where it physically is, when it is not at home. */

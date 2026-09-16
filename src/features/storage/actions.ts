@@ -3,6 +3,8 @@
 import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { bookImageStorage } from '@/lib/storage'
+import { sniffMime } from '@/lib/storage/verify'
 import { toUserMessage } from '@/lib/db/errors'
 import { storagePointFrom } from './schema'
 
@@ -89,4 +91,89 @@ export async function updateStoragePointAction(
   revalidatePath('/storage-points')
   revalidatePath('/', 'layout')
   return { ok: true }
+}
+
+export type CoverState = { ok: true; url: string | null } | { ok: false; message: string }
+
+/**
+ * Attaches an uploaded cover photo to the caller's own storage point.
+ *
+ * Same rule as avatars and book photos: a declared MIME type is not taken on
+ * trust. The object's head is read back from the bucket and sniffed, and
+ * anything that is not really an image is deleted rather than linked — the
+ * alternative is arbitrary bytes served from the image host under a venue's
+ * name. The key is rebuilt from the caller's own id too, so a forged one cannot
+ * point at somebody else's object.
+ */
+export async function setStoragePointCoverAction(storageKey: string): Promise<CoverState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const expectedPrefix = `covers/${user.id}/`
+  if (!storageKey.startsWith(expectedPrefix) || storageKey.includes('..')) {
+    return { ok: false, message: 'Буруу хүсэлт.' }
+  }
+
+  const storage = bookImageStorage()
+  const head = await storage.readHead(storageKey, 64)
+  if (!head || !sniffMime(head)) {
+    await storage.delete(storageKey).catch(() => {})
+    return { ok: false, message: 'Файл зураг биш байна.' }
+  }
+
+  const { data: previous } = await supabase
+    .from('storage_points')
+    .select('cover_key')
+    .eq('profile_id', user.id)
+    .maybeSingle()
+
+  const { error } = await supabase
+    .from('storage_points')
+    .update({ cover_key: storageKey })
+    .eq('profile_id', user.id)
+  if (error) {
+    await storage.delete(storageKey).catch(() => {})
+    return { ok: false, message: toUserMessage(error, 'setStoragePointCover') }
+  }
+
+  // The old object is now unreachable; leaving it would grow the bucket for
+  // every change of picture.
+  const old = (previous as { cover_key: string | null } | null)?.cover_key
+  if (old && old !== storageKey) await storage.delete(old).catch(() => {})
+
+  revalidatePath('/settings')
+  revalidatePath('/storage-points')
+  revalidatePath('/', 'layout')
+  return { ok: true, url: storage.publicUrl(storageKey) }
+}
+
+export async function removeStoragePointCoverAction(): Promise<CoverState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
+
+  const { data: previous } = await supabase
+    .from('storage_points')
+    .select('cover_key')
+    .eq('profile_id', user.id)
+    .maybeSingle()
+
+  const { error } = await supabase
+    .from('storage_points')
+    .update({ cover_key: null })
+    .eq('profile_id', user.id)
+  if (error) return { ok: false, message: toUserMessage(error, 'removeStoragePointCover') }
+
+  const old = (previous as { cover_key: string | null } | null)?.cover_key
+  if (old) await bookImageStorage().delete(old).catch(() => {})
+
+  revalidatePath('/settings')
+  revalidatePath('/storage-points')
+  revalidatePath('/', 'layout')
+  return { ok: true, url: null }
 }

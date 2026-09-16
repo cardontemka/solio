@@ -2,8 +2,6 @@ import { ButtonLink } from '@/components/ui'
 import { UserDashboard, type PanelKey } from '@/components/UserDashboard'
 import { MyBooksPanel } from '@/features/books/MyBooksPanel'
 import { getMyCopies } from '@/features/books/queries'
-import { MyRequestsPanel } from '@/features/requests/MyRequestsPanel'
-import { getMyRequests } from '@/features/requests/queries'
 import { SwapsPanel } from '@/features/swaps/SwapsPanel'
 import { getMySwaps } from '@/features/swaps/queries'
 import { PendingClaims } from '@/features/claims/PendingClaims'
@@ -22,11 +20,7 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const me = await requireUser()
-  const [copies, requests, swaps] = await Promise.all([
-    getMyCopies(me.id),
-    getMyRequests(me.id),
-    getMySwaps(me.id),
-  ])
+  const [copies, swaps] = await Promise.all([getMyCopies(me.id), getMySwaps(me.id)])
 
   const panels: Record<PanelKey, React.ReactNode> = {
     books: (
@@ -35,7 +29,6 @@ export default async function DashboardPage() {
         emptyAction={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
     ),
-    wishlist: <MyRequestsPanel requests={requests} />,
     swaps: <SwapsPanel swaps={swaps} />,
   }
 

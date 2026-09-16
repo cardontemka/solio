@@ -1,15 +1,17 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { Avatar } from '@/components/Avatar'
+import { ClockIcon, PinIcon } from '@/components/Icons'
 import { BookGrid } from '@/components/BookCard'
-import { Badge, EmptyState, PageHeader } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
 import { Pager } from '@/components/Pager'
-import { getListingsStoredAt, getPublicProfile, getSwapHistory } from '@/features/books/queries'
-import { countStoredAt, getStoragePointFor } from '@/features/storage/queries'
-import { StoragePointCard } from '@/features/storage/StoragePointCard'
+import { getPublicProfile, getSwapHistory } from '@/features/books/queries'
+import { getMyStoredListings, getStoragePointFor } from '@/features/storage/queries'
+import { StoragePointDetails } from '@/features/storage/StoragePointDetails'
 import { getSessionUser } from '@/lib/auth/dal'
-import { ITEMS_LABEL } from '@/types/domain'
+import { ITEMS_LABEL, STORAGE_POINT_KIND_LABEL } from '@/types/domain'
 import { pageFrom, splitPage } from '@/lib/paging'
 import styles from './page.module.css'
 
@@ -59,10 +61,10 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
     profile.accountType === 'storage_point'
       ? await getStoragePointFor(profile.id, profile.username)
       : null
-  // The grid shows a page; the card says how many there are altogether.
-  const [shelf, storedCount] = point
-    ? await Promise.all([getListingsStoredAt(point.id, { limit: 24 }), countStoredAt(point.id)])
-    : [[], 0]
+  // The shelf is the venue's own business — what it is holding for other
+  // people, and for whom. Only the venue sees it; everybody else sees what it
+  // owns, which is the pool they can actually take something from.
+  const shelf = point && isMe ? await getMyStoredListings() : []
   const { items: listings, hasMore } = splitPage(profile.listings, info)
   const { items: history, hasMore: moreHistory } = splitPage(
     await getSwapHistory(profile.id, { limit: historyInfo.fetch, offset: historyInfo.offset }),
@@ -71,36 +73,105 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
 
   return (
     <div className="container">
-      <PageHeader
-        title={profile.displayName}
-        subtitle={`@${profile.username} · ${profile.joinedAt}-нээс Solio-д`}
-        action={isMe ? <Link className={styles.selfLink} href="/dashboard">Миний хуудас</Link> : undefined}
-      />
+      {/* The page leads with who this is and what they have. Everything else —
+          when they joined, what a café's capacity is, the whole swap history —
+          is a click away: it is worth keeping, and it was crowding out the
+          books, which are the reason anybody opens somebody's profile. */}
+      <header className={styles.hero} data-cover={Boolean(point?.coverUrl)}>
+        {point?.coverUrl && (
+          <>
+            <Image
+              className={styles.heroImage}
+              src={point.coverUrl}
+              alt=""
+              fill
+              sizes="(max-width: 900px) 100vw, 900px"
+              priority
+              unoptimized
+            />
+            <span className={styles.heroVeil} aria-hidden="true" />
+          </>
+        )}
 
-      <div className={styles.identity}>
-        <Avatar name={profile.displayName} src={profile.avatarUrl} size={56} />
-        {profile.city && <Badge>📍 {profile.city}</Badge>}
-        <Badge tone="accent">{profile.availableCount} нээлттэй</Badge>
-      </div>
+        <Avatar name={profile.displayName} src={profile.avatarUrl} size={72} />
 
-      {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
+        <div className={styles.heroText}>
+          <h1 className={styles.name}>{profile.displayName}</h1>
+          <p className={styles.handle}>
+            @{profile.username}
+            {point && <span className={styles.kind}>{STORAGE_POINT_KIND_LABEL[point.kind]}</span>}
+          </p>
 
-      {point && <StoragePointCard point={point} storedCount={storedCount} />}
+          {(point?.description ?? profile.bio) && (
+            <p className={styles.bio}>{point?.description ?? profile.bio}</p>
+          )}
 
-      {point && (
+          <div className={styles.chips}>
+            {point ? (
+              <>
+                <span className={styles.chip}>
+                  <PinIcon size={14} />
+                  {point.district}, {point.city}
+                </span>
+                <span className={styles.chip}>
+                  <ClockIcon size={14} />
+                  {point.hours}
+                </span>
+              </>
+            ) : (
+              profile.city && (
+                <span className={styles.chip}>
+                  <PinIcon size={14} />
+                  {profile.city}
+                </span>
+              )
+            )}
+            <span className={styles.chipStrong}>
+              {profile.availableCount} нээлттэй
+            </span>
+          </div>
+
+          {isMe && (
+            <div className={styles.heroActions}>
+              <Link className={styles.selfLink} href="/dashboard">
+                Миний хуудас
+              </Link>
+            </div>
+          )}
+
+          <details className={styles.more}>
+            <summary className={styles.moreSummary}>Дэлгэрэнгүй</summary>
+            <div className={styles.moreBody}>
+              {point ? (
+                <StoragePointDetails point={point} />
+              ) : (
+                <dl className={styles.facts}>
+                  <dt>Solio-д нэгдсэн</dt>
+                  <dd>{profile.joinedAt}</dd>
+                  {profile.city && (
+                    <>
+                      <dt>Байршил</dt>
+                      <dd>{profile.city}</dd>
+                    </>
+                  )}
+                </dl>
+              )}
+            </div>
+          </details>
+        </div>
+      </header>
+
+      {point && isMe && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Энд хадгалагдаж буй</h2>
+          <h2 className={styles.sectionTitle}>Танд хадгалагдаж буй</h2>
           <p className={styles.sectionNote}>
-            Эзэд нь энд түр хадгалуулсан ном, пянз. Эзэмшил нь тэдэнийх хэвээр.
+            Эзэд нь тань дээр түр хадгалуулсан ном, пянз. Энэ жагсаалтыг зөвхөн та
+            харна — эзэмшигч, солилцох нөгөө тал нь өөрсдийнхөө зүйлийг л харна.
           </p>
           {shelf.length === 0 ? (
             <EmptyState
               title="Одоогоор юу ч хадгалагдаагүй"
-              description={
-                isMe
-                  ? 'Хэн нэгэн ном, пянзаа тань дээр хадгалуулбал энд харагдана.'
-                  : `${point.name} дээр одоогоор ном, пянз хадгалагдаагүй байна.`
-              }
+              description="Хэн нэгэн ном, пянзаа тань дээр хадгалуулбал энд харагдана."
             />
           ) : (
             <BookGrid listings={shelf} priorityCount={4} />
@@ -138,8 +209,11 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       </section>
 
       {history.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Солилцооны түүх</h2>
+        <details className={styles.historyBlock}>
+          <summary className={styles.historySummary}>
+            Солилцооны түүх ({history.length}
+            {moreHistory ? '+' : ''})
+          </summary>
           <ul className={styles.history}>
             {history.map((h) => (
               <li key={h.swapId} className={styles.historyItem}>
@@ -165,7 +239,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
             basePath={`/u/${profile.username}`}
             paramKey="hpage"
           />
-        </section>
+        </details>
       )}
     </div>
   )

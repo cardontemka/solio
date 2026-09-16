@@ -336,10 +336,23 @@
    wrapped: a second line here would make one card in a grid taller than its
    neighbours. */
 .stored {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 1px;
   font-size: 11.5px;
   color: var(--accent);
   white-space: nowrap;
+  overflow: hidden;
+}
+
+.stored svg {
+  flex: none;
+}
+
+/* The venue's name is what gets clipped when the card is narrow, not the pin. */
+.stored span,
+.storedName {
   overflow: hidden;
   text-overflow: ellipsis;
 }

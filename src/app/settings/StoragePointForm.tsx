@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useActionState } from 'react'
 import { FormMessage } from '@/components/FormError'
+import { CoverPicker } from '@/features/storage/CoverPicker'
 import { StoragePointFields } from '@/features/storage/StoragePointFields'
 import { updateStoragePointAction, type StorageState } from '@/features/storage/actions'
 import type { StoragePoint } from '@/types/domain'
@@ -32,6 +33,11 @@ export function StoragePointForm({ point }: { point: StoragePoint }) {
           Гаднаас нь харах
         </Link>
       </p>
+
+      {/* Outside the form on purpose: it uploads on its own, and a picture
+          chosen but not saved because the form below failed validation would be
+          the wrong kind of surprise. */}
+      <CoverPicker initialUrl={point.coverUrl} />
 
       <form action={formAction} className={styles.form}>
         {state.ok && (

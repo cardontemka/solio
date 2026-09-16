@@ -8,8 +8,16 @@ import { getSessionUser } from '@/lib/auth/dal'
 import { ITEMS_LABEL_LOWER } from '@/types/domain'
 import styles from './page.module.css'
 
+/**
+ * What is actually on offer, newest first.
+ *
+ * Open listings only. A book that has already changed hands is still worth
+ * seeing — it is the site working — but it was arriving in the first row on the
+ * front page, where every card is an invitation to swap and half of them could
+ * not be swapped for. Those have their own section further down.
+ */
 async function RecentlyAdded() {
-  const listings = await getListings({ limit: 6 })
+  const listings = await getListings({ limit: 6, statusIn: ['available'] })
   if (listings.length === 0) {
     return (
       <EmptyState
@@ -32,13 +40,33 @@ async function RecentlyAdded() {
  * reads as something failing to load.
  */
 async function MoreListings() {
-  const listings = await getListings({ limit: 12, offset: 6 })
+  const listings = await getListings({ limit: 12, offset: 6, statusIn: ['available'] })
   if (listings.length === 0) return null
   return (
     <Section
       title={`Бусад ${ITEMS_LABEL_LOWER}`}
       description="Хэрэглэгчид солилцохоор нээлттэй болгосон зүйлс"
       href="/search"
+    >
+      <BookGrid listings={listings} />
+    </Section>
+  )
+}
+
+/**
+ * Things that have already changed hands.
+ *
+ * Kept on the page rather than hidden: a feed with no evidence that anything
+ * ever completes reads as an empty shop. Kept off the top for the same reason —
+ * nobody can act on these.
+ */
+async function RecentlySwapped() {
+  const listings = await getListings({ limit: 6, statusIn: ['swapped'] })
+  if (listings.length === 0) return null
+  return (
+    <Section
+      title="Саяхан солилцсон"
+      description="Аль хэдийн эзэн нь солигдсон зүйлс. Эзэмшигч нь дахин нээвэл солилцоонд гарна."
     >
       <BookGrid listings={listings} />
     </Section>
@@ -111,7 +139,7 @@ export default async function HomePage() {
         </Section>
 
         <Section
-          title="Ном хүсэж байна"
+          title="Сураглаж байна"
           description="Хэн юу сураглаж байна — танд байвал доор нь хариу бичээрэй"
           href="/requests"
         >
@@ -122,6 +150,10 @@ export default async function HomePage() {
 
         <Suspense fallback={<RailSkeleton />}>
           <MoreListings />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <RecentlySwapped />
         </Suspense>
       </div>
     </>
