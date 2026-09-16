@@ -352,7 +352,11 @@ Bucket → **Settings** → **CORS Policy** → **Add CORS policy**:
    - Site URL → `https://solio.mn`
    - Redirect URLs → `https://solio.mn/**`, `https://www.solio.mn/**` нэмэгдсэн эсэхийг
      шалга (§2.4 — `/**`-гүй яг таарах бичлэг нэвтрэлтийг эвддэг).
-8. **NEXT_PUBLIC_SITE_URL** environment variable нь Site URL-тэй яг ижил байх ёстой.
+8. **NEXT_PUBLIC_SITE_URL** environment variable нь Site URL-тэй яг ижил байх ёстой
+   (`https://solio.mn`). Vercel дээр **Production** орчинд тавина. Хоосон
+   утгатай үлдээвэл апп deployment-ийн өөрийнх нь домэйн руу шилжинэ —
+   ажиллана, гэхдээ canonical URL болон шошгон дээрх QR нь `vercel.app` хаяг
+   заана.
 
 ---
 
