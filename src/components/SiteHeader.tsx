@@ -22,6 +22,7 @@ export async function SiteHeader() {
       }
       unreadCount={user?.unreadCount ?? 0}
       isStaff={user?.isStaff ?? false}
+      credits={user?.credits ?? 0}
     />
   )
 }

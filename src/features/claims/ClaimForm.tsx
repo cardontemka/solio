@@ -94,27 +94,17 @@ export function ClaimForm({
       />
 
       <div className={styles.buttons}>
-        {viewerIsPoint && (
-          <button
-            type="button"
-            className={styles.primary}
-            disabled={pending}
-            onClick={() => claim('storage')}
-          >
-            <span>{pending ? 'Илгээж байна…' : 'Хадгалж авлаа'}</span>
-            <span className={styles.sub}>
-              Эзэмшигчийнх хэвээр. Оноо байхгүй — энэ бол хадгалах үйлчилгээ.
-            </span>
-          </button>
-        )}
-
+        {/* Donation leads. It is the act the site is actually asking for — a
+            book that changes hands is one somebody else can read — and it is
+            the one people misread as "I am just giving my book away", so what
+            comes back for it is on the button rather than in a footnote. */}
         <button
           type="button"
-          className={viewerIsPoint ? styles.secondary : styles.primary}
+          className={styles.primary}
           disabled={pending || broke}
           onClick={() => claim('ownership')}
         >
-          <span>
+          <span className={styles.buttonTop}>
             {pending
               ? 'Илгээж байна…'
               : viewerIsPoint
@@ -122,15 +112,34 @@ export function ClaimForm({
                 : ownerIsPoint
                   ? 'Энэ номыг авах'
                   : 'Өөрийн болгон авлаа'}
+            {earnsCredit && <span className={styles.reward}>Эзэмшигчид +1 оноо</span>}
+            {costsCredit && <span className={styles.cost}>−1 оноо</span>}
           </span>
           <span className={styles.sub}>
             {costsCredit
-              ? `Эзэмшил тань руу шилжинэ. 1 оноо зарцуулна — танд ${viewerCredits} оноо байна.`
+              ? `Эзэмшил тань руу шилжинэ. Танд ${viewerCredits} оноо байна.`
               : earnsCredit
-                ? 'Эзэмшил тань руу шилжиж, эзэмшигч нь 1 оноо авна.'
+                ? 'Эзэмшил тань руу шилжинэ. Эзэмшигч нь хариуд нь 1 оноо авах ба түүгээрээ дурын хадгалах цэгээс дурын ном авч болно — зүгээр нэг өгч байгаа хэрэг биш.'
                 : 'Эзэмшил тань руу шилжинэ.'}
           </span>
         </button>
+
+        {viewerIsPoint && (
+          <button
+            type="button"
+            className={styles.secondary}
+            disabled={pending}
+            onClick={() => claim('storage')}
+          >
+            <span className={styles.buttonTop}>
+              {pending ? 'Илгээж байна…' : 'Зөвхөн хадгалж авлаа'}
+            </span>
+            <span className={styles.sub}>
+              Эзэмшил өөрчлөгдөхгүй, оноо ч гарахгүй. Хоёр хүн уулзалгүйгээр солилцоход
+              туслах үйлчилгээ.
+            </span>
+          </button>
+        )}
       </div>
 
       {broke && (

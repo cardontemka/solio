@@ -756,6 +756,8 @@ create unique index copy_claims_one_open on public.copy_claims (copy_id)
 | `find_copy_by_code(code)` | anon, authenticated | Код юуг заасныг буцаана (нийтийн мэдээлэл) |
 | `claim_by_code(code, kind, note)` | authenticated | `pending` хүсэлт үүсгэж эзэнд мэдэгдэнэ |
 | `respond_to_claim(id, action)` | authenticated | Эзэн `approve`/`reject`, хүсэгч `cancel` |
+| `confirm_receipt_by_code(code)` | authenticated | Солилцоонд биечлэн хүлээн авсныг баталгаажуулна (ADR-036) |
+| `swap_receipt_for_code(code)` | authenticated | Уг код идэвхтэй солилцоонд байгаа эсэх, хэн хүлээн авах нь |
 | `list_my_claims()` | authenticated | Өөрт хамаарах бүх хүсэлт, нэр/гарчигтай нь |
 
 **Зөвшөөрснөөр юу болох.** `storage` бол `stored_at`/`stored_since` л шинэчлэгдэнэ

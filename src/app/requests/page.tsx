@@ -1,5 +1,5 @@
 import { EmptyState, PageHeader } from '@/components/ui'
-import { AddRequestForm } from '@/features/requests/AddRequestForm'
+import Link from 'next/link'
 import { RequestList } from '@/features/requests/RequestCard'
 import { Pager } from '@/components/Pager'
 import { getRequestFeed } from '@/features/requests/queries'
@@ -44,22 +44,19 @@ export default async function RequestsPage({ searchParams }: PageProps<'/request
         </div>
 
         <aside className={styles.aside}>
-          {me ? (
-            <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Сураглах</h2>
-              <p className={styles.cardDesc}>
-                Сураглаж буй ном, пянзаа нийтэлнэ. Бусад хэрэглэгч доор нь хариу бичнэ.
-              </p>
-              <AddRequestForm />
-            </div>
-          ) : (
-            <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Сураглах</h2>
-              <p className={styles.cardDesc}>
-                Сураглал нийтлэхийн тулд нэвтэрнэ үү.
-              </p>
-            </div>
-          )}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Сураглах</h2>
+            <p className={styles.cardDesc}>
+              Сураглаж буй ном, пянзаа нийтэлнэ. Бусад хэрэглэгч доор нь хариу бичнэ.
+            </p>
+            {/* The form itself lives on the add page, beside the one for things
+                you already have: they are the same act with the verb changed,
+                and keeping a second copy here would be two forms to keep in
+                step. */}
+            <Link className={styles.cardLink} href={me ? '/books/new' : '/login?next=/books/new'}>
+              {me ? 'Сураглал нийтлэх →' : 'Нэвтэрч нийтлэх →'}
+            </Link>
+          </div>
         </aside>
       </div>
     </div>

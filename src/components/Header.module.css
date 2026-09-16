@@ -608,3 +608,50 @@
     animation: none;
   }
 }
+
+/* ── Credits ──────────────────────────────────────────────────────────────
+   Beside the account on a desktop; in its place on a phone, where the account
+   itself has moved to the bottom bar. Deliberately not a badge on an icon: the
+   number is the message, and "3" alone would mean nothing the first time. */
+.credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.credits:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.creditsNum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 860px) {
+  /* The account lives in the bottom bar now; its dropdown was the wrong shape
+     for a thumb and hid the two things people wanted from it. */
+  .userWrap {
+    display: none;
+  }
+}
+
+/* The word stays even on the narrowest phone. A coin and a number is a puzzle
+   the first time somebody sees it, and making the balance legible is the whole
+   reason it is up here — the search field can spare the 34px. */
+@media (max-width: 360px) {
+  .credits {
+    padding: 0 9px 0 8px;
+    font-size: 13px;
+  }
+}

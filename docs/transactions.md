@@ -91,8 +91,17 @@
 | 3 | `REQUESTED` | `REJECTED` | **зөвхөн responder** | — | `closed_at`; audit; мэдэгдэл → requester | `RPC:respond_to_swap('reject')` + `TRG` |
 | 4 | `REQUESTED` | `CANCELLED` | **зөвхөн requester** | — | `closed_at`; audit; мэдэгдэл → responder | `RPC:respond_to_swap('cancel')` + `TRG` |
 | 5 | `ACCEPTED` | `CANCELLED` | **аль ч тал** | — | `reserved` хуулбарууд → `available`; `closed_at`; audit; мэдэгдэл нөгөө талд | `RPC:respond_to_swap('cancel')` + `TRG` |
-| 6 | `ACCEPTED` | `CONFIRMED` | **аль ч тал** (эхэлж дарсан нь) | actor нь оролцогч | `confirmed_by = actor`; audit; мэдэгдэл нөгөө талд | `RPC:complete_swap` PHASE 1 |
-| 7 | `CONFIRMED` | `COMPLETED` | **`confirmed_by` БИШ тал** | `actor <> confirmed_by`; хуулбар бүр `reserved` ба эзэмшил хэвээр | §4-ийн бүх бичилт | `RPC:complete_swap` PHASE 2 |
+| 6 | `ACCEPTED` | `CONFIRMED` | **хүлээн авсан тал** (эхэлж уншуулсан нь) | actor нь тухайн хуулбарыг хүлээн авах тал | `confirmed_by = actor`; audit; мэдэгдэл нөгөө талд | `RPC:confirm_receipt_by_code` → PHASE 1 |
+| 7 | `CONFIRMED` | `COMPLETED` | **`confirmed_by` БИШ тал** | `actor <> confirmed_by`; хуулбар бүр `reserved` ба эзэмшил хэвээр | §4-ийн бүх бичилт | `RPC:confirm_receipt_by_code` → PHASE 2 |
+
+> **Баталгаажуулалт нь товч биш, уншуулалт.** 20260902000550-аас хойш
+> `public.complete_swap(uuid)` байхгүй: swap-ыг зөвхөн id-г нь мэдээд урагшлуулах
+> боломжгүй. `public.confirm_receipt_by_code(p_code)` нь кодыг хуулбар руу
+> хөрвүүлж, тухайн хуулбарыг **хүлээн авах ёстой тал** дуудсан эсэхийг шалгаад
+> л `private.advance_swap()`-ыг ажиллуулна. Өөрийн өгч буй номоо уншуулбал
+> `NOT_THE_RECEIVING_SIDE`. Шалтгаан нь: шошго нь эд зүйл дээр байдаг тул
+> уншуулж чадсан гэдэг нь тэр зүйл гарт нь байгаагийн баримт
+> ([ADR-036](decisions.md#adr-036--гардуулалтыг-шошго-баталдаг-товч-биш)).
 
 ### 2.2 ЗӨВШӨӨРӨГДӨХГҮЙ шилжилтүүд
 
@@ -209,7 +218,7 @@ MVP-д төгсгөлийн төлөв **байхгүй** (`lost` нь ирээ�
 | 3 | `inactive` | `available` | **эзэн** | `moderation_status='active'` | `TRG` |
 | 4 | `available` | `reserved` | **зөвхөн систем** | swap `REQUESTED`, actor нь responder | `RPC:respond_to_swap('accept')` |
 | 5 | `reserved` | `available` | **зөвхөн систем** | swap `ACCEPTED`-ээс `CANCELLED` рүү | `RPC:respond_to_swap('cancel')` |
-| 6 | `reserved` | `swapped` | **зөвхөн систем** | `complete_swap` PHASE 2, `owner_id` солигдохтой хамт | `RPC:complete_swap` |
+| 6 | `reserved` | `swapped` | **зөвхөн систем** | `advance_swap` PHASE 2, `owner_id` солигдохтой хамт | `RPC:confirm_receipt_by_code` |
 | 7 | `swapped` | `available` | **шинэ эзэн** | дахин зарлахаар шийдвэл | `TRG` |
 | 8 | `swapped` | `inactive` | **шинэ эзэн** | — | `TRG` |
 

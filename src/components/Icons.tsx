@@ -173,6 +173,16 @@ export function EyeOffIcon(props: IconProps) {
   )
 }
 
+/** A token: what one donated book is worth, and what one taken book costs. */
+export function CoinIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="M12 8.4v7.2M10.1 10.1h3.3a1.6 1.6 0 0 1 0 3.2h-2.8a1.6 1.6 0 0 0 0 3.2h3.4" />
+    </svg>
+  )
+}
+
 /** A QR frame: the corners are what people recognise, not the dots. */
 export function ScanIcon(props: IconProps) {
   return (

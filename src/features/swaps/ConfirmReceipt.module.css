@@ -1,0 +1,66 @@
+.box,
+.doneBox {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+}
+
+.box {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.doneBox {
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--border));
+  background: color-mix(in srgb, var(--ok) 8%, var(--surface));
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 15.5px;
+  font-weight: 650;
+}
+
+.body {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.confirm {
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+@media (prefers-color-scheme: dark) {
+  .confirm {
+    color: #17150f;
+  }
+}

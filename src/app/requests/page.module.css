@@ -40,3 +40,17 @@
   line-height: 1.6;
   color: var(--text-3);
 }
+
+/* The form itself is on the add page; this is the way to it. */
+.cardLink {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.cardLink:hover {
+  text-decoration: underline;
+}

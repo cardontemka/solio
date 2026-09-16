@@ -321,3 +321,42 @@
 .detailLink:hover {
   text-decoration: underline;
 }
+
+/* The account's own controls, pinned under the menu: the theme, and the way
+   out. Both used to hang off a chevron in the header that a phone no longer
+   shows. */
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.account form {
+  display: block;
+}
+
+.accountItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.accountItem:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}

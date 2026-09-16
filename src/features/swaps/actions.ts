@@ -76,20 +76,22 @@ export async function rejectSwapAction(swapId: string) { return respond(swapId, 
 export async function cancelSwapAction(swapId: string) { return respond(swapId, 'cancel') }
 
 /**
- * Two-phase: the first call moves ACCEPTED → CONFIRMED and records who
- * confirmed; the second, by the OTHER party, transfers ownership. The database
- * refuses to let one person do both.
+ * "I have it in my hands."
+ *
+ * Confirmation is a scan now, not a button: the code is printed on the object,
+ * so being able to send it is the evidence that the handover happened. A swap
+ * can no longer be advanced by knowing its id — public.complete_swap is gone.
+ *
+ * Still two-phase underneath: the first receiver's scan moves ACCEPTED →
+ * CONFIRMED, the other's transfers ownership, and one person cannot do both.
  */
-export async function completeSwapAction(swapId: string): Promise<SwapActionState> {
+export async function confirmReceiptByCodeAction(code: string): Promise<SwapActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
 
-  const id = idSchema.safeParse(swapId)
-  if (!id.success) return { ok: false, message: 'Буруу хүсэлт.' }
-
-  const { error } = await supabase.rpc('complete_swap', { p_swap_id: id.data })
-  if (error) return { ok: false, message: toUserMessage(error, 'completeSwap') }
+  const { error } = await supabase.rpc('confirm_receipt_by_code', { p_code: code })
+  if (error) return { ok: false, message: toUserMessage(error, 'confirmReceipt') }
 
   after(flushPendingPush)
 

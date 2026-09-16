@@ -18,3 +18,15 @@
   line-height: 1.6;
   color: var(--text-2);
 }
+
+/* Approving a donation is the one decision on this site that hands the reader
+   something back. Said before the row rather than inside it. */
+.reward {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
+}

@@ -4,6 +4,8 @@ import { PageHeader } from '@/components/ui'
 import { ClaimForm } from '@/features/claims/ClaimForm'
 import { ClaimList } from '@/features/claims/ClaimList'
 import { findCopyByCode, getClaimOptions, getOpenClaimFor } from '@/features/claims/queries'
+import { ConfirmReceipt } from '@/features/swaps/ConfirmReceipt'
+import { getSwapReceiptForCode } from '@/features/swaps/queries'
 import { coverColorFor } from '@/features/books/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import { formatItemCode } from '@/lib/qr'
@@ -47,6 +49,9 @@ export default async function ScannedItemPage({ params }: PageProps<'/t/[code]'>
   // Whose claim it is decides what this page is for. Without this the person who
   // just pressed the button was told "somebody has a pending claim on this" —
   // true, and it reads as though a stranger got there first.
+  // A live swap outranks everything else this page can offer: the reader is
+  // holding a book somebody is owed, and the only thing to do with it is say so.
+  const receipt = me ? await getSwapReceiptForCode(item.code) : null
   const myClaim = me && item.hasOpenClaim ? await getOpenClaimFor(item.copyId) : null
   // What each button would cost this particular reader. Only asked when there
   // is a button to draw.
@@ -95,7 +100,9 @@ export default async function ScannedItemPage({ params }: PageProps<'/t/[code]'>
             )}
           </dl>
 
-          {myClaim ? (
+          {receipt ? (
+            <ConfirmReceipt code={item.code} receipt={receipt} />
+          ) : myClaim ? (
             <div className={styles.claim}>
               <h2 className={styles.claimTitle}>
                 {myClaim.role === 'owner' ? 'Шийдвэрлэх хүсэлт' : 'Таны хүсэлт'}

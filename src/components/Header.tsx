@@ -11,6 +11,7 @@ import { ThemeMenuItem, ThemeToggle } from './ThemeToggle'
 import {
   HomeIcon,
   HeartIcon,
+  CoinIcon,
   BellIcon,
   BookIcon,
   ChevronDownIcon,
@@ -28,10 +29,16 @@ import styles from './Header.module.css'
  * box still reaches it, but as a nav destination it was the home page again with
  * a different heading, and it cost the bottom bar a slot that notifications
  * needed more.
+ *
+ * Storage points took the slot that asking for a book used to have. Asking is
+ * something you do once you already have the site open and are adding things —
+ * it now lives on the add page, next to the form for what you *do* have —
+ * while a storage point is a place you have to be able to find before you set
+ * out. /requests still exists and is still linked from there.
  */
 const NAV = [
   { href: '/', label: 'Нүүр', Icon: HomeIcon },
-  { href: '/requests', label: 'Сураглах', Icon: HeartIcon },
+  { href: '/storage-points', label: 'Хадгалах цэгүүд', Icon: PinIcon },
 ] as const
 
 export type HeaderUser = { displayName: string; username: string; avatarUrl: string | null } | null
@@ -40,10 +47,12 @@ export function Header({
   user,
   unreadCount = 0,
   isStaff = false,
+  credits = 0,
 }: {
   user: HeaderUser
   unreadCount?: number
   isStaff?: boolean
+  credits?: number
 }) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -121,6 +130,24 @@ export function Header({
               stylesheet — so the bar can give the width to the search field. */}
           <ThemeToggle className={styles.themeButton} />
 
+          {/* The balance, where a balance belongs: beside the account it
+              belongs to. It is the one number on this site that decides what
+              somebody can do next — take a book off a storage point's shelf —
+              and it was previously buried two pages deep. Links to the page
+              where it is spent. */}
+          {user && (
+            <Link
+              href="/take"
+              className={styles.credits}
+              title={`Танд ${credits} оноо байна. Нэг оноогоор дурын хадгалах цэгээс дурын ном авна.`}
+              aria-label={`${credits} оноо. Ном авах.`}
+            >
+              <CoinIcon size={16} />
+              <span className={styles.creditsNum}>{credits}</span>
+              <span className={styles.creditsWord}>оноо</span>
+            </Link>
+          )}
+
           {user && (
             <Link
               href="/notifications"
@@ -139,6 +166,11 @@ export function Header({
           )}
 
           {user ? (
+            /* Desktop only — see the stylesheet. On a phone the account lives
+               in the bottom bar, and everything that used to hang off this
+               chevron (theme, signing out) is on the page it opens. A dropdown
+               is a poor fit for a thumb, and it was hiding the two controls
+               people looked for most. */
             <div className={styles.userWrap} ref={menuRef}>
               <button
                 type="button"
@@ -196,7 +228,13 @@ export function MobileNav({
   const items = [
     ...NAV,
     ...(signedIn
-      ? ([{ href: '/notifications', label: 'Мэдэгдэл', Icon: BellIcon }] as const)
+      ? ([
+          { href: '/notifications', label: 'Мэдэгдэл', Icon: BellIcon },
+          // The account, moved down here out of a dropdown that a thumb could
+          // barely open. The page it lands on carries the theme switch and the
+          // way out, which is what people were opening that dropdown for.
+          { href: '/dashboard', label: 'Профайл', Icon: UserIcon },
+        ] as const)
       : []),
     ...(isStaff ? ([{ href: '/admin', label: 'Админ', Icon: PanelIcon }] as const) : []),
   ]
@@ -273,9 +311,9 @@ function Menu({
         <SwapIcon size={17} />
         Солилцоо
       </Link>
-      <Link href="/storage-points" className={styles.menuItem} onClick={onNavigate}>
-        <PinIcon size={17} />
-        Хадгалах цэгүүд
+      <Link href="/requests" className={styles.menuItem} onClick={onNavigate}>
+        <HeartIcon size={17} />
+        Сураглалууд
       </Link>
 
       <div className={styles.menuDivider} role="separator">

@@ -57,6 +57,34 @@
   cursor: pointer;
 }
 
+/* The label line, with what the act is worth sitting beside it. */
+.buttonTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reward,
+.cost {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* On the filled button, so it has to read against the accent. */
+.reward {
+  background: rgb(255 255 255 / 92%);
+  color: var(--accent);
+}
+
+.cost {
+  background: rgb(255 255 255 / 22%);
+  color: #fff;
+}
+
 /* What the button will actually do, on the button. A consequence this large —
    ownership, a credit — belongs next to the thing that causes it, not in a
    paragraph underneath that nobody reads twice. */
@@ -130,6 +158,16 @@
 
 @media (prefers-color-scheme: dark) {
   .primary {
+    color: #17150f;
+  }
+
+  .reward {
+    background: #17150f;
+    color: var(--accent);
+  }
+
+  .cost {
+    background: rgb(23 21 15 / 28%);
     color: #17150f;
   }
 }

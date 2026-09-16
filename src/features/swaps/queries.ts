@@ -268,3 +268,52 @@ export async function getOpenOffers(copyId: string): Promise<OpenOffer[]> {
     createdAt: r.created_at.slice(0, 10),
   }))
 }
+
+export type SwapReceipt = {
+  swapId: string
+  copyId: string
+  title: string
+  status: 'ACCEPTED' | 'CONFIRMED'
+  /** Whether this particular copy is the one the viewer was due to receive. */
+  viewerReceives: boolean
+  /** Whether the viewer has already confirmed their half. */
+  viewerConfirmed: boolean
+  otherName: string
+  otherUsername: string
+}
+
+/**
+ * The live swap a scanned code belongs to, if any.
+ *
+ * Confirming receipt is the one thing on this site that must be done with the
+ * object in hand, so the scan page has to know — before it draws anything —
+ * whether this code is a book somebody is owed rather than one they might claim.
+ */
+export async function getSwapReceiptForCode(code: string): Promise<SwapReceipt | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('swap_receipt_for_code', { p_code: code })
+  if (error) throw error
+  const row = (data ?? [])[0] as
+    | {
+        swap_id: string
+        copy_id: string
+        title: string
+        status: 'ACCEPTED' | 'CONFIRMED'
+        viewer_receives: boolean
+        viewer_confirmed: boolean
+        other_name: string
+        other_username: string
+      }
+    | undefined
+  if (!row) return null
+  return {
+    swapId: row.swap_id,
+    copyId: row.copy_id,
+    title: row.title,
+    status: row.status,
+    viewerReceives: row.viewer_receives,
+    viewerConfirmed: row.viewer_confirmed,
+    otherName: row.other_name,
+    otherUsername: row.other_username,
+  }
+}

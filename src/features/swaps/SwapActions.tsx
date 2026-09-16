@@ -1,23 +1,22 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import {
   acceptSwapAction,
   cancelSwapAction,
-  completeSwapAction,
   rejectSwapAction,
   type SwapActionState,
 } from './actions'
 import type { SwapStatus } from '@/types/domain'
 import styles from './SwapsPanel.module.css'
 
-type Kind = 'accept' | 'reject' | 'cancel' | 'confirm'
+type Kind = 'accept' | 'reject' | 'cancel'
 
 const RUN: Record<Kind, (id: string) => Promise<SwapActionState>> = {
   accept: acceptSwapAction,
   reject: rejectSwapAction,
   cancel: cancelSwapAction,
-  confirm: completeSwapAction,
 }
 
 /**
@@ -28,7 +27,6 @@ const RUN: Record<Kind, (id: string) => Promise<SwapActionState>> = {
 function buttonsFor(
   status: SwapStatus,
   direction: 'incoming' | 'outgoing',
-  iConfirmed: boolean,
   blocked: boolean
 ): { kind: Kind; label: string; primary?: boolean }[] {
   // Nothing here cancels. An offer is a promise, and the only way out of one is
@@ -45,18 +43,11 @@ function buttonsFor(
       }
       return blocked ? [{ kind: 'cancel', label: 'Хаах', primary: true }] : []
     case 'ACCEPTED':
-      return [
-        { kind: 'confirm', label: 'Биечлэн авсныг баталгаажуулах', primary: true },
-        ...(blocked ? ([{ kind: 'cancel', label: 'Хаах' }] as const) : []),
-      ]
     case 'CONFIRMED':
-      // Nothing left to hand over, so the only useful move is to close it.
-      if (blocked) return [{ kind: 'cancel', label: 'Хаах', primary: true }]
-      // The one who confirmed is waiting on the other; there is nothing for
-      // them to press, and no longer anything to withdraw.
-      return iConfirmed
-        ? []
-        : [{ kind: 'confirm', label: 'Хүлээн авсныг баталгаажуулах', primary: true }]
+      // Receipt is confirmed by scanning the book, not by pressing anything
+      // here — see the note rendered below. The only button left is the escape
+      // hatch for a swap that can no longer happen.
+      return blocked ? [{ kind: 'cancel', label: 'Хаах', primary: true }] : []
     default:
       return []
   }
@@ -77,9 +68,12 @@ export function SwapActions({
 }) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const buttons = buttonsFor(status, direction, iConfirmed, blocked)
+  const buttons = buttonsFor(status, direction, blocked)
+  // Waiting on the other person's scan, with nothing to do but wait.
+  const waiting = status === 'CONFIRMED' && iConfirmed
+  const scanning = !blocked && (status === 'ACCEPTED' || (status === 'CONFIRMED' && !iConfirmed))
 
-  if (buttons.length === 0 && !error && !blocked) return null
+  if (buttons.length === 0 && !error && !blocked && !scanning && !waiting) return null
 
   return (
     <div className={styles.actions}>
@@ -87,6 +81,24 @@ export function SwapActions({
         <p className={styles.actionNote}>
           Энэ солилцоон дахь зүйл өөрчлөгдсөн байна — өмчлөгч нь солигдсон, өөр солилцоонд
           орсон, эсвэл устсан. Дуусгах боломжгүй тул хаана уу.
+        </p>
+      )}
+      {scanning && (
+        <div className={styles.scanPrompt}>
+          <p className={styles.scanText}>
+            Номоо биечлэн солилцсоны дараа <strong>гартаа авсан зүйлийнхээ шошгыг
+            уншуулж</strong> баталгаажуулна. Товч дарж баталгаажуулах боломжгүй — QR нь
+            тухайн зүйл үнэхээр таны гарт байгаагийн баталгаа юм.
+          </p>
+          <Link href="/take" className={styles.scanLink}>
+            Шошго уншуулах
+          </Link>
+        </div>
+      )}
+      {waiting && (
+        <p className={styles.actionNote}>
+          Та хүлээн авсанаа баталгаажуулсан. Нөгөө тал нь өөрийн авсан зүйлийнхээ шошгыг
+          уншуулахад солилцоо дуусна.
         </p>
       )}
       {buttons.map((b) => (

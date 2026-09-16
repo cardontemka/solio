@@ -320,3 +320,40 @@
   line-height: 1.5;
   color: var(--text-3);
 }
+
+/* Where the confirm button used to be. A swap ends with two people holding
+   each other's books, and the proof of that is the label in your hand — not a
+   button anybody could press from anywhere. */
+.scanPrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.scanText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.scanLink {
+  padding: 8px 15px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .scanLink {
+    color: #17150f;
+  }
+}

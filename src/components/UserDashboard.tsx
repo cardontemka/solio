@@ -8,10 +8,13 @@ import {
   BookIcon,
   ChevronDownIcon,
   HeartIcon,
+  LogOutIcon,
   PanelIcon,
   SwapIcon,
   UserIcon,
 } from './Icons'
+import { ThemeMenuItem } from './ThemeToggle'
+import { logoutAction } from '@/features/users/actions'
 import styles from './UserDashboard.module.css'
 
 export type PanelKey = 'books' | 'wishlist' | 'swaps'
@@ -127,6 +130,19 @@ export function UserDashboard({
             </button>
           ))}
         </nav>
+
+        {/* The theme and the way out. They used to live in a dropdown in the
+            header, which a phone no longer has: the account is a destination
+            now, and these are the two things people went looking for in it. */}
+        <div className={styles.account}>
+          <ThemeMenuItem className={styles.accountItem} />
+          <form action={logoutAction}>
+            <button type="submit" className={styles.accountItem}>
+              <LogOutIcon size={18} />
+              <span className={styles.navLabel}>Гарах</span>
+            </button>
+          </form>
+        </div>
       </aside>
 
       <div className={styles.content}>

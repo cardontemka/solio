@@ -14,6 +14,10 @@ export async function PendingClaims() {
   const claims = await getClaimsAwaitingMe()
   if (claims.length === 0) return null
 
+  // A donation is the one kind that pays, and the owner is the one it pays. It
+  // is worth saying at the top rather than leaving to a chip on a row.
+  const donations = claims.filter((c) => c.kind === 'ownership' && c.claimantPoint).length
+
   return (
     <section className={styles.wrap}>
       <h2 className={styles.title}>
@@ -23,6 +27,15 @@ export async function PendingClaims() {
         Хэн нэгэн таны зүйлийг авсан гэж бүртгүүлсэн байна. Зөвшөөрснөөр байршил эсвэл
         эзэмшил нь шилжинэ.
       </p>
+      {donations > 0 && (
+        <p className={styles.reward}>
+          <strong>
+            {donations > 1 ? `${donations} хандив` : 'Хандив'} — зөвшөөрвөл{' '}
+            {donations > 1 ? `${donations} оноо` : '1 оноо'} авна.
+          </strong>{' '}
+          Нэг оноогоор дурын хадгалах цэгээс дурын ном, пянз авна.
+        </p>
+      )}
       <ClaimList claims={claims} />
     </section>
   )
