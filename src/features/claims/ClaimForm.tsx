@@ -41,7 +41,7 @@ export function ClaimForm({
   const [done, setDone] = useState<{ kind: 'storage' | 'ownership'; copyId: string } | null>(null)
   const [pending, start] = useTransition()
 
-  const { viewerIsPoint, ownerIsPoint, viewerCredits } = options
+  const { viewerIsPoint, viewerCredits } = options
   const costsCredit = options.ownershipCosts > 0
   const earnsCredit = options.ownershipEarns > 0
   const broke = costsCredit && viewerCredits < options.ownershipCosts
@@ -58,7 +58,7 @@ export function ClaimForm({
   if (done) {
     return (
       <div className={styles.done}>
-        <h2 className={styles.doneTitle}>Хүсэлт илгээгдлээ</h2>
+        <h2 className={styles.doneTitle}>Авах хүсэлт илгээгдлээ</h2>
         <p className={styles.doneBody}>
           «{title}»-ийн эзэмшигчид мэдэгдлээ. Тэр зөвшөөрснөөр{' '}
           {done.kind === 'storage'
@@ -105,13 +105,13 @@ export function ClaimForm({
           onClick={() => claim('ownership')}
         >
           <span className={styles.buttonTop}>
+            {/* "Авах", not "авлаа": nothing has been taken until the owner
+                agrees, and a past tense on the button was promising otherwise. */}
             {pending
               ? 'Илгээж байна…'
               : viewerIsPoint
-                ? 'Хандив болгон авлаа'
-                : ownerIsPoint
-                  ? 'Энэ номыг авах'
-                  : 'Өөрийн болгон авлаа'}
+                ? 'Хандив болгон авах'
+                : 'Авах'}
             {earnsCredit && <span className={styles.reward}>Эзэмшигчид +1 оноо</span>}
             {costsCredit && <span className={styles.cost}>−1 оноо</span>}
           </span>
@@ -132,7 +132,7 @@ export function ClaimForm({
             onClick={() => claim('storage')}
           >
             <span className={styles.buttonTop}>
-              {pending ? 'Илгээж байна…' : 'Зөвхөн хадгалж авлаа'}
+              {pending ? 'Илгээж байна…' : 'Зөвхөн хадгалж авах'}
             </span>
             <span className={styles.sub}>
               Эзэмшил өөрчлөгдөхгүй, оноо ч гарахгүй. Хоёр хүн уулзалгүйгээр солилцоход

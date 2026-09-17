@@ -12,17 +12,50 @@
 .footer {
   border-top: 1px solid var(--border);
   background: var(--surface);
-  padding-block: 22px;
+  /* The text was sitting on the rule above it. A footer is the end of a page,
+     not a shelf attached to the last paragraph.
+     The deep bottom is for the floating buttons: they are fixed to the viewport,
+     so at the very end of a page they sit over whatever is in the corner — which
+     was the contact column. */
+  padding-block: 46px 104px;
   font-size: 13px;
   color: var(--text-3);
 }
 
+/* Two columns rather than a row of links: the footer now carries a way to
+   reach a person, and a telephone number reads as an afterthought when it is
+   sitting in a list of navigation. */
 .footerInner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 24px;
   flex-wrap: wrap;
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.footerMark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+
+.footerHeading {
+  font-weight: 600;
+  color: var(--text-2);
 }
 
 .footerNav {
@@ -30,6 +63,13 @@
   gap: 18px;
 }
 
-.footerNav a:hover {
+.footerNav a:hover,
+.footerCol a:hover {
   color: var(--text);
+}
+
+@media (max-width: 540px) {
+  .footerInner {
+    gap: 18px;
+  }
 }

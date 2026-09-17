@@ -11,7 +11,6 @@ import { ThemeMenuItem } from './ThemeToggle'
 import {
   HomeIcon,
   HeartIcon,
-  CoinIcon,
   BellIcon,
   BookIcon,
   ChevronDownIcon,
@@ -138,10 +137,7 @@ export function Header({
               title={`Танд ${credits} оноо байна. Нэг оноогоор дурын хадгалах цэгээс дурын ном авна.`}
               aria-label={`${credits} оноо. Ном авах.`}
             >
-              <span className={styles.creditsTop}>
-                <CoinIcon size={16} />
-                <span className={styles.creditsNum}>{credits}</span>
-              </span>
+              <span className={styles.creditsNum}>{credits}</span>
               <span className={styles.creditsWord}>оноо</span>
             </Link>
           )}

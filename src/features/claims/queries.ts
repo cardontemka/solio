@@ -26,6 +26,8 @@ export type ScannedItem = {
   ownerUsername: string
   storedAtName: string | null
   hasOpenClaim: boolean
+  /** Its owner is a storage point: it is taken with a credit, not swapped for. */
+  ownerIsPoint: boolean
 }
 
 /** What a scanned code points at. Readable signed out — the listing already is. */
@@ -47,6 +49,7 @@ export async function findCopyByCode(code: string): Promise<ScannedItem | null> 
         owner_username: string
         stored_at_name: string | null
         has_open_claim: boolean
+        owner_is_point: boolean
       }
     | undefined
   if (!row) return null
@@ -63,6 +66,7 @@ export async function findCopyByCode(code: string): Promise<ScannedItem | null> 
     ownerUsername: row.owner_username,
     storedAtName: row.stored_at_name,
     hasOpenClaim: row.has_open_claim,
+    ownerIsPoint: row.owner_is_point ?? false,
   }
 }
 

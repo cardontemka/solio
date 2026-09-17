@@ -11,13 +11,111 @@
   align-items: center;
   padding: 40px 0 44px;
   margin: -30px 0 36px;
-  background:
-    radial-gradient(55% 80% at 12% 12%, rgb(233 196 106 / 0.16), transparent 60%),
-    radial-gradient(50% 70% at 92% 8%, rgb(244 162 97 / 0.16), transparent 60%),
-    radial-gradient(65% 85% at 75% 95%, rgb(231 111 81 / 0.2), transparent 60%),
-    var(--surface);
+  /* The wash moved out of this rule and into .heroWash, where it can be
+     animated; what is left is the ground it floats on. */
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   overflow: hidden;
+}
+
+/* ── The drifting wash ─────────────────────────────────────────────────────
+   Three soft shapes, each on its own slow cycle. The durations are deliberately
+   coprime-ish (23s, 31s, 19s) so the composition never repeats exactly — what
+   makes a loop read as a loop is two shapes returning together.
+
+   ── Why no blur filter, and why translate only ────────────────────────────
+   The first version was a solid circle under filter: blur(60px), animated with
+   translate *and scale*. Both halves of that are expensive in the same way: a
+   blurred layer is rasterized once and cached, and any change of scale throws
+   the cache away — so the compositor re-blurred three hero-sized layers on
+   every frame, forever, on every page that shows the hero. On a laptop it is a
+   warm fan; on a phone it is the whole page stuttering.
+   The blur is now baked into the paint as a radial gradient (free — it is just
+   how the layer is filled), and the animation moves the layer without resizing
+   it, which is the one transform a compositor can do without touching pixels. */
+.heroWash {
+  position: absolute;
+  inset: -20%;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.heroWash span {
+  position: absolute;
+  display: block;
+  will-change: transform;
+}
+
+.washA {
+  top: -8%;
+  left: -4%;
+  width: 62%;
+  height: 92%;
+  background: radial-gradient(closest-side, rgb(233 196 106 / 0.26), transparent 78%);
+  animation: drift-a 23s ease-in-out infinite alternate;
+}
+
+.washB {
+  top: -14%;
+  right: -6%;
+  width: 58%;
+  height: 86%;
+  background: radial-gradient(closest-side, rgb(244 162 97 / 0.24), transparent 78%);
+  animation: drift-b 31s ease-in-out infinite alternate;
+}
+
+.washC {
+  bottom: -22%;
+  left: 30%;
+  width: 70%;
+  height: 104%;
+  background: radial-gradient(closest-side, rgb(231 111 81 / 0.26), transparent 78%);
+  animation: drift-c 19s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(7%, 5%, 0); }
+}
+
+@keyframes drift-b {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-8%, 6%, 0); }
+}
+
+@keyframes drift-c {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-5%, -7%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroWash span {
+    animation: none;
+  }
+}
+
+/* ── Your texture goes here ────────────────────────────────────────────────
+   This layer is empty on purpose. To use one:
+
+     1. put the file in /public — say /public/hero-texture.png
+     2. set the two variables on .hero below:
+          --hero-texture: url('/hero-texture.png');
+          --hero-texture-size: 320px;        (one tile; try 200–480px)
+          --hero-texture-opacity: 0.12;      (0.06–0.2 usually)
+     3. that is all — it tiles in both directions like wallpaper.
+
+   A tile that repeats seamlessly is the only requirement; anything else shows
+   its seams at this size. With no texture set the layer paints nothing and the
+   ground stays plain, which is the current look. */
+.heroTexture {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--hero-texture, none);
+  background-repeat: repeat;
+  background-size: var(--hero-texture-size, 320px);
+  opacity: var(--hero-texture-opacity, 0.12);
 }
 
 .hero::before {
@@ -38,6 +136,11 @@
 
 html[data-theme='dark'] .hero::before {
   opacity: 0.22;
+}
+
+/* The brand half of the title, in the site's own colour. */
+.heroBrand {
+  color: var(--accent);
 }
 
 .heroGrid {
@@ -77,8 +180,13 @@ html[data-theme='dark'] .hero::before {
   line-height: 1.12;
 }
 
+/* White, lifted off the ground by a warm glow rather than an outline.
+   The stroke did the job but at the cost of the letterforms: a 2px edge on a
+   heavy display face thickens every stem and closes the counters. A soft halo
+   in the site's own colour separates the word from the wash drifting under it
+   and leaves the type alone. */
 .heroAccent {
-  color: var(--accent);
+  color: #fff;
 }
 
 .heroText {

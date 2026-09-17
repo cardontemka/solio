@@ -60,9 +60,18 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && AUTH_ONLY_PREFIXES.some((p) => path.startsWith(p))) {
+    // Pressing Back after signing in lands here. Bouncing to a fixed page made
+    // that feel like being thrown somewhere; going where they were headed makes
+    // the auth page invisible in the history, which is what Back is asking for.
+    const wanted = request.nextUrl.searchParams.get('next')
+    const safe =
+      wanted && wanted.startsWith('/') && !wanted.startsWith('//') &&
+      !/^\/(login|register)(\/|\?|$)/.test(wanted)
+        ? wanted
+        : '/'
     const url = request.nextUrl.clone()
-    url.pathname = '/my-books'
-    url.search = ''
+    url.pathname = safe.split('?')[0]
+    url.search = safe.includes('?') ? `?${safe.split('?').slice(1).join('?')}` : ''
     return NextResponse.redirect(url)
   }
 

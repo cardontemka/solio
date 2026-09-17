@@ -99,18 +99,28 @@ export default async function HomePage() {
   return (
     <>
       <section className={styles.hero}>
+        {/* The colour wash, drifting. Three soft blobs on long, offset,
+            alternating cycles: no two ever line up, so the movement reads as
+            something settling rather than as a loop. Held apart from the
+            texture layer so a repeating pattern can be dropped behind it
+            without either one having to know about the other. */}
+        <div className={styles.heroWash} aria-hidden="true">
+          <span className={styles.washA} />
+          <span className={styles.washB} />
+          <span className={styles.washC} />
+        </div>
+        <div className={styles.heroTexture} aria-hidden="true" />
+
         <div className="container">
           <div className={styles.heroGrid}>
             <div className={styles.heroCopy}>
-              <span className={styles.heroKicker}>Solio ном солилцоо</span>
+              <span className={styles.heroKicker}>Solio-той солилцоо</span>
               <h1 className={styles.heroTitle}>
-                Уншсан номоо солилцож, 
-                <br />
-                <span className={styles.heroAccent}> хүссэн номоо ол.</span>
+                <span className={styles.heroBrand}>Номын солио</span>
+                <span className={styles.heroAccent}> цагаан</span>
               </h1>
               <p className={styles.heroText}>
-                Номоо бүртгэж, бусад хэрэглэгчийн номтой шууд солилцоорой.
-                Солилцоо бүрийн түүх бүрэн хадгалагдана.
+                Уншсан номоо солилцож, хүссэн номо ол
               </p>
             </div>
 

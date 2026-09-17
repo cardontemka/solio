@@ -11,7 +11,7 @@ import styles from '@/components/forms.module.css'
  * place the browser Supabase client is used — everything else is a Server
  * Action.
  */
-export function GoogleButton({ next = '/my-books' }: { next?: string }) {
+export function GoogleButton({ next = '/' }: { next?: string }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -49,7 +49,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           <LoginForm next={nextPath} />
 
           <div className={styles.divider}>эсвэл</div>
-          <GoogleButton next={nextPath ?? '/my-books'} />
+          <GoogleButton next={nextPath ?? '/'} />
 
           <p className={styles.authAlt}>
             Хаяг байхгүй юу?{' '}

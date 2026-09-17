@@ -24,7 +24,7 @@ export default async function RegisterPage({ searchParams }: PageProps<'/registe
           <RegisterForm next={nextPath} />
 
           <div className={styles.divider}>эсвэл</div>
-          <GoogleButton next={nextPath ?? '/dashboard'} />
+          <GoogleButton next={nextPath ?? '/'} />
 
           <p className={styles.authAlt}>
             Хаягтай юу?{' '}

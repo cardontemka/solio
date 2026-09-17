@@ -1,0 +1,83 @@
+.wrap {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.lead {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: var(--text-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The line between the dots is drawn by the item, not by a border on the list,
+   so the last step does not trail off into nothing. */
+.step {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 16px;
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.body {
+  min-width: 0;
+}
+
+.who {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.who a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.who a:hover {
+  color: var(--accent);
+}
+
+.arrow {
+  color: var(--text-3);
+}
+
+.meta {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}

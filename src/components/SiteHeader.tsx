@@ -1,4 +1,5 @@
 import { getSessionUser } from '@/lib/auth/dal'
+import { LiveNotifications } from '@/features/notifications/LiveNotifications'
 import { Header } from './Header'
 
 /**
@@ -10,19 +11,24 @@ export async function SiteHeader() {
   const user = await getSessionUser()
 
   return (
-    <Header
-      user={
-        user
-          ? {
-              displayName: user.displayName,
-              username: user.username,
-              avatarUrl: user.avatarUrl,
-            }
-          : null
-      }
-      unreadCount={user?.unreadCount ?? 0}
-      isStaff={user?.isStaff ?? false}
-      credits={user?.credits ?? 0}
-    />
+    <>
+      {/* One socket per tab, for the signed-in reader's own rows only. It
+          renders nothing; it exists so the bell does not need a reload. */}
+      {user && <LiveNotifications userId={user.id} />}
+      <Header
+        user={
+          user
+            ? {
+                displayName: user.displayName,
+                username: user.username,
+                avatarUrl: user.avatarUrl,
+              }
+            : null
+        }
+        unreadCount={user?.unreadCount ?? 0}
+        isStaff={user?.isStaff ?? false}
+        credits={user?.credits ?? 0}
+      />
+    </>
   )
 }

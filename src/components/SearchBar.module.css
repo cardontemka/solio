@@ -5,6 +5,9 @@
   padding: 6px 6px 6px 14px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
+  /* The one control that keeps its capsule. A search field is a slot you type
+     into, and the round ends are what say so — the squarer family the rest of
+     the bar moved to made it read as another button. */
   border-radius: 999px;
   box-shadow: var(--shadow);
   transition: border-color 0.14s, box-shadow 0.14s;
@@ -65,6 +68,8 @@
   flex: none;
   border: 0;
   cursor: pointer;
+  /* Sits inside the field, so it follows the field's shape rather than the
+     bar's. */
   border-radius: 999px;
   background: var(--accent);
   color: #fff;

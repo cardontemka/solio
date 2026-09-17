@@ -18,8 +18,12 @@ export const metadata = {
  * Signed in only, because a claim has to belong to somebody. The page a scanned
  * label opens (/t/<code>) is public, and tells anyone what they are holding.
  */
-export default async function TakePage() {
+export default async function TakePage({ searchParams }: PageProps<'/take'>) {
   const me = await requireUser()
+  // Same switch the rest of the site uses: ?debug turns on a line describing
+  // what this browser actually offers, which is the only way to diagnose a
+  // camera on somebody else's phone.
+  const debug = 'debug' in (await searchParams)
   const claims = await listMyClaims()
   const mine = claims.filter((c) => c.role === 'claimant')
   const isPoint = me.accountType === 'storage_point'
@@ -31,8 +35,8 @@ export default async function TakePage() {
           title="Зүйл авах"
           subtitle={
             isPoint
-              ? 'Хадгалахаар авсан, эсвэл хандив болгон авсан ном, пянзыг шошгоор нь бүртгэнэ.'
-              : 'Хэн нэгнээс авсан ном, пянзыг шошгон дээрх QR эсвэл кодоор нь бүртгэнэ.'
+              ? 'Хадгалахаар авсан, эсвэл хандив болгон авсан ном, пянзыг QR-аар нь бүртгэнэ.'
+              : 'Хэн нэгнээс авсан ном, пянзыг QR эсвэл кодоор нь бүртгэнэ.'
           }
         />
 
@@ -55,23 +59,23 @@ export default async function TakePage() {
           </div>
         )}
 
-        <CodeEntry />
+        <CodeEntry debug={debug} />
 
         <div className={styles.how}>
           <h2 className={styles.howTitle}>Яаж ажилладаг вэ?</h2>
           <ol className={styles.steps}>
-            <li>Шошгон дээрх QR-ыг уншуулах, эсвэл 8 тэмдэгт кодыг бичих.</li>
+            <li>QR-ыг уншуулах, эсвэл 8 тэмдэгт кодыг бичих.</li>
             <li>
               {isPoint
                 ? '«Хадгалж авлаа» (эзэмшил хэвээр) эсвэл «Хандив болгон авлаа» (эзэмшил шилжиж, эзэмшигч 1 оноо авна) гэдгээс сонгох.'
-                : 'Хэн нэгний ном бол «Өөрийн болгон авлаа», хадгалах цэгийн ном бол 1 оноогоор авах.'}
+                : 'Хэн нэгний ном бол «Авах», хадгалах цэгийн ном бол 1 оноогоор авах.'}
             </li>
             <li>Эзэмшигчид мэдэгдэл очиж, тэр зөвшөөрсний дараа л өөрчлөлт хийгдэнэ.</li>
           </ol>
           <p className={styles.note}>
-            Өөрийн ном, пянздаа шошго хэвлэхийг хүсвэл{' '}
+            Өөрийн ном, пянздаа QR хэвлэхийг хүсвэл{' '}
             <Link href="/my-books">миний цуглуулга</Link> хэсгээс тухайн зүйл рүүгээ орж
-            «Шошго хэвлэх» дар.
+            «QR хэвлэх» дар.
           </p>
         </div>
 

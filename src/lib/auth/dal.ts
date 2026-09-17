@@ -19,6 +19,8 @@ export type SessionUser = {
   credits: number
   /** Moderator or admin. Carried here because the shell needs it every page. */
   isStaff: boolean
+  /** Admin alone. Hiding content is a moderator's; destroying it is not. */
+  isAdmin: boolean
   unreadCount: number
 }
 
@@ -53,6 +55,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
         account_status: string
         account_type: string
         is_staff: boolean
+        is_admin: boolean
         unread_count: number
         credits: number
       }
@@ -70,6 +73,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     accountType: row.account_type === 'storage_point' ? 'storage_point' : 'person',
     credits: row.credits ?? 0,
     isStaff: row.is_staff,
+    isAdmin: row.is_admin ?? false,
     unreadCount: row.unread_count,
   }
 })

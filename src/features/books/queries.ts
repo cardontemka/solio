@@ -755,3 +755,43 @@ export async function getSitemapRows(): Promise<SitemapRow[]> {
   }
   return rows
 }
+
+export type TrailStep = {
+  eventType: 'initial_registration' | 'swap_transfer' | 'claim_transfer' | 'admin_correction'
+  occurredAt: string
+  fromName: string | null
+  fromUsername: string | null
+  toName: string
+  toUsername: string
+}
+
+/**
+ * Everywhere a copy has been, oldest first.
+ *
+ * The ledger has recorded this since the first migration and nothing ever
+ * showed it. On a site whose premise is that objects outlive their owners, the
+ * list of hands a book has passed through is the most interesting thing about
+ * it — and it is already public: every name in it is a public profile, and each
+ * transfer was visible as a changed owner at the time.
+ */
+export async function getCopyTrail(copyId: string): Promise<TrailStep[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('copy_trail', { p_copy_id: copyId })
+  if (error) return []
+  type Row = {
+    event_type: TrailStep['eventType']
+    occurred_at: string
+    from_name: string | null
+    from_user: string | null
+    to_name: string
+    to_user: string
+  }
+  return ((data ?? []) as Row[]).map((r) => ({
+    eventType: r.event_type,
+    occurredAt: r.occurred_at.slice(0, 10),
+    fromName: r.from_name,
+    fromUsername: r.from_user,
+    toName: r.to_name,
+    toUsername: r.to_user,
+  }))
+}

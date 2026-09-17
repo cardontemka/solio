@@ -123,7 +123,7 @@ export default async function ScannedItemPage({ params }: PageProps<'/t/[code]'>
             </p>
           ) : !me ? (
             <div className={styles.signin}>
-              <p>Хадгалж авсан эсвэл өөрийн болгон авснаа бүртгүүлэхийн тулд нэвтэрнэ үү.</p>
+              <p>Хадгалж авсан эсвэл авах хүсэлт илгээхийн тулд нэвтэрнэ үү.</p>
               <Link
                 className={styles.signinLink}
                 href={`/login?next=${encodeURIComponent(`/t/${item.code}`)}`}

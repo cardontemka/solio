@@ -41,14 +41,14 @@ function claimSentence(c: Claim) {
     if (c.kind === 'storage') return { verb: 'хадгалж авсан гэж байна', who: venue ?? c.otherName }
     if (c.claimantPoint)
       return { verb: 'хандив болгон авсан гэж байна', who: c.claimantPoint, credit: '+1 оноо' }
-    return { verb: 'өөрийн болгон авсан гэж байна', who: c.otherName }
+    return { verb: 'авах хүсэлт илгээсэн', who: c.otherName }
   }
   if (c.kind === 'storage') return { verb: 'дээр хадгалж авлаа', who: c.otherName, mine: true }
   if (c.claimantPoint)
     return { verb: '-аас хандив болгон авлаа', who: c.otherName, mine: true }
   if (c.ownerPoint)
     return { verb: '-ээс авах хүсэлт', who: c.ownerPoint, mine: true, credit: '−1 оноо' }
-  return { verb: '-аас өөрийн болгон авлаа', who: c.otherName, mine: true }
+  return { verb: '-аас авах хүсэлт илгээлээ', who: c.otherName, mine: true }
 }
 
 export function ClaimList({ claims }: { claims: Claim[] }) {

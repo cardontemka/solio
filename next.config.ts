@@ -10,10 +10,11 @@ import type { NextConfig } from 'next'
  * image optimizer. Each prefix the application writes to gets its own entry —
  * a missing one is not a warning but a 500 on every page that renders the
  * image, so they are listed here beside the code that creates the keys:
- *   · /copies/**  — book photos      (create_image_upload_intent)
- *   · /avatars/** — profile pictures (/api/uploads/avatar)
+ *   · /copies/**  — book photos          (create_image_upload_intent)
+ *   · /avatars/** — profile pictures     (/api/uploads/avatar)
+ *   · /covers/**  — storage point covers (/api/uploads/cover)
  */
-const R2_PREFIXES = ['/copies/**', '/avatars/**'] as const
+const R2_PREFIXES = ['/copies/**', '/avatars/**', '/covers/**'] as const
 
 function r2RemotePattern() {
   const raw = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
@@ -36,6 +37,17 @@ function r2RemotePattern() {
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * `import { Bell } from '@phosphor-icons/react'` reaches a barrel that
+   * re-exports some nine thousand components. The production build shakes them
+   * out, but every dev compile and every HMR round walks the whole graph, which
+   * is felt as the site crawling while you work on it. This rewrites such
+   * imports to their own files so only the icons actually used are ever
+   * touched.
+   */
+  experimental: {
+    optimizePackageImports: ['@phosphor-icons/react'],
+  },
   /**
    * Testing on a phone means loading the dev server by its address on the local
    * network, and Next blocks cross-origin requests to dev assets by default —

@@ -1,0 +1,53 @@
+.summary {
+  margin-top: 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+/* Label and value on one line, aligned down a single left edge so the eye can
+   run the column. Set like the author line above it — same family, same size,
+   no frame, no colour of its own. */
+.row {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.label {
+  color: var(--text-3);
+}
+
+.value {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.toggle {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 96px 1fr;
+    gap: 8px;
+    font-size: 13.5px;
+  }
+}

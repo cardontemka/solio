@@ -91,7 +91,7 @@ export function SwapActions({
             тухайн зүйл үнэхээр таны гарт байгаагийн баталгаа юм.
           </p>
           <Link href="/take" className={styles.scanLink}>
-            Шошго уншуулах
+            QR уншуулах
           </Link>
         </div>
       )}

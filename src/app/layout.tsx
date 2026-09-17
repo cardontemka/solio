@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { publicEnv } from '@/lib/validation/env'
 import { Geist, Geist_Mono } from 'next/font/google'
+import Image from 'next/image'
 import Link from 'next/link'
 import { CategoryBar } from '@/components/CategoryBar'
 import { SiteHeader } from '@/components/SiteHeader'
@@ -68,12 +69,35 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
         <SiteMobileNav />
         <footer className={styles.footer}>
           <div className={`container ${styles.footerInner}`}>
-            <span>© 2026 Solio</span>
-            <nav className={styles.footerNav}>
-              <Link href="/">Нүүр</Link>
-              <Link href="/search">Хайх</Link>
-              <Link href="/storage-points">Хадгалах цэг</Link>
-            </nav>
+            <div className={styles.footerCol}>
+              <span className={styles.footerBrand}>
+                <Image
+                  className={styles.footerMark}
+                  src="/header-logo.png"
+                  alt=""
+                  width={48}
+                  height={48}
+                />
+                © 2026 Solio
+              </span>
+              <nav className={styles.footerNav}>
+                <Link href="/">Нүүр</Link>
+                <Link href="/about">Бидний тухай</Link>
+              </nav>
+            </div>
+
+            <div className={styles.footerCol}>
+              <span className={styles.footerHeading}>Холбоо барих</span>
+              <a href="mailto:ptemuulen82@gmail.com">ptemuulen82@gmail.com</a>
+              <a href="tel:+97695859278">95859278</a>
+              <a
+                href="https://www.instagram.com/solio.mn/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Instagram
+              </a>
+            </div>
           </div>
         </footer>
       </body>

@@ -42,16 +42,21 @@
   --radius: 10px;
   --radius-sm: 6px;
   --radius-lg: 16px;
+  /* Pills that are not quite capsules. Fully round reads as soft to the point
+     of shapeless once a row of them is on screen — the header had three
+     different capsule sizes stacked above each other. 11px keeps the family
+     without the bubbles. */
+  --radius-pill: 11px;
+
   /* One clipped corner, top right — a speech bubble turned on its head.
      Tried across the whole header and it was too much: every control shouting
      the same shape reads as a glitch rather than a decision. It earns its place
      on one thing, the category chips, where it marks a filter as *not yet
      chosen*; picking one rounds it off. Softened twice: a true right angle read
-     as a clipping error, 4px still read as a spike, and 9px still caught the
-     eye. At 11px — against the ~16px the other three corners resolve to on a
-     chip this tall — the difference is felt rather than seen, which is the
-     whole intent. */
-  --radius-cut: 999px 11px 999px 999px;
+     as a clipping error and a spike in turn. Now that the other three corners
+     are 11px rather than a full capsule, 5px is the setting where the
+     difference is felt rather than seen — which is the whole intent. */
+  --radius-cut: var(--radius-pill) 5px var(--radius-pill) var(--radius-pill);
   --shadow: 0 1px 2px rgb(33 28 22 / 6%), 0 4px 12px rgb(33 28 22 / 4%);
   --shadow-lifted: 0 2px 4px rgb(33 28 22 / 8%), 0 12px 28px rgb(33 28 22 / 8%);
 
@@ -208,7 +213,9 @@ p {
   :root {
     --header-row: 66px;
     --header-h: 74px;
-    --bottom-nav-h: 58px;
+    /* The floating card's own height plus the gap it keeps from the bottom of
+       the screen, so the page reserves the right amount of room under itself. */
+    --bottom-nav-h: 70px;
   }
 }
 

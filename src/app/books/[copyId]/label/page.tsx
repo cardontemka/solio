@@ -7,7 +7,7 @@ import { KIND_COPY } from '@/types/domain'
 import styles from './page.module.css'
 
 export const metadata = {
-  title: 'Шошго',
+  title: 'QR',
   robots: { index: false, follow: false },
 }
 
@@ -47,8 +47,8 @@ export default async function LabelPage({ params }: PageProps<'/books/[copyId]/l
             ← Буцах
           </Link>
           <p className={styles.help}>
-            Хэвлээд ном, пянздаа наа. Хэн нэгэн уншуулбал энэ зүйл нь юу болох, хэн
-            эзэмшдэгийг харна.
+            Хэвлээд ном, пянздаа наа — эсвэл дэлгэцээ шууд уншуулж болно. Хэн нэгэн
+            уншуулбал энэ зүйл нь юу болох, хэн эзэмшдэгийг харна.
           </p>
         </div>
 
@@ -61,11 +61,10 @@ export default async function LabelPage({ params }: PageProps<'/books/[copyId]/l
               dangerouslySetInnerHTML={{ __html: svg }}
             />
             <div className={styles.text}>
-              <p className={styles.brand}>solio.mn</p>
               <p className={styles.code}>{pretty}</p>
               <p className={styles.title}>{listing.title}</p>
               <p className={styles.kind}>
-                {KIND_COPY[listing.kind].one} · {listing.owner?.displayName}
+                {KIND_COPY[listing.kind].one} · {listing.owner?.displayName} · solio.mn
               </p>
             </div>
           </div>

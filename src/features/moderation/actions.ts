@@ -100,11 +100,21 @@ export async function purgeEntityAction(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, message: 'Дахин нэвтэрнэ үү.' }
 
-  const { data, error } = await supabase.rpc('purge_content', {
-    p_entity_type: entityType,
-    p_entity_id: entityId,
-    p_reason: reason?.slice(0, 500) ?? null,
-  })
+  // A listing goes through admin_delete_listing, which cancels whatever swaps
+  // it is caught up in first. purge_content refuses one mid-swap, which is the
+  // right answer for an owner and the wrong one for moderation: the reason a
+  // thing has to go does not wait for a handover to finish.
+  const { data, error } =
+    entityType === 'book_copy'
+      ? await supabase.rpc('admin_delete_listing', {
+          p_copy_id: entityId,
+          p_reason: reason?.slice(0, 500) ?? null,
+        })
+      : await supabase.rpc('purge_content', {
+          p_entity_type: entityType,
+          p_entity_id: entityId,
+          p_reason: reason?.slice(0, 500) ?? null,
+        })
 
   if (error) {
     if (error.message.includes('ADMIN_ONLY')) {
@@ -145,6 +155,7 @@ export async function purgeEntityAction(
   revalidatePath('/admin/reports')
   revalidatePath('/admin/content')
   revalidatePath('/admin')
+  revalidatePath('/swaps')
   revalidatePath('/')
   return { ok: true }
 }

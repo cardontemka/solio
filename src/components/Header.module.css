@@ -54,7 +54,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
@@ -97,7 +97,7 @@
   width: 38px;
   height: 38px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--text-2);
   cursor: pointer;
@@ -144,7 +144,7 @@
   gap: 4px;
   padding: 4px 8px 4px 4px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--text-2);
   cursor: pointer;
@@ -258,7 +258,7 @@
 
 .login {
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 600;
   color: #fff;
@@ -505,15 +505,26 @@
 .bottomNav {
   display: none;
   position: fixed;
-  inset-inline: 0;
-  bottom: 0;
+  /* A card that floats above the page rather than a bar welded to its bottom
+     edge: the page keeps a margin of its own on every side, and the rounded
+     block reads as a control sitting on top of the content instead of as the
+     end of it. */
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   z-index: 55;
-  /* The home indicator on a modern phone sits below the bar; without the inset
-     the last row of labels lands under it. */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  /* Opaque rather than frosted. backdrop-filter on a bar that is fixed over a
+     scrolling page makes the compositor re-filter everything behind it on every
+     frame — the single most expensive thing that can be on a phone screen while
+     somebody is flicking through a list. The colour is close enough that the
+     difference is invisible; the difference in smoothness is not. */
   background: var(--surface);
-  border-top: 1px solid var(--border);
-  transition: transform 0.24s ease;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 22%),
+    0 2px 6px rgb(0 0 0 / 10%);
 }
 
 /* The bar used to slide away while the reader scrolled down a list. It was
@@ -527,6 +538,7 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  border-radius: 16px;
   padding: 8px 4px 7px;
   color: var(--text-3);
   font-size: 10.5px;
@@ -609,29 +621,56 @@
    Beside the account on a desktop; in its place on a phone, where the account
    itself has moved to the bottom bar. Deliberately not a badge on an icon: the
    number is the message, and "3" alone would mean nothing the first time. */
+/* A number and a word, with nothing drawn around them. It was a bordered pill
+   with a coin in it, which made a balance look like a button and put a third
+   outlined shape in a bar that already had two. */
 .credits {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
-  height: 32px;
-  padding: 0 11px 0 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  padding: 0 2px;
   color: var(--text);
   font-size: 13.5px;
   font-weight: 600;
   white-space: nowrap;
-  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  transition: color 0.12s;
 }
 
 .credits:hover {
-  border-color: var(--accent);
   color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .creditsNum {
   font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 700;
+  /* Two shadows at different radii: the tight one keeps the glyph crisp, the
+     wide one is the halo. Kept to the number alone — a glowing word next to it
+     would read as a warning rather than as a balance.
+     On a white ground a glow has nothing to glow against, so the light theme
+     keeps it faint and lets the colour do the work; the dark theme is where it
+     earns its place, and there it is both wider and lighter. */
+  text-shadow:
+    0 0 5px color-mix(in srgb, var(--accent) 32%, transparent),
+    0 0 14px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* The same two rules the palette itself uses: an explicit choice wins, and the
+   OS preference applies only when no choice has been made. */
+html[data-theme='dark'] .creditsNum {
+  text-shadow:
+    0 0 9px color-mix(in srgb, var(--accent) 62%, #fff 18%),
+    0 0 26px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 0 46px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) .creditsNum {
+    text-shadow:
+      0 0 9px color-mix(in srgb, var(--accent) 62%, #fff 18%),
+      0 0 26px color-mix(in srgb, var(--accent) 40%, transparent),
+      0 0 46px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
 }
 
 @media (max-width: 860px) {
@@ -645,22 +684,17 @@
 /* The word stays even on the narrowest phone. A coin and a number is a puzzle
    the first time somebody sees it, and making the balance legible is the whole
    reason it is up here — the search field can spare the 34px. */
-.creditsTop {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
 /* On a phone the pill stacks: the coin and the number on one line, the word
    under them. It reads as a unit at a glance instead of as a sentence, and it
    fits the height the bar already has. */
 @media (max-width: 860px) {
   .credits {
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     gap: 0;
     height: 42px;
-    padding: 0 10px;
+    padding: 0 6px;
     line-height: 1.05;
   }
 

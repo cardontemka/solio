@@ -163,7 +163,7 @@ export function SearchBar({
               setOpen(false)
             }
           }}
-          placeholder="Номын нэр, зохиогчоор хайх…"
+          placeholder="Ном бол ертөнцийг харах цонх"
           aria-label="Ном хайх"
         />
         <button type="submit" className={styles.button}>

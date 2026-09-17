@@ -3,13 +3,19 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cache } from 'react'
 import { Avatar } from '@/components/Avatar'
-import { PinIcon } from '@/components/Icons'
-import { Badge } from '@/components/ui'
 import { ListingMenu } from '@/features/books/ListingMenu'
 import { ReopenListingButton } from '@/features/books/ReopenListingButton'
 import { BookCover } from '@/components/BookCard'
-import { coverColorFor, findListingIdForBook, getListing } from '@/features/books/queries'
+import { ListingSummary } from '@/features/books/ListingSummary'
+import { CopyTrail } from '@/features/books/CopyTrail'
+import {
+  coverColorFor,
+  findListingIdForBook,
+  getCopyTrail,
+  getListing,
+} from '@/features/books/queries'
 import { ImageUploader } from '@/features/images/ImageUploader'
+import { AdminDeleteButton } from '@/features/moderation/AdminDeleteButton'
 import { ReportButton } from '@/features/moderation/ReportButton'
 import { CommentSection } from '@/features/comments/CommentSection'
 import { getComments } from '@/features/comments/queries'
@@ -19,12 +25,13 @@ import { ClaimList } from '@/features/claims/ClaimList'
 import { getOpenClaimFor } from '@/features/claims/queries'
 import { formatItemCode } from '@/lib/qrFormat'
 import { ReleaseStoredButton } from '@/features/storage/ReleaseStoredButton'
+import { TakeWithCredit } from '@/features/storage/TakeWithCredit'
+import { getStoragePointFor } from '@/features/storage/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import {
   ATTRIBUTES_FOR,
   CATEGORY_LABEL,
   CONDITION_LABEL,
-  COPY_STATUS_LABEL,
   ITEMS_LABEL,
   KIND_COPY,
   STORAGE_POINT_KIND_LABEL,
@@ -45,6 +52,17 @@ import styles from './page.module.css'
 const load = cache(getListing)
 
 const LANGUAGE_LABEL: Record<string, string> = { mn: 'Монгол', en: 'Англи', ru: 'Орос' }
+
+/**
+ * The copy states, as sentences. "Боломжтой" on its own is a word with no
+ * subject; what a reader wants to know is whether they can ask for this one.
+ */
+const STATUS_SENTENCE: Record<string, string> = {
+  available: 'Солилцоонд нээлттэй',
+  reserved: 'Өөр солилцоонд захиалагдсан',
+  swapped: 'Эзэн нь саяхан солигдсон',
+  inactive: 'Эзэмшигч нь түр нуусан',
+}
 
 export async function generateMetadata({ params }: PageProps<'/books/[copyId]'>) {
   const listing = await load((await params).copyId)
@@ -78,13 +96,21 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
   // "ном" or "пянз" — every sentence on this page that used to say the first
   // one was wrong on half the catalogue.
   const noun = KIND_COPY[listing.kind].one.toLowerCase()
-  const [offerable, comments, offers, openClaim] = await Promise.all([
+  const [offerable, comments, offers, openClaim, trail, ownerPoint] = await Promise.all([
     me && !isMine ? getOfferableCopies(me.id) : Promise.resolve([]),
     getComments({ listingId: listing.copyId }, me?.id ?? null),
     getOpenOffers(listing.copyId),
     // Visible to the two people it concerns and nobody else — the RPC behind it
     // returns rows only for those two.
     me ? getOpenClaimFor(listing.copyId) : Promise.resolve(null),
+    // Public: every name in it is a public profile, and each transfer was
+    // visible as a changed owner when it happened.
+    getCopyTrail(listing.copyId),
+    // A book whose owner is a venue is taken with a credit, not swapped for —
+    // and the panel that says so needs the venue's address.
+    listing.owner
+      ? getStoragePointFor(listing.owner.id, listing.owner.username)
+      : Promise.resolve(null),
   ])
   // Whoever is physically holding it is the only one who can say it has left.
   // The owner used to be able to set this from a dropdown, which made the one
@@ -134,29 +160,41 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
               <h1 className={styles.title}>{listing.title}</h1>
               {listing.author && <p className={styles.author}>{listing.author}</p>}
 
-              <div className={styles.badges}>
-                <Badge tone="accent">{CONDITION_LABEL[listing.condition]}</Badge>
-                <Badge tone={listing.status === 'available' ? 'ok' : 'neutral'}>
-                  {COPY_STATUS_LABEL[listing.status]}
-                </Badge>
-                {listing.categories.map((c) => (
-                  <Link key={c} href={`/search?category=${c}`} className={styles.categoryChip}>
-                    {CATEGORY_LABEL[c]}
-                  </Link>
-                ))}
-                {listing.language && (
-                  <Badge>{LANGUAGE_LABEL[listing.language] ?? listing.language}</Badge>
-                )}
-                {listing.storedAt && (
-                  <Badge tone="accent">
-                    <PinIcon size={13} />
-                    {listing.storedAt.name}-д хадгалуулсан
-                  </Badge>
-                )}
-                {listing.transferCount > 0 && (
-                  <Badge>{listing.transferCount} удаа солигдсон</Badge>
-                )}
-              </div>
+              {/* Labelled rows rather than a row of coloured pills whose words
+                  never said what they were describing. */}
+              <ListingSummary
+                items={[
+                  { label: 'Нөхцөл', value: CONDITION_LABEL[listing.condition] },
+                  {
+                    label: 'Төлөв',
+                    value:
+                      ownerPoint && listing.status === 'available'
+                        ? 'Оноогоор авах боломжтой'
+                        : STATUS_SENTENCE[listing.status],
+                  },
+                  {
+                    label: 'Ангилал',
+                    value: listing.categories.map((c) => CATEGORY_LABEL[c]).join(', '),
+                  },
+                  {
+                    label: 'Хэл',
+                    value: listing.language
+                      ? (LANGUAGE_LABEL[listing.language] ?? listing.language)
+                      : '',
+                  },
+                  {
+                    label: 'Гар дамжсан',
+                    value:
+                      listing.transferCount > 0
+                        ? `${listing.transferCount} удаа`
+                        : 'Анхны эзэмшигчдээ',
+                  },
+                  {
+                    label: 'Хадгалж буй',
+                    value: listing.storedAt ? listing.storedAt.name : '',
+                  },
+                ]}
+              />
 
               {me && (
                 <div className={styles.actionRow}>
@@ -164,6 +202,11 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
                     <ListingMenu copyId={listing.copyId} status={listing.status} />
                   ) : (
                     <ReportButton entityType="book_copy" entityId={listing.copyId} variant="icon" />
+                  )}
+                  {/* An admin can remove anything from where they found it,
+                      swap or no swap. */}
+                  {me.isAdmin && (
+                    <AdminDeleteButton copyId={listing.copyId} title={listing.title} />
                   )}
                 </div>
               )}
@@ -277,6 +320,11 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
             </div>
           </section>
 
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>{KIND_COPY[listing.kind].of} мөр хөөх</h2>
+            <CopyTrail steps={trail} owners={listing.transferCount + 1} />
+          </section>
+
           {openClaim && (
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}>
@@ -298,27 +346,37 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
 
           {isMine && (
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>Шошго, код</h2>
+              <h2 className={styles.sectionTitle}>QR, код</h2>
               <div className={styles.labelBox}>
                 <div>
                   <p className={styles.labelCode}>{formatItemCode(listing.publicCode)}</p>
                   <p className={styles.labelHint}>
                     Энэ {noun} дээр наасан шошгыг уншуулбал хэн ч хаана байгааг нь харж,
-                    хадгалж авсан эсвэл өөрийн болгон авснаа бүртгүүлж болно. Таны
+                    хадгалж авсан эсвэл авах хүсэлтээ илгээж болно. Таны
                     зөвшөөрөлгүйгээр юу ч өөрчлөгдөхгүй.
                   </p>
                 </div>
                 <Link href={`/books/${listing.copyId}/label`} className={styles.labelLink}>
-                  Шошго хэвлэх
+                  QR хэвлэх
                 </Link>
               </div>
             </section>
           )}
 
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Солилцоо</h2>
+            <h2 className={styles.sectionTitle}>
+              {ownerPoint ? 'Оноогоор авах' : 'Солилцоо'}
+            </h2>
             <div className={styles.swapBox}>
-              {isMine ? (
+              {ownerPoint ? (
+                <TakeWithCredit
+                  point={ownerPoint}
+                  code={listing.publicCode}
+                  credits={me?.credits ?? 0}
+                  signedIn={Boolean(me)}
+                  isOwnPoint={isMine}
+                />
+              ) : isMine ? (
                 listing.status === 'available' ? (
                   <p className={styles.unavailable}>
                     Энэ {noun} солилцоонд нээлттэй байна. Хэн нэгэн санал болгоход мэдэгдэнэ.

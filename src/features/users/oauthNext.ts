@@ -25,9 +25,19 @@ export const OAUTH_NEXT_COOKIE = 'solio-oauth-next'
 /** Ten minutes: long enough to pick an account, short enough to be forgotten. */
 const MAX_AGE = 600
 
-/** Only ever a path inside this site — never `//evil.example` or a full URL. */
-export function safeNext(value: string | undefined | null, fallback = '/my-books') {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : fallback
+/**
+ * Only ever a path inside this site — never `//evil.example` or a full URL.
+ *
+ * The fallback is the front page, not the reader's shelf. Signing in is almost
+ * never the thing somebody set out to do: they were looking at a book, or a
+ * café, and the sign-in was in the way. Landing them on /my-books threw away
+ * the page they were actually reading.
+ */
+export function safeNext(value: string | undefined | null, fallback = '/') {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return fallback
+  // Coming back to the form they just left would be a loop.
+  if (/^\/(login|register)(\/|\?|$)/.test(value)) return fallback
+  return value
 }
 
 /** Called in the browser, immediately before handing over to the provider. */

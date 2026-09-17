@@ -2,11 +2,13 @@
 
 import 'server-only'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { storagePointFrom, storagePointMetadata } from '@/features/storage/schema'
+import { OAUTH_NEXT_COOKIE, safeNext } from './oauthNext'
 import { ACCOUNT_TYPE } from '@/types/domain'
 import { publicEnv } from '@/lib/validation/env'
 import { bookImageStorage } from '@/lib/storage'
@@ -131,6 +133,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   const displayName =
     point?.success ? point.data.name : (parsed.data.displayName ?? '')
 
+  const next = safeNext(formData.get('next')?.toString())
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signUp({
@@ -233,18 +236,19 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   // no session yet, and redirecting would bounce straight back to /login and
   // read as a failure.
   if (!data.session) {
+    // The journey resumes in a different browser tab, hours later, through a
+    // link in an email that carries nothing of its own. The cookie is the only
+    // thing that still remembers what they were reading when they signed up.
+    ;(await cookies()).set(OAUTH_NEXT_COOKIE, encodeURIComponent(next), {
+      maxAge: 600,
+      path: '/',
+      sameSite: 'lax',
+    })
     return { ok: true, pendingConfirmation: true }
   }
 
   revalidatePath('/', 'layout')
-  // Same rule as login: a relative path only, so a crafted `next` cannot bounce
-  // a freshly signed-in reader off to another site.
-  const next = formData.get('next')
-  redirect(
-    typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')
-      ? next
-      : '/dashboard'
-  )
+  redirect(safeNext(formData.get('next')?.toString()))
 }
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -299,12 +303,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   }
 
   revalidatePath('/', 'layout')
-  const next = formData.get('next')
-  redirect(
-    typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')
-      ? next
-      : '/dashboard'
-  )
+  redirect(safeNext(formData.get('next')?.toString()))
 }
 
 export async function logoutAction() {

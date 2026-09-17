@@ -26,7 +26,7 @@ export default async function MyBooksPage({ searchParams }: PageProps<'/my-books
     <div className="container">
       <PageHeader
         title="Миний цуглуулга"
-        subtitle="Ном, пянзаа нэмэх, түр нуух, шошго хэвлэх боломжтой."
+        subtitle="Ном, пянзаа нэмэх, түр нуух, QR хэвлэх боломжтой."
         action={<ButtonLink href="/books/new">Нэмэх</ButtonLink>}
       />
       <PendingClaims />
