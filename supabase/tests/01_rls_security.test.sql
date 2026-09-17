@@ -48,10 +48,19 @@ select set_config('test.alice',   pg_temp.uid('altan@example.invalid')::text,  t
                       and c.status = 'available' limit 1), true);
 
 -- ══ Can A read B's email? ═════════════════════════════════════════════════
+-- A storage point is a business, and its telephone number is published on
+-- purpose: it is how somebody asks whether the café is open before walking
+-- there. That one column is the whole exception, so the test names it rather
+-- than counting to zero — a personal email or phone appearing on any other
+-- table still fails here.
 select is(
-  (select count(*)::int from information_schema.columns
+  (select coalesce(
+            string_agg(table_name || '.' || column_name, ', ' order by table_name),
+            '(none)')
+     from information_schema.columns
     where table_schema = 'public' and column_name in ('email','phone')),
-  0, 'public schema exposes no email/phone column at all');
+  'storage_points.phone',
+  'the only email/phone column in public is a storage point''s published number');
 
 select ok(
   not has_table_privilege('authenticated', 'auth.users', 'SELECT'),

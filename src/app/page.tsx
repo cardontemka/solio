@@ -109,7 +109,9 @@ export default async function HomePage() {
           <span className={styles.washB} />
           <span className={styles.washC} />
         </div>
-        <div className={styles.heroTexture} aria-hidden="true" />
+        {/* The grain. Defined as `.tex-paper` in globals.css; drop that class
+            to turn the texture off. */}
+        <div className={`${styles.heroTexture} tex-paper`} aria-hidden="true" />
 
         <div className="container">
           <div className={styles.heroGrid}>

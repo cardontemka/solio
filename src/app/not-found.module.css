@@ -1,7 +1,14 @@
+/* Centred in the window rather than sitting under the header: a page that says
+   "there is nothing here" should not also be three-quarters empty below the
+   fold, with the footer pulled up to meet it. */
 .shell {
   max-width: 560px;
   margin: 0 auto;
-  padding: 40px 0 72px;
+  padding: 48px 0 96px;
+  min-height: calc(100dvh - var(--header-h) - 160px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   text-align: center;
 }
 

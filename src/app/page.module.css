@@ -94,49 +94,38 @@
   }
 }
 
-/* ── Your texture goes here ────────────────────────────────────────────────
-   This layer is empty on purpose. To use one:
+/* ── The texture ───────────────────────────────────────────────────────────
+   A paper grain behind the wash. The pattern itself is `.tex-paper` in
+   globals.css, where its own tuning is documented; this rule only says how the
+   layer is painted, and inverts it on dark grounds so black ink becomes white
+   without a second copy of the pattern.
 
-     1. put the file in /public — say /public/hero-texture.png
-     2. set the two variables on .hero below:
-          --hero-texture: url('/hero-texture.png');
-          --hero-texture-size: 320px;        (one tile; try 200–480px)
-          --hero-texture-opacity: 0.12;      (0.06–0.2 usually)
-     3. that is all — it tiles in both directions like wallpaper.
-
-   A tile that repeats seamlessly is the only requirement; anything else shows
-   its seams at this size. With no texture set the layer paints nothing and the
-   ground stays plain, which is the current look. */
+   Turn it off by removing `tex-paper` from the div in page.tsx. */
 .heroTexture {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: var(--hero-texture, none);
   background-repeat: repeat;
-  background-size: var(--hero-texture-size, 320px);
   opacity: var(--hero-texture-opacity, 0.12);
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  /* A fixed grey rather than a theme colour: background-image is one of the
-     properties CSS cannot interpolate, so a gradient built from a palette
-     variable snaps in one frame while the rest of the page is still fading.
-     Mid-grey reads on both grounds, and the per-theme difference moves to
-     opacity, which does fade. */
-  background-image: radial-gradient(rgb(128 128 128 / 62%) 1px, transparent 1px);
-  background-size: 26px 26px;
-  opacity: 0.32;
-  -webkit-mask-image: radial-gradient(70% 70% at 70% 30%, #000 0%, transparent 75%);
-  mask-image: radial-gradient(70% 70% at 70% 30%, #000 0%, transparent 75%);
+/* Black ink on a dark ground is invisible; inverting the layer turns the same
+   pattern white without a second set of data URIs to keep in step. */
+html[data-theme='dark'] .heroTexture {
+  filter: invert(1);
+  opacity: calc(var(--hero-texture-opacity, 0.12) * 0.85);
 }
 
-html[data-theme='dark'] .hero::before {
-  opacity: 0.22;
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) .heroTexture {
+    filter: invert(1);
+    opacity: calc(var(--hero-texture-opacity, 0.12) * 0.85);
+  }
 }
+
+/* The hero's old dot overlay lived here. The texture layer does that job now,
+   and two patterns over one another read as neither. */
 
 /* The brand half of the title, in the site's own colour. */
 .heroBrand {

@@ -7,9 +7,11 @@ import styles from './FloatingActions.module.css'
  * or record something that has come into your hands.
  *
  * "Авах" is the quieter of the pair — adding is the commoner act, and a second
- * filled button beside the first would make neither read as the primary one. On
- * a phone both collapse to circles, stacked, with the same hit area a thumb
- * expects.
+ * filled button beside the first would make neither read as the primary one.
+ *
+ * Phones only. On a wide screen the same two live in the header: a button fixed
+ * to the corner of a desktop window covers whatever the page has put there, at
+ * every scroll position, and there is no layout that makes that safe.
  */
 export function AddBookFab() {
   return (

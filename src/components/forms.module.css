@@ -88,9 +88,25 @@
 
 /* Auth-page shell */
 
+/* A sign-in card is short, and the footer used to come up right underneath it —
+   which made a page with one small box on it look like a page that had failed
+   to load the rest. The shell claims most of the window, so the card sits in
+   space and the footer waits at the bottom where it belongs. */
 .authShell {
   max-width: 400px;
-  margin: 22px auto 0;
+  margin: 0 auto;
+  padding-block: 48px 96px;
+  min-height: calc(100dvh - var(--header-h) - 120px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .authShell {
+    padding-block: 28px 64px;
+    min-height: calc(100dvh - var(--header-h) - var(--bottom-nav-h) - 80px);
+  }
 }
 
 .authCard {

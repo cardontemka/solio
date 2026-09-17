@@ -1,9 +1,31 @@
+/* Three children: the menu column, the panels, and the account block. On a wide
+   screen the account sits under the menu in the left column; on a phone, where
+   the grid becomes one column, it falls to the very end of the page — which is
+   where it belongs either way. It used to live inside the menu column, which on
+   a phone put "sign out" halfway up the page, above the shelf it was meant to
+   sit under. */
 .wrap {
   display: grid;
   grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr;
   gap: 28px;
   align-items: start;
   transition: grid-template-columns 0.35s ease;
+}
+
+.sidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.content {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.account {
+  grid-column: 1;
+  grid-row: 2;
 }
 
 .wrap[data-collapsed='true'] {
@@ -266,7 +288,17 @@
   .wrap,
   .wrap[data-collapsed='true'] {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
     gap: 18px;
+  }
+
+  /* One column, in reading order: who you are and the tabs, what you came for,
+     then the account's own controls at the foot of the page. */
+  .sidebar,
+  .content,
+  .account {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .sidebar {
@@ -328,16 +360,16 @@
   text-decoration: underline;
 }
 
-/* The account's own controls, pinned under the menu: the theme, and the way
-   out. Both used to hang off a chevron in the header that a phone no longer
-   shows. */
+/* Settings, the public page, the theme, the way out: the things somebody
+   reaches for last, so they are the last thing in the column. */
 .account {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .account form {
@@ -370,4 +402,14 @@
 /* Links share the row shape of the buttons beside them. */
 .account a.accountItem {
   text-decoration: none;
+}
+
+/* Signing out is the one irreversible thing in this column. */
+.accountItem[data-danger='true'] {
+  color: var(--danger);
+}
+
+.accountItem[data-danger='true']:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }

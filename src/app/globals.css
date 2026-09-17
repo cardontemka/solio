@@ -213,9 +213,10 @@ p {
   :root {
     --header-row: 66px;
     --header-h: 74px;
-    /* The floating card's own height plus the gap it keeps from the bottom of
-       the screen, so the page reserves the right amount of room under itself. */
-    --bottom-nav-h: 70px;
+    /* The floating card's own height (~67px) plus the 12px it floats above the
+       bottom edge. Measured, not guessed: it was 70px, which left the Нэмэх
+       button five pixels off the card — close enough to read as one object. */
+    --bottom-nav-h: 80px;
   }
 }
 
@@ -286,5 +287,76 @@ html[data-theme-switching] *::after {
   html[data-theme-switching] *::before,
   html[data-theme-switching] *::after {
     transition: none !important;
+  }
+}
+
+/* ── Paper texture ─────────────────────────────────────────────────────────
+   One pattern, and it is the one that does not look like a pattern: a fine
+   grain, the way a sheet of uncoated paper looks when the light catches it.
+   Two geometric alternatives — a diagonal hatch and a grid — lived here for a
+   while and were removed; on a site about books, ruled lines read as stationery
+   rather than as a surface, and the choice was not worth carrying three ways.
+
+   No image file: an SVG filter drawn once and tiled, so it is a few hundred
+   bytes, costs no request and stays sharp at any pixel density.
+   `stitchTiles='stitch'` is what makes the tile edges line up — without it every
+   join shows as a faint grid, which is exactly what a grain must not do.
+
+   Use it on any element:
+
+       <div class="tex-paper" />
+
+   and tune it where it is used:
+
+       .hero {
+         --hero-texture-opacity: 0.12;   how present it is   (0.06 – 0.18)
+         --hero-texture-size: 120px;     one tile            (90 – 200px)
+       }
+
+   The ink is black. On a dark ground the *layer* is inverted by whatever is
+   using it (see .heroTexture), rather than this carrying a second colour.
+
+   Tuning inside the data URI, if you ever want to:
+     baseFrequency  0.62   → smaller number, coarser grain
+     feColorMatrix  0.25   → the last row's alpha; how much noise survives
+   ────────────────────────────────────────────────────────────────────────── */
+.tex-paper {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0.25 0.25 0 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: var(--hero-texture-size, 120px);
+}
+
+/* ── The page's own ground ─────────────────────────────────────────────────
+   The grain, once, behind everything.
+
+   Drawn as a fixed layer on the body rather than as a background on each page:
+   a page that is mostly empty — signing in, a 404, a form — was a flat field of
+   one colour, and those are exactly the pages with nothing else to look at.
+   z-index: -1 puts it above the canvas and below every element, so no text is
+   ever printed over it; `fixed` keeps it still while the page scrolls, which is
+   what makes it read as paper rather than as a pattern moving underneath.
+
+   Fainter than the hero's, deliberately: this one is under everything, all the
+   time, and anything stronger becomes a texture people notice instead of a
+   surface they do not. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0.25 0.25 0 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 120px;
+  opacity: 0.055;
+}
+
+html[data-theme='dark'] body::before {
+  filter: invert(1);
+  opacity: 0.05;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) body::before {
+    filter: invert(1);
+    opacity: 0.05;
   }
 }

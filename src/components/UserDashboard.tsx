@@ -130,27 +130,6 @@ export function UserDashboard({
           ))}
         </nav>
 
-        {/* Settings, the theme and the way out. On a phone this page *is* the
-            account — the header has no dropdown there any more — and everything
-            that used to hang off that chevron was landing on a page with the
-            identity block hidden and no link to the settings at all. */}
-        <div className={styles.account}>
-          <Link href="/settings" className={styles.accountItem}>
-            <SettingsIcon size={18} />
-            <span className={styles.navLabel}>Тохиргоо</span>
-          </Link>
-          <Link href={`/u/${userInfo.username}`} className={styles.accountItem}>
-            <UserIcon size={18} />
-            <span className={styles.navLabel}>Нийтэд харагдах хуудас</span>
-          </Link>
-          <ThemeMenuItem className={styles.accountItem} />
-          <form action={logoutAction}>
-            <button type="submit" className={styles.accountItem}>
-              <LogOutIcon size={18} />
-              <span className={styles.navLabel}>Гарах</span>
-            </button>
-          </form>
-        </div>
       </aside>
 
       <div className={styles.content}>
@@ -164,6 +143,27 @@ export function UserDashboard({
             {panels[key]}
           </div>
         ))}
+      </div>
+      {/* Settings, the theme and the way out. On a phone this page *is* the
+          account — the header has no dropdown there any more — and everything
+          that used to hang off that chevron was landing on a page with the
+          identity block hidden and no link to the settings at all. */}
+      <div className={styles.account}>
+        <Link href="/settings" className={styles.accountItem}>
+          <SettingsIcon size={18} />
+          <span className={styles.navLabel}>Тохиргоо</span>
+        </Link>
+        <Link href={`/u/${userInfo.username}`} className={styles.accountItem}>
+          <UserIcon size={18} />
+          <span className={styles.navLabel}>Нийтэд харагдах хуудас</span>
+        </Link>
+        <ThemeMenuItem className={styles.accountItem} />
+        <form action={logoutAction}>
+          <button type="submit" className={styles.accountItem} data-danger="true">
+            <LogOutIcon size={18} />
+            <span className={styles.navLabel}>Гарах</span>
+          </button>
+        </form>
       </div>
     </div>
   )
