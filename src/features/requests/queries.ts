@@ -87,6 +87,40 @@ export async function getRequestFeed(
   return ((data ?? []) as unknown as Row[]).map((r) => toView(r, viewerId))
 }
 
+/**
+ * Requests matching a search.
+ *
+ * Somebody searching for a title that nobody is offering is exactly the person
+ * who should see that two other readers are looking for it too — and the person
+ * who might have it on a shelf and answer. Title, author and ISBN, the same
+ * three fields searchListings matches, so the two halves of the page agree on
+ * what a query means. The note is left out on purpose: it says which edition or
+ * condition would do, not which book this is.
+ *
+ * Deliberately absent from the header's type-ahead, which offers things you can
+ * open and take; a request is a conversation, and belongs in the results.
+ */
+export async function searchRequests(
+  query: string,
+  viewerId: string | null,
+  { limit = 6 }: { limit?: number } = {}
+): Promise<RequestView[]> {
+  const q = query.trim()
+  if (!q) return []
+  const supabase = await createClient()
+  const escaped = q.replace(/[%,()]/g, ' ')
+  const { data, error } = await supabase
+    .from('book_requests')
+    .select(SELECT)
+    .neq('status', 'cancelled')
+    .or(`title.ilike.%${escaped}%,author.ilike.%${escaped}%,isbn.ilike.%${escaped}%`)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return ((data ?? []) as unknown as Row[]).map((r) => toView(r, viewerId))
+}
+
 export async function getRequest(
   id: string,
   viewerId: string | null

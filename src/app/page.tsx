@@ -4,9 +4,39 @@ import { EmptyState, Section } from '@/components/ui'
 import { getListings } from '@/features/books/queries'
 import { RequestList } from '@/features/requests/RequestCard'
 import { getRequestFeed } from '@/features/requests/queries'
+import { getDemandThisMonth, getSuggestedListings } from '@/features/discovery/queries'
 import { getSessionUser } from '@/lib/auth/dal'
 import { ITEMS_LABEL_LOWER } from '@/types/domain'
 import styles from './page.module.css'
+
+/**
+ * The row that is about this reader rather than about the site.
+ *
+ * Ordered by how well each listing matches what they list, what they take and
+ * what they click — see suggested_copies() — and rendered only when that comes
+ * back with something. A signed-out visitor and a brand-new account both get
+ * nothing here, and the page starts at "Шинээр нэмэгдсэн" as before: a row
+ * labelled "for you" that is really the newest listings under another name
+ * teaches people to scroll past it.
+ */
+async function SuggestedForYou() {
+  const listings = await getSuggestedListings(6)
+  if (listings.length === 0) return null
+  return (
+    <Section
+      title="Танд санал болгож буй номнууд"
+      description="Таны нэмсэн, авсан, үзсэн зүйлст тулгуурлав"
+      href="/search"
+    >
+      {/* No priority covers, although this row is the top one when it appears:
+          the four below already claim it, and eight eager images is the same as
+          none. This row only exists for somebody signed in with a history here,
+          which is somebody on their second visit with a warm cache — the cold
+          first paint this site is tuned for is the signed-out one. */}
+      <BookGrid listings={listings} />
+    </Section>
+  )
+}
 
 /**
  * What is actually on offer, newest first.
@@ -29,6 +59,28 @@ async function RecentlyAdded() {
   // The first row is what a reader sees before scrolling, and one of those
   // covers is this page's LCP.
   return <BookGrid listings={listings} priorityCount={4} />
+}
+
+/**
+ * The month's most wanted, leader first.
+ *
+ * Demand rather than traffic: a swap offer counts for five of a page view,
+ * because offering one of your own books for something is the only signal here
+ * that costs anything — see demand_this_month(). Hidden outright in a month when
+ * nothing has been asked for, which on a quiet month is the truth.
+ */
+async function DemandThisMonth() {
+  const listings = await getDemandThisMonth(6)
+  if (listings.length === 0) return null
+  return (
+    <Section
+      title="Энэ сарын эрэлттэй"
+      description="Хамгийн олон хүний санал болгосон, хүсэлт илгээсэн зүйлс"
+      href="/search"
+    >
+      <BookGrid listings={listings} />
+    </Section>
+  )
 }
 
 /**
@@ -140,6 +192,10 @@ export default async function HomePage() {
       </section>
 
       <div className="container">
+        <Suspense fallback={null}>
+          <SuggestedForYou />
+        </Suspense>
+
         <Section
           title="Шинээр нэмэгдсэн"
           description="Солилцох боломжтой, эсвэл оноогоор авах боломжтой шинэ зүйлс"
@@ -149,6 +205,10 @@ export default async function HomePage() {
             <RecentlyAdded />
           </Suspense>
         </Section>
+
+        <Suspense fallback={null}>
+          <DemandThisMonth />
+        </Suspense>
 
         <Section
           title="Сураглаж байна"

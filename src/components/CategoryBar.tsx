@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { orderCategories, type CategoryStanding } from '@/features/discovery/order'
+import { recordInterest } from '@/features/discovery/record'
 import {
   BOOK_CATEGORY,
   CATEGORIES_FOR,
@@ -24,8 +26,15 @@ import styles from './CategoryBar.module.css'
  * The categories shown follow the kind. Music genres beside "Сурах бичиг" would
  * be a list of forty headings, most of which return nothing whichever one you
  * pick; picking Пянз first narrows both the strip and the results.
+ *
+ * Their order is the reader's, not the alphabet's: `standing` comes from what
+ * they list, what they take and what they click, and for somebody signed out —
+ * or newly signed up, who is the same thing until they do something — it is
+ * simply which headings have the most books under them.
+ *
+ * Headings with nothing under them are left out; see orderCategories.
  */
-export function CategoryBar() {
+export function CategoryBar({ standing = {} }: { standing?: CategoryStanding }) {
   const params = useSearchParams()
   const active = params.get('category')
   const q = params.get('q')
@@ -52,7 +61,7 @@ export function CategoryBar() {
       ? active
       : null
 
-  const categories = kind ? CATEGORIES_FOR[kind] : BOOK_CATEGORY
+  const categories = orderCategories(kind ? CATEGORIES_FOR[kind] : BOOK_CATEGORY, standing, active)
 
   return (
     <nav className={styles.bar} aria-label="Ангилал">
@@ -92,6 +101,7 @@ export function CategoryBar() {
             href={hrefFor({ category: c })}
             className={styles.chip}
             data-active={active === c}
+            onClick={() => recordInterest({ kind: 'category_click', category: c })}
           >
             {CATEGORY_LABEL[c as keyof typeof CATEGORY_LABEL]}
           </Link>

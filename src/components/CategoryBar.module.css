@@ -15,63 +15,63 @@
   display: none;
 }
 
+/* No frame at all — not a border, not a fill, not a rounded corner. Thirty
+   outlined pills in a scrolling strip read as thirty buttons demanding a
+   decision; the same words as plain text read as a list, which is what they are.
+   What is left to say is which one is chosen, and the underline says it. */
 .chip {
   flex: none;
-  padding: 6px 13px;
-  border: 1px solid var(--border);
-  /* Unchosen: one corner clipped, so an inactive filter reads as a tab waiting
-     to be picked rather than as a button already pressed. */
-  border-radius: var(--radius-cut);
-  background: var(--surface);
-  color: var(--text-2);
+  padding: 6px 10px 5px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-3);
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
+  /* Drawn whatever the state, in the background colour when it is not wanted,
+     so that choosing a category does not make the strip one pixel taller and
+     shove the whole page down. */
+  border-bottom: 1.5px solid transparent;
   transition:
-    border-color 0.14s ease,
     color 0.14s ease,
-    background 0.14s ease,
-    border-radius 0.18s ease;
+    border-color 0.14s ease;
 }
 
 .chip:hover {
-  border-color: var(--accent);
   color: var(--text);
 }
 
-/* Chosen: the corner rounds out and it becomes an ordinary button. The
-   transition is what carries the meaning — the shape resolving is the feedback
-   that the filter took. */
 .chip[data-active='true'] {
-  border-radius: var(--radius-pill);
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chip {
-    transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
-  }
+  color: var(--accent);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
 }
 
 @media (max-width: 640px) {
   .chip {
-    padding: 6px 11px;
+    padding: 6px 8px 5px;
     font-size: 12.5px;
   }
 }
 
-/* Kind first, then the categories that belong to it. */
+/* Kind first, then the categories that belong to it — but weighted the same as
+   a category. Ном and Пянз in bold made two unchosen words look chosen, which is
+   the one thing this strip has to be able to say. */
 .chip[data-kind='true'] {
-  font-weight: 650;
+  font-weight: 500;
+}
+
+.chip[data-kind='true'][data-active='true'] {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .divider {
   flex: none;
   width: 1px;
   align-self: stretch;
-  margin: 6px 4px;
+  margin: 6px 6px;
   background: var(--border);
 }

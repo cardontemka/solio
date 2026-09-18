@@ -38,7 +38,7 @@ begin
   return n;
 end $$;
 
-select plan(16);
+select plan(19);
 
 select set_config('test.alice',   pg_temp.uid('altan@example.invalid')::text,  true),
        set_config('test.mallory', pg_temp.uid('ganbat@example.invalid')::text, true),
@@ -128,6 +128,27 @@ select is((select count(*)::int from public.notifications
 
 select is((select count(*)::int from public.audit_logs), 0,
   'a non-staff user cannot read audit_logs');
+
+-- ══ Browsing history ══════════════════════════════════════════════════════
+-- interest_events records which categories somebody clicked and which listings
+-- they opened. It is the most revealing thing stored here and it belongs to one
+-- person: not to another reader, and not to staff either — is_staff() opens no
+-- door in these policies, so there is nobody who can look up what a given member
+-- has been reading. Mallory is signed in as herself for both.
+select lives_ok(
+  $$ insert into public.interest_events (user_id, kind, category)
+     values (current_setting('test.mallory')::uuid, 'category_click', 'history') $$,
+  'a reader may record their own interest');
+
+select throws_ok(
+  $$ insert into public.interest_events (user_id, kind, category)
+     values (current_setting('test.alice')::uuid, 'category_click', 'history') $$,
+  '42501', null, 'and cannot record one against somebody else');
+
+select is(
+  (select count(*)::int from public.interest_events
+    where user_id = current_setting('test.alice')::uuid),
+  0, 'nobody can read another reader''s browsing history');
 
 select is((select count(*)::int from public.swaps
             where requester_id <> current_setting('test.mallory')::uuid

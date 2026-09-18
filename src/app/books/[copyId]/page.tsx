@@ -8,6 +8,7 @@ import { ReopenListingButton } from '@/features/books/ReopenListingButton'
 import { BookCover } from '@/components/BookCard'
 import { ListingSummary } from '@/features/books/ListingSummary'
 import { CopyTrail } from '@/features/books/CopyTrail'
+import { ViewSignal } from '@/features/discovery/ViewSignal'
 import {
   coverColorFor,
   findListingIdForBook,
@@ -122,6 +123,10 @@ export default async function ListingPage({ params }: PageProps<'/books/[copyId]
 
   return (
     <div className="container">
+      {/* Renders nothing; it tells the server this listing was opened, which is
+          one of the three things the category strip and the feed's suggestions
+          are ordered by. Ignored entirely for a signed-out reader. */}
+      <ViewSignal copyId={listing.copyId} />
       <nav className={styles.crumbs}>
         <Link href="/">Нүүр</Link> <span>/</span>
         <Link href="/search">{ITEMS_LABEL}</Link> <span>/</span>

@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/reports', label: 'Гомдол' },
   { href: '/admin/users', label: 'Хэрэглэгч' },
   { href: '/admin/content', label: 'Контент' },
+  { href: '/admin/insights', label: 'Сонирхол' },
   { href: '/admin/audit', label: 'Audit log' },
 ]
 

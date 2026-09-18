@@ -65,6 +65,37 @@
   color: var(--accent);
 }
 
+/* The whole card opens the venue's page.
+   
+   One stretched link rather than a link around the card: the card already holds
+   a telephone number and a "N зүйл" link, and an anchor cannot contain another
+   anchor — browsers silently unnest them and the markup stops meaning what it
+   says. So the name's own link grows an overlay the size of the card, and the
+   two things that need their own destination are lifted above it. Screen
+   readers still hear one link, named after the venue. */
+.name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.card:hover .name {
+  color: var(--accent);
+}
+
+/* Above the overlay, so a phone number is still a phone number. */
+.meta a,
+.holding {
+  position: relative;
+  z-index: 2;
+}
+
 .kind {
   margin-left: auto;
   flex: none;

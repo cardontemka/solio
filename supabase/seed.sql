@@ -86,39 +86,43 @@ update public.profiles set
 -- Demo library. Inserted directly (as postgres) rather than through the RPC so
 -- the seed can pick owners and back-date rows.
 with new_books as (
+  -- Headings included, because the category strip and the suggestions are both
+  -- built out of them: a demo shelf where no book has one shows an empty strip
+  -- and no recommendations, which reads as a broken feature rather than as an
+  -- empty site.
   insert into public.books (title, author, isbn, publisher, language, description,
-                            published_at, created_by, created_at)
+                            published_at, categories, created_by, created_at)
   values
    ('Монголын нууц товчоо','Тодорхойгүй','9789992901234','Улсын хэвлэлийн газар','mn',
     'XIII зууны Монголын түүхэн сурвалж. Чингис хааны удам угсаа, амьдрал, байлдан дагуулалтын тухай өгүүлдэг.',
-    '2019-01-01','22222222-2222-2222-2222-222222222222', now() - interval '5 days'),
+    '2019-01-01',array['history','classic']::public.book_category[],'22222222-2222-2222-2222-222222222222', now() - interval '5 days'),
    ('Ном унших урлаг','Мортимер Адлер','9780671212094','Нэпко','mn',
     'Хэрхэн гүнзгий, ойлгомжтой унших вэ гэдгийг заасан сонгодог гарын авлага.',
-    '2021-06-15','11111111-1111-1111-1111-111111111111', now() - interval '6 days'),
+    '2021-06-15',array['nonfiction','selfhelp']::public.book_category[],'11111111-1111-1111-1111-111111111111', now() - interval '6 days'),
    ('The Hobbit','J.R.R. Tolkien','9780261102217','HarperCollins','en',
     'Bilbo Baggins is swept into a quest to reclaim the lost Dwarf Kingdom of Erebor.',
-    '2012-09-18','11111111-1111-1111-1111-111111111111', now() - interval '7 days'),
+    '2012-09-18',array['fantasy','fiction']::public.book_category[],'11111111-1111-1111-1111-111111111111', now() - interval '7 days'),
    ('Зөгийн балны амт','Д. Дулмаа',null,'Мөнхийн үсэг','mn',
     'Хөдөөгийн бага насны дурсамжийг өгүүлсэн хүүхдийн богино өгүүллэгүүд.',
-    '2023-03-10','44444444-4444-4444-4444-444444444444', now() - interval '8 days'),
+    '2023-03-10',array['children','fiction']::public.book_category[],'44444444-4444-4444-4444-444444444444', now() - interval '8 days'),
    ('Хүн ба хувь заяа','Ч. Лодойдамба','9789996252341','Соёмбо принтинг','mn',
     'Монголын сонгодог уран зохиолын нэгэн чухал бүтээл.',
-    '2018-11-02','22222222-2222-2222-2222-222222222222', now() - interval '9 days'),
+    '2018-11-02',array['classic','fiction']::public.book_category[],'22222222-2222-2222-2222-222222222222', now() - interval '9 days'),
    ('Sapiens: Хүн төрөлхтний товч түүх','Ювал Ноа Харари','9789997712349','Нэпко','mn',
     'Танин мэдэхүйн хувьсгалаас өнөөг хүртэлх хүн төрөлхтний түүх.',
-    '2020-02-20','33333333-3333-3333-3333-333333333333', now() - interval '10 days'),
+    '2020-02-20',array['history','science']::public.book_category[],'33333333-3333-3333-3333-333333333333', now() - interval '10 days'),
    ('Номын сан ба уншлагын соёл','Б. Батсайхан',null,'Соёмбо','mn',
     'Монгол дахь номын сангийн хөгжил, уншлагын соёлын судалгаа.',
-    '2022-09-01','22222222-2222-2222-2222-222222222222', now() - interval '11 days'),
+    '2022-09-01',array['nonfiction','reference']::public.book_category[],'22222222-2222-2222-2222-222222222222', now() - interval '11 days'),
    ('Atomic Habits','James Clear','9780735211292','Avery','en',
     'An easy and proven way to build good habits and break bad ones.',
-    '2018-10-16','33333333-3333-3333-3333-333333333333', now() - interval '12 days'),
+    '2018-10-16',array['selfhelp','psychology']::public.book_category[],'33333333-3333-3333-3333-333333333333', now() - interval '12 days'),
    ('Гэгээн муза','Б. Явуухулан',null,'Улсын хэвлэлийн газар','mn',
     'Монголын нэрт яруу найрагчийн шүлгийн түүвэр.',
-    '2015-04-04','11111111-1111-1111-1111-111111111111', now() - interval '13 days'),
+    '2015-04-04',array['poetry','classic']::public.book_category[],'11111111-1111-1111-1111-111111111111', now() - interval '13 days'),
    ('Clean Code','Robert C. Martin','9780132350884','Prentice Hall','en',
     'A handbook of agile software craftsmanship.',
-    '2008-08-01','33333333-3333-3333-3333-333333333333', now() - interval '14 days')
+    '2008-08-01',array['technology','nonfiction']::public.book_category[],'33333333-3333-3333-3333-333333333333', now() - interval '14 days')
   returning id, title
 )
 insert into public.book_copies (book_id, owner_id, custodian_id, condition,

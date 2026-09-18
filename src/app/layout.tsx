@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
 import brandMark from '../../public/brand-mark.png'
-import { CategoryBar } from '@/components/CategoryBar'
+import { SiteCategoryBar } from '@/components/SiteCategoryBar'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteMobileNav } from '@/components/SiteMobileNav'
 import { NavProgress } from '@/components/NavProgress'
@@ -64,7 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body>
         <NavProgress />
         <SiteHeader />
-        <CategoryBar />
+        <SiteCategoryBar />
         <main className={styles.main}>{children}</main>
         <AddBookFab />
         <SiteMobileNav />

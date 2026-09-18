@@ -33,6 +33,32 @@
   color: var(--text);
 }
 
+/* The same strip is reused on the insights page to pick a time window, where
+   one of them is always the current choice. */
+.navLink[data-active='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .navLink[data-active='true'] {
+    color: #17150f;
+  }
+}
+
+/* A heading above each table on a page that has three of them. */
+.sectionTitle {
+  margin: 26px 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+/* A category people click and find nothing under. */
+.table td[data-alert='true'] {
+  color: var(--danger);
+  font-weight: 650;
+}
+
 /* ── Stat tiles ─────────────────────────────────────────────────────────── */
 
 .stats {
