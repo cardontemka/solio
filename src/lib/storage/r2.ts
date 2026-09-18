@@ -11,6 +11,16 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { BookImageStorage, UploadTarget } from './ports'
 
 /**
+ * A key contains a uuid and the bytes under it are never rewritten — a new photo
+ * is a new key — so the object may be cached until the browser forgets it.
+ *
+ * Without this R2 answers with no Cache-Control at all, which leaves every cover
+ * to the browser's heuristics: in practice a conditional request per image per
+ * visit, and a feed is twenty of them before anything is drawn.
+ */
+const IMMUTABLE = 'public, max-age=31536000, immutable'
+
+/**
  * Production storage. The browser PUTs straight to R2, so image bytes never
  * pass through the application — which also keeps uploads clear of the
  * platform's request body limit.
@@ -55,13 +65,16 @@ export class R2BookImageStorage implements BookImageStorage {
         Key: input.storageKey,
         ContentType: input.mimeType,
         ContentLength: input.byteSize,
+        CacheControl: IMMUTABLE,
       }),
       { expiresIn: ttl }
     )
     return {
       url,
       method: 'PUT',
-      headers: { 'content-type': input.mimeType },
+      // Signed above, so the browser has to send it back verbatim or R2 rejects
+      // the PUT; uploadImage() forwards whatever is listed here.
+      headers: { 'content-type': input.mimeType, 'cache-control': IMMUTABLE },
       expiresAt: new Date(Date.now() + ttl * 1000).toISOString(),
     }
   }
@@ -74,6 +87,7 @@ export class R2BookImageStorage implements BookImageStorage {
         Body: bytes,
         ContentType: mimeType,
         ContentLength: bytes.byteLength,
+        CacheControl: IMMUTABLE,
       })
     )
   }

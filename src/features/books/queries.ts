@@ -46,6 +46,13 @@ export type ListingOwner = {
   displayName: string
   city: string | null
   avatarUrl: string | null
+  /**
+   * A venue rather than a reader — which changes what the listing is. A venue
+   * owns a book because somebody donated it, and it goes out again for a credit,
+   * never for a swap; the database refuses a swap that involves one
+   * (POINT_ITEMS_ARE_BY_CREDIT), so the card has to say so before anybody tries.
+   */
+  isStoragePoint: boolean
 }
 
 export type Listing = {
@@ -98,9 +105,18 @@ const LISTING_SELECT = `
   id, public_code, condition, condition_note, status, transfer_count, created_at,
   books!inner ( id, title, author, isbn, publisher, language, description, published_at,
                 categories, weight_g, size_note, kind, attributes ),
-  owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key ),
+  owner:profiles!book_copies_owner_id_fkey ( id, username, display_name, city, avatar_key, account_type ),
   book_images ( id, storage_key, thumb_key, sort_order, status )
 `
+
+type ListingOwnerRow = {
+  id: string
+  username: string
+  display_name: string
+  city: string | null
+  avatar_key: string | null
+  account_type: string | null
+}
 
 type ListingRow = {
   id: string
@@ -142,10 +158,7 @@ type ListingRow = {
         attributes: Record<string, string | number> | null
       }[]
     | null
-  owner:
-    | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }
-    | { id: string; username: string; display_name: string; city: string | null; avatar_key: string | null }[]
-    | null
+  owner: ListingOwnerRow | ListingOwnerRow[] | null
   book_images: {
     id: string
     storage_key: string
@@ -200,6 +213,7 @@ function toListing(row: ListingRow): Listing | null {
           displayName: owner.display_name,
           city: owner.city,
           avatarUrl: avatarUrl(owner.avatar_key),
+          isStoragePoint: owner.account_type === 'storage_point',
         }
       : null,
     // Filled in by withStorage() for the few readers entitled to know; the
@@ -237,7 +251,11 @@ export async function getListings(
   let query = supabase
     .from('book_copies')
     .select(LISTING_SELECT)
-    .order('created_at', { ascending: false })
+    // listed_at, not created_at: the feed means "what has just become something
+    // you could take", and for a book donated to a venue this morning the
+    // registration date is months old. The database maintains it — see
+    // private.book_copies_guard.
+    .order('listed_at', { ascending: false })
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
   // Containment, not equality: a book carries several headings now, and the

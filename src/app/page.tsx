@@ -45,7 +45,7 @@ async function MoreListings() {
   return (
     <Section
       title={`Бусад ${ITEMS_LABEL_LOWER}`}
-      description="Хэрэглэгчид солилцохоор нээлттэй болгосон зүйлс"
+      description="Нээлттэй байгаа бусад ном, пянз"
       href="/search"
     >
       <BookGrid listings={listings} />
@@ -142,7 +142,7 @@ export default async function HomePage() {
       <div className="container">
         <Section
           title="Шинээр нэмэгдсэн"
-          description="Хамгийн сүүлд нэмэгдсэн, солилцох боломжтой зүйлс"
+          description="Солилцох боломжтой, эсвэл оноогоор авах боломжтой шинэ зүйлс"
           href="/search"
         >
           <Suspense fallback={<RailSkeleton />}>

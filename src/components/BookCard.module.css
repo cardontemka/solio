@@ -332,6 +332,29 @@
   backdrop-filter: blur(2px);
 }
 
+/* "Take this one with a credit." In the site's own accent rather than the
+   neutral black of the other two tags: it is the only one that says what a
+   reader can do, not what the thing is.
+
+   It shares the top-left corner with .status, which is safe because the two can
+   never both be there: .status appears only when the copy is not available, and
+   this one only when it is. The bottom of the cover is not free — a listing with
+   no photo draws its title and author down there. */
+.creditTag {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
+}
+
 /* The venue holding this one, under the meta line. Truncated rather than
    wrapped: a second line here would make one card in a grid taller than its
    neighbours. */

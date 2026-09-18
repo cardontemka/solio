@@ -114,6 +114,13 @@ export function BookCard({
         {listing.kind !== 'book' && (
           <span className={styles.kindTag}>{KIND_COPY[listing.kind].one}</span>
         )}
+        {/* A venue's book is not swapped for — it was donated, and it leaves the
+            shelf for one credit. Said on the card because the whole feed
+            otherwise reads as "offer something of yours for this", which is the
+            one thing that cannot happen here. */}
+        {listing.owner?.isStoragePoint && listing.status === 'available' && (
+          <span className={styles.creditTag}>Оноогоор</span>
+        )}
       </div>
       <div className={styles.body}>
         <h3 className={styles.title}>{listing.title}</h3>

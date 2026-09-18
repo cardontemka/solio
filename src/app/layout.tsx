@@ -4,6 +4,7 @@ import { publicEnv } from '@/lib/validation/env'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Image from 'next/image'
 import Link from 'next/link'
+import brandMark from '../../public/brand-mark.png'
 import { CategoryBar } from '@/components/CategoryBar'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteMobileNav } from '@/components/SiteMobileNav'
@@ -71,13 +72,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           <div className={`container ${styles.footerInner}`}>
             <div className={styles.footerCol}>
               <span className={styles.footerBrand}>
-                <Image
-                  className={styles.footerMark}
-                  src="/header-logo.png"
-                  alt=""
-                  width={48}
-                  height={48}
-                />
+                <Image className={styles.footerMark} src={brandMark} alt="" unoptimized />
                 © 2026 Solio
               </span>
               <nav className={styles.footerNav}>

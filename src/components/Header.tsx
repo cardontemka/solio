@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import brandMark from '../../public/brand-mark.png'
 import { Avatar } from './Avatar'
 import { SearchBar } from './SearchBar'
 import { usePathname } from 'next/navigation'
@@ -93,14 +94,12 @@ export function Header({
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
         <Link href="/" className={styles.brand}>
-          <Image
-            className={styles.mark}
-            src="/header-logo.png"
-            alt=""
-            width={64}
-            height={64}
-            priority
-          />
+          {/* Imported rather than named by path, and unoptimized: the file is
+              already the size it is drawn at, and going through /_next/image
+              cost a revalidating round trip on every single page load — the
+              optimizer answers with max-age=0, must-revalidate, while an
+              imported asset is fingerprinted and cached for a year. */}
+          <Image className={styles.mark} src={brandMark} alt="" priority unoptimized />
           <span className={styles.brandName}>Solio</span>
         </Link>
 

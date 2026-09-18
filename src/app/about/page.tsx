@@ -31,8 +31,8 @@ export default function AboutPage() {
             className={styles.image}
             src="/header-logo.png"
             alt=""
-            width={1200}
-            height={630}
+            width={512}
+            height={512}
             priority
           />
           <figcaption className={styles.caption}>
